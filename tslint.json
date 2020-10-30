@@ -1,0 +1,22 @@
+{
+  "extends": [
+    "tslint:recommended",
+    "tslint-config-standard"
+  ],
+  "rules": {
+    "file-name-casing": [true, "kebab-case"],
+    "ordered-imports": false,
+    "object-literal-sort-keys": false,
+    "arrow-parens": false,
+    "max-line-length": false,
+    "no-shadowed-variable": false,
+    "member-ordering": false,
+    "interface-over-type-literal": false,
+    "array-type": false,
+    "only-arrow-functions": false,
+    "interface-name": false,
+    "object-literal-key-quotes": [true, "consistent-as-needed"],
+    "forin": false,
+    "no-namespace": false
+  }
+}

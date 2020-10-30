@@ -1,0 +1,97 @@
+// tslint:disable-next-line: ban-types
+export function Route (route?: string): Function {
+  return () => {
+    return
+  }
+}
+
+// tslint:disable-next-line: ban-types
+export function Tags (...tags: string[]): Function {
+  return () => {
+    return
+  }
+}
+
+// tslint:disable-next-line: ban-types
+export function Get (route?: string): Function {
+  return () => {
+    return
+  }
+}
+
+// tslint:disable-next-line: ban-types
+export function Post (route?: string): Function {
+  return () => {
+    return
+  }
+}
+
+// tslint:disable-next-line: ban-types
+export function Delete (route?: string): Function {
+  return () => {
+    return
+  }
+}
+
+// tslint:disable-next-line: ban-types
+export function Patch (route?: string): Function {
+  return () => {
+    return
+  }
+}
+
+// tslint:disable-next-line: ban-types
+export function Put (route?: string): Function {
+  return () => {
+    return
+  }
+}
+
+// tslint:disable-next-line: ban-types
+export function Body (contentType: string = 'application/json'): Function {
+  return () => {
+    return
+  }
+}
+
+// tslint:disable-next-line: ban-types
+export function Query (name: string): Function {
+  return () => {
+    return
+  }
+}
+
+// tslint:disable-next-line: ban-types
+export function Header (name: string): Function {
+  return () => {
+    return
+  }
+}
+
+// tslint:disable-next-line: ban-types
+export function Path (name: string): Function {
+  return () => {
+    return
+  }
+}
+
+// tslint:disable-next-line: ban-types
+export function Security (securities: Record<string, string[]>): Function {
+  return () => {
+    return
+  }
+}
+
+// tslint:disable-next-line: ban-types
+export function Response <T> (httpCode: number, description?: string): Function {
+  return () => {
+    return
+  }
+}
+
+// tslint:disable-next-line: ban-types
+export function Request <T> (httpCode: number, description?: string): Function {
+  return () => {
+    return
+  }
+}
