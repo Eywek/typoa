@@ -29,7 +29,6 @@ And all of this issues are caused by the custom type resolver of tsoa, in this p
 
 ## Work in progress
 
-- [ ] Tests
 - [ ] JSDoc attributes (@minimum, @maximum, @pattern, @description, @format (for binary file))
 - [ ] Documentation
 - [ ] HTTP Validation and parsing (query params to number, validate types, discriminator validation, readOnly validation)

@@ -1,0 +1,653 @@
+{
+	"openapi": "3.0.0",
+	"info": {
+		"title": "my-service",
+		"version": "1.0.0"
+	},
+	"paths": {
+		"/my-route": {
+			"get": {
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/_bar-bare--foo-string--_-and-_id-number--_-and-_h-hi-or-hello--_"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"my-tag"
+				]
+			},
+			"post": {
+				"parameters": [
+					{
+						"name": "my-param",
+						"in": "query",
+						"schema": {
+							"type": "string"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DeepGeneric__foo-string--bar-number--__"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"my-tag",
+					"my-post-tag"
+				]
+			}
+		},
+		"/my-2nd-route": {
+			"post": {
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/_fooPost-string--barPost-_barFooPost-string--_--_"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/_readonlyerror_code-911--readonlystatus_code-404--_"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"my-tag"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"allOf": [
+									{
+										"properties": {
+											"name": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"name"
+										]
+									},
+									{
+										"$ref": "#/components/schemas/DatasourceVersion"
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/{id}": {
+			"patch": {
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"schema": {
+							"type": "string"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/_enum-MyEnum--date..-Date-or-undefined--_"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/_error_code-910--_"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"my-tag"
+				]
+			}
+		},
+		"/": {
+			"delete": {
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SuccessResponse_Datasource_"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": ""
+					}
+				},
+				"tags": [
+					"my-tag"
+				]
+			}
+		},
+		"/list": {
+			"get": {
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Partial_Serialized_Datasource__"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"my-tag"
+				]
+			}
+		},
+		"/missing": {
+			"post": {
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/_tuple-_string....number-Array_--bool-boolean--nullable-string-or-null--optional..-number-or-undefined--enumLiteral-MyEnum.FOO--_"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"my-tag"
+				]
+			}
+		},
+		"/no-required/{id}": {
+			"get": {
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"schema": {
+							"type": "string"
+						},
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/_foo..-string-or-undefined--readonlybarReadonly..-number-or-undefined--unknown-unknown--void-void--_"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"my-tag"
+				]
+			}
+		},
+		"/file": {
+			"post": {
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/__"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"my-tag"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"properties": {
+									"file": {
+                    "type": "string",
+                    "format": "binary"
+									}
+								},
+								"required": [
+									"file"
+								]
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"company": [
+							"my-scope"
+						]
+					}
+				]
+			}
+		},
+		"/getters": {
+			"patch": {
+				"parameters": [],
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/__"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"my-tag"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/GettersClass"
+							}
+						}
+					}
+				},
+				"security": [
+					{
+						"company": []
+					}
+				]
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"_bar-bare--foo-string--_-and-_id-number--_-and-_h-hi-or-hello--_": {
+				"allOf": [
+					{
+						"properties": {
+							"bar": {
+								"type": "string",
+								"enum": [
+									"bare"
+								]
+							},
+							"foo": {
+								"type": "string"
+							}
+						},
+						"required": [
+							"bar",
+							"foo"
+						]
+					},
+					{
+						"properties": {
+							"id": {
+								"type": "number"
+							}
+						},
+						"required": [
+							"id"
+						]
+					},
+					{
+						"properties": {
+							"h": {
+								"oneOf": [
+									{
+										"type": "string",
+										"enum": [
+											"hi"
+										]
+									},
+									{
+										"type": "string",
+										"enum": [
+											"hello"
+										]
+									}
+								]
+							}
+						},
+						"required": [
+							"h"
+						]
+					}
+				]
+			},
+			"DeepGeneric__foo-string--bar-number--__": {
+				"allOf": [
+					{
+						"properties": {
+							"foo": {
+								"allOf": [
+									{
+										"properties": {
+											"value": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"value"
+										]
+									},
+									{
+										"properties": {
+											"bar": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"bar"
+										]
+									}
+								]
+							}
+						},
+						"required": [
+							"foo"
+						]
+					},
+					{
+						"properties": {
+							"fobar": {
+								"type": "number"
+							}
+						},
+						"required": [
+							"fobar"
+						]
+					}
+				]
+			},
+			"_fooPost-string--barPost-_barFooPost-string--_--_": {
+				"properties": {
+					"fooPost": {
+						"type": "string"
+					},
+					"barPost": {
+						"properties": {
+							"barFooPost": {
+								"type": "string"
+							}
+						},
+						"required": [
+							"barFooPost"
+						]
+					}
+				},
+				"required": [
+					"fooPost",
+					"barPost"
+				]
+			},
+			"_readonlyerror_code-911--readonlystatus_code-404--_": {
+				"properties": {
+					"error_code": {
+						"type": "number",
+						"enum": [
+							911
+						]
+					},
+					"status_code": {
+						"type": "number",
+						"enum": [
+							404
+						]
+					}
+				},
+				"required": [
+					"error_code",
+					"status_code"
+				]
+			},
+			"DatasourceVersion": {
+				"properties": {
+					"type": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"type"
+				]
+			},
+			"MyEnum": {
+				"type": "string",
+				"enum": [
+					"foo",
+					"bar"
+				]
+			},
+			"_enum-MyEnum--date..-Date-or-undefined--_": {
+				"properties": {
+					"enum": {
+						"$ref": "#/components/schemas/MyEnum"
+					},
+					"date": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"enum"
+				]
+			},
+			"_error_code-910--_": {
+				"properties": {
+					"error_code": {
+						"type": "number",
+						"enum": [
+							910
+						]
+					}
+				},
+				"required": [
+					"error_code"
+				]
+			},
+			"Datasource": {
+				"properties": {
+					"name": {
+            "type": "string",
+            "pattern": "^([A-Z]+)"
+					},
+					"versions": {
+            "type": "array",
+            "description": "This comment is used to test toag",
+						"items": {
+							"$ref": "#/components/schemas/DatasourceVersion"
+						}
+					},
+					"version": {
+						"$ref": "#/components/schemas/DatasourceVersion",
+						"nullable": true
+					}
+				},
+				"required": [
+					"name",
+					"versions",
+					"version"
+				]
+			},
+			"SuccessResponse_Datasource_": {
+				"properties": {
+					"date": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"data": {
+						"$ref": "#/components/schemas/Datasource"
+					}
+				},
+				"required": [
+					"date",
+					"data"
+				]
+			},
+			"Partial_Serialized_Datasource__": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"versions": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/DatasourceVersion"
+						}
+					},
+					"version": {
+						"$ref": "#/components/schemas/DatasourceVersion"
+					},
+					"id": {
+						"type": "string"
+					}
+				}
+			},
+			"_tuple-_string....number-Array_--bool-boolean--nullable-string-or-null--optional..-number-or-undefined--enumLiteral-MyEnum.FOO--_": {
+				"properties": {
+					"tuple": {
+						"type": "array",
+						"items": {
+							"oneOf": [
+								{
+									"type": "string"
+								},
+								{
+									"type": "number"
+								}
+							]
+						}
+					},
+					"bool": {
+						"type": "boolean"
+					},
+					"nullable": {
+						"type": "string",
+						"nullable": true
+					},
+					"optional": {
+						"type": "number"
+					},
+					"enumLiteral": {
+						"type": "string",
+						"enum": [
+							"foo"
+						]
+					}
+				},
+				"required": [
+					"tuple",
+					"bool",
+					"nullable",
+					"enumLiteral"
+				]
+			},
+			"_foo..-string-or-undefined--readonlybarReadonly..-number-or-undefined--unknown-unknown--void-void--_": {
+				"properties": {
+					"foo": {
+						"type": "string"
+					},
+					"barReadonly": {
+						"type": "number",
+						"readOnly": true
+					},
+					"unknown": {
+						"type": "object"
+					},
+					"void": {
+						"type": "object"
+					}
+				},
+				"required": [
+					"unknown",
+					"void"
+				]
+			},
+			"__": {
+				"properties": {}
+			},
+			"GettersClass": {
+				"properties": {
+					"fooGet": {
+						"type": "string",
+						"readOnly": true
+					},
+					"barGetAndSet": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"fooGet",
+					"barGetAndSet"
+				]
+			}
+		},
+		"securitySchemes": {
+			"company": {
+				"type": "apiKey",
+				"name": "x-company-id",
+				"in": "header"
+			}
+		}
+	}
+}

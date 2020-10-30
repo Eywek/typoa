@@ -1,0 +1,24 @@
+name: Tests
+on:
+  push:
+    branches: # avoid duplicate workflows on tag
+      - '**'
+
+jobs:
+  tests:
+    container: node:12.16.0-buster
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: /github/home/.cache/yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+        env:
+          YARN_CACHE_FOLDER: /github/home/.cache/yarn
+      - name: Test
+        run: yarn test

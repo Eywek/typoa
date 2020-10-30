@@ -31,7 +31,6 @@
     "exclude": [
       "node_modules",
       "build",
-      "coverage",
-      "tests"
+      "coverage"
     ]
 }
