@@ -95,6 +95,7 @@ export function resolve (
     const typeArguments = type.getTypeArguments()
     if (typeName === '__type' || typeName === '__object' || typeArguments.length > 0) {
       return {
+        type: 'object',
         ...resolveProperties(type, spec),
         description
       }
@@ -105,6 +106,7 @@ export function resolve (
     // tslint:disable-next-line: strict-type-predicates
     if (typeof spec.components!.schemas![refName] === 'undefined') {
       spec.components!.schemas![refName] = {
+        type: 'object',
         ...resolveProperties(type, spec),
         description
       }
@@ -187,6 +189,13 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     if (isReadonly) {
       Object.assign(resolvedType, { readOnly: true })
     }
+    // JSDoc tags
+    for (const tag of property.compilerSymbol.getJsDocTags()) {
+      if (['format', 'description', 'pattern', 'minimum', 'maximum'].includes(tag.name) && tag.text) {
+        Object.assign(resolvedType, { [tag.name]: tag.text })
+      }
+    }
+    // Add to spec
     schema.properties[property.getName()] = resolvedType
     if (required) {
       schema.required.push(property.getName())

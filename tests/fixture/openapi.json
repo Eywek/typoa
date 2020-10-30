@@ -88,9 +88,11 @@
 							"schema": {
 								"allOf": [
 									{
+										"type": "object",
 										"properties": {
 											"name": {
-												"type": "string"
+												"type": "string",
+												"pattern": "^([A-Z]+)"
 											}
 										},
 										"required": [
@@ -261,10 +263,11 @@
 					"content": {
 						"multipart/form-data": {
 							"schema": {
+								"type": "object",
 								"properties": {
 									"file": {
-                    "type": "string",
-                    "format": "binary"
+										"type": "string",
+										"format": "binary"
 									}
 								},
 								"required": [
@@ -324,6 +327,7 @@
 			"_bar-bare--foo-string--_-and-_id-number--_-and-_h-hi-or-hello--_": {
 				"allOf": [
 					{
+						"type": "object",
 						"properties": {
 							"bar": {
 								"type": "string",
@@ -341,6 +345,7 @@
 						]
 					},
 					{
+						"type": "object",
 						"properties": {
 							"id": {
 								"type": "number"
@@ -351,6 +356,7 @@
 						]
 					},
 					{
+						"type": "object",
 						"properties": {
 							"h": {
 								"oneOf": [
@@ -378,10 +384,12 @@
 			"DeepGeneric__foo-string--bar-number--__": {
 				"allOf": [
 					{
+						"type": "object",
 						"properties": {
 							"foo": {
 								"allOf": [
 									{
+										"type": "object",
 										"properties": {
 											"value": {
 												"type": "string"
@@ -392,6 +400,7 @@
 										]
 									},
 									{
+										"type": "object",
 										"properties": {
 											"bar": {
 												"type": "string"
@@ -409,6 +418,7 @@
 						]
 					},
 					{
+						"type": "object",
 						"properties": {
 							"fobar": {
 								"type": "number"
@@ -421,11 +431,13 @@
 				]
 			},
 			"_fooPost-string--barPost-_barFooPost-string--_--_": {
+				"type": "object",
 				"properties": {
 					"fooPost": {
 						"type": "string"
 					},
 					"barPost": {
+						"type": "object",
 						"properties": {
 							"barFooPost": {
 								"type": "string"
@@ -442,6 +454,7 @@
 				]
 			},
 			"_readonlyerror_code-911--readonlystatus_code-404--_": {
+				"type": "object",
 				"properties": {
 					"error_code": {
 						"type": "number",
@@ -462,6 +475,7 @@
 				]
 			},
 			"DatasourceVersion": {
+				"type": "object",
 				"properties": {
 					"type": {
 						"type": "string"
@@ -479,6 +493,7 @@
 				]
 			},
 			"_enum-MyEnum--date..-Date-or-undefined--_": {
+				"type": "object",
 				"properties": {
 					"enum": {
 						"$ref": "#/components/schemas/MyEnum"
@@ -493,6 +508,7 @@
 				]
 			},
 			"_error_code-910--_": {
+				"type": "object",
 				"properties": {
 					"error_code": {
 						"type": "number",
@@ -506,17 +522,18 @@
 				]
 			},
 			"Datasource": {
+				"type": "object",
 				"properties": {
 					"name": {
-            "type": "string",
-            "pattern": "^([A-Z]+)"
+						"type": "string",
+						"pattern": "^([A-Z]+)"
 					},
 					"versions": {
-            "type": "array",
-            "description": "This comment is used to test toag",
+						"type": "array",
 						"items": {
 							"$ref": "#/components/schemas/DatasourceVersion"
-						}
+						},
+						"description": "This comment is used to test toag"
 					},
 					"version": {
 						"$ref": "#/components/schemas/DatasourceVersion",
@@ -530,6 +547,7 @@
 				]
 			},
 			"SuccessResponse_Datasource_": {
+				"type": "object",
 				"properties": {
 					"date": {
 						"type": "string",
@@ -545,15 +563,18 @@
 				]
 			},
 			"Partial_Serialized_Datasource__": {
+				"type": "object",
 				"properties": {
 					"name": {
-						"type": "string"
+						"type": "string",
+						"pattern": "^([A-Z]+)"
 					},
 					"versions": {
 						"type": "array",
 						"items": {
 							"$ref": "#/components/schemas/DatasourceVersion"
-						}
+						},
+						"description": "This comment is used to test toag"
 					},
 					"version": {
 						"$ref": "#/components/schemas/DatasourceVersion"
@@ -564,6 +585,7 @@
 				}
 			},
 			"_tuple-_string....number-Array_--bool-boolean--nullable-string-or-null--optional..-number-or-undefined--enumLiteral-MyEnum.FOO--_": {
+				"type": "object",
 				"properties": {
 					"tuple": {
 						"type": "array",
@@ -603,6 +625,7 @@
 				]
 			},
 			"_foo..-string-or-undefined--readonlybarReadonly..-number-or-undefined--unknown-unknown--void-void--_": {
+				"type": "object",
 				"properties": {
 					"foo": {
 						"type": "string"
@@ -624,9 +647,11 @@
 				]
 			},
 			"__": {
+				"type": "object",
 				"properties": {}
 			},
 			"GettersClass": {
+				"type": "object",
 				"properties": {
 					"fooGet": {
 						"type": "string",
