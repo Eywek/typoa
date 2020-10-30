@@ -41,6 +41,9 @@ const Errors = {
 } as const
 
 interface SuccessResponse<T> {
+  /**
+   * @example 2020-10-30T19:02:06.523Z
+   */
   date: Date
   data: T
 }

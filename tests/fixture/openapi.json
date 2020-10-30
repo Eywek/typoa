@@ -550,7 +550,8 @@
 				"type": "object",
 				"properties": {
 					"date": {
-						"type": "string",
+            "type": "string",
+            "example": "2020-10-30T19:02:06.523Z",
 						"format": "date-time"
 					},
 					"data": {
