@@ -3,23 +3,26 @@ import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAs
 import { appendToSpec, extractDecoratorValues, normalizeUrl } from './utils'
 import { buildRef, resolve, stringifyName } from './resolve'
 import debug from 'debug'
+import { CodeGenControllers } from './types'
 
 const log = debug('toag:controller')
 
 const VERB_DECORATORS = ['Get', 'Post', 'Put', 'Delete', 'Patch']
 const PARAMETER_DECORATORS = ['Query', 'Body', 'Path', 'Header', 'Request']
 
-export function addControllerToSpec (
+export function addController (
   controller: ClassDeclaration,
-  spec: OpenAPIV3.Document
+  spec: OpenAPIV3.Document,
+  codegenControllers: CodeGenControllers
 ): void {
   log(`Handle ${controller.getName()} controller`)
   const routeDecorator = controller.getDecoratorOrThrow('Route')
   const controllerEndpoint = extractDecoratorValues(routeDecorator)[0]
+  const controllerName = controller.getName()!
   const methods = controller.getMethods()
   const controllerTags = extractDecoratorValues(controller.getDecorator('Tags'))
   for (const method of methods) {
-    log(`Handle ${controller.getName()}.${method.getName()} method`)
+    log(`Handle ${controllerName}.${method.getName()} method`)
     const operation: OpenAPIV3.OperationObject = {
       parameters: [],
       responses: {},
@@ -70,6 +73,11 @@ export function addControllerToSpec (
       }
     }
 
+    // We use another array for codegen parameters instead of operation.parameters
+    // because we want to have Request() and Body() in the codegen one
+    // to send it to the method at runtime
+    const codegenParameters: OpenAPIV3.OperationObject['parameters'] = []
+
     // Get parameters
     const params = method.getParameters()
     for (const parameter of params) {
@@ -79,19 +87,27 @@ export function addControllerToSpec (
       if (typeof decorator === 'undefined') {
         throw new Error(`Parameter ${controller.getName()}.${method.getName()}.${parameter.getName()} must have a decorator.`)
       }
-      if (decorator.getName() === 'Body') continue // skip, will be handled below
-      if (decorator.getName() === 'Request') continue // skip, only for router codegen
+      if (decorator.getName() === 'Body') {
+        codegenParameters.push({ name: 'body', in: 'body' })
+        continue // skip, will be handled below
+      }
+      if (decorator.getName() === 'Request') {
+        codegenParameters.push({ name: 'request', in: 'request' })
+        continue // skip, only for router codegen
+      }
       let required = true
       const schema = resolve(decorator.getParent().getType(), spec, (type, isUndefined, spec) => {
         required = false
         return resolve(type, spec) // don't have `nullable` prop
       })
-      operation.parameters!.push({
+      const generatedParameter = {
         name: extractDecoratorValues(decorator)[0],
         in: decorator.getName().toLowerCase(),
         schema,
         required
-      })
+      }
+      operation.parameters!.push(generatedParameter)
+      codegenParameters.push(generatedParameter)
     }
 
     // Handle body
@@ -135,12 +151,26 @@ export function addControllerToSpec (
       }
     }
 
-    // Add to spec
+    // Add to spec + codegen
     for (const decorator of verbDecorators) {
       const endpoint = normalizeUrl((controllerEndpoint || '/') + (extractDecoratorValues(decorator)[0] || '/'))
       const verb = decorator.getName()
-      log(`Adding '${verb} ${endpoint}' for ${controller.getName()}.${method.getName()} method to spec`)
+      // OpenAPI
+      log(`Adding '${verb} ${endpoint}' for ${controllerName}.${method.getName()} method to spec`)
       appendToSpec(spec, endpoint, verb.toLowerCase() as any, operation)
+      // Codegen
+      // tslint:disable-next-line: strict-type-predicates
+      if (typeof codegenControllers[controllerName] === 'undefined') {
+        codegenControllers[controllerName] = []
+      }
+      codegenControllers[controllerName].push({
+        name: method.getName(),
+        endpoint,
+        verb: verb.toLowerCase(),
+        security: operation.security,
+        params: codegenParameters,
+        body: operation.requestBody
+      })
     }
   }
 }

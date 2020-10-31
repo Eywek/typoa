@@ -1,0 +1,37 @@
+/* tslint:disable */
+/* eslint-disable */
+import express from 'express'
+import { RuntimeResponse, Validator } from '../src' // TODO: use 'toag'
+{{#if securityMiddleware}}
+import { securityMiddleware } from '{{securityMiddleware}}'
+{{/if}}
+{{#each controllers}}
+import { {{name}} } from '{{path}}'
+{{/each}}
+
+const schemas = {{json schemas}}
+
+export function bindToRouter (router: express.Router) {
+  {{#each controllers}}
+  {{#each methods}}
+  router.{{verb}}('{{endpoint}}'{{#if security}}, securityMiddleware({{json security}}){{/if}}, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    try {
+      const controller = new {{../name}}()
+      const data = await controller.{{name}}.apply(
+        controller,
+        Validator.validateAndParse(
+          req, schemas as any,
+          {
+            params: {{json params}},
+            body: {{#if body}}{{json body}}{{else}}undefined{{/if}}
+          }
+        ) as any
+      )
+      RuntimeResponse.send(controller, data, res)
+    } catch (err) {
+      return next(err)
+    }
+  })
+  {{/each}}
+  {{/each}}
+}

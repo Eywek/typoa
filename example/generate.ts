@@ -20,6 +20,10 @@ generate({
         in: 'header'
       }
     }
+  },
+  router: {
+    filePath: './router.ts',
+    securityMiddlewarePath: './security.ts'
   }
 }).then(() => console.log(inspect(JSON.parse(fs.readFileSync('/tmp/openapi.yaml').toString()), false, 100, true)))
   .catch((err) => console.error('error', err))

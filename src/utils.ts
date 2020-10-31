@@ -1,5 +1,6 @@
 import { Decorator } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
+import path from 'path'
 
 export function extractDecoratorValues (decorator?: Decorator): string[] {
   if (decorator === undefined) return []
@@ -34,4 +35,16 @@ export function normalizeUrl (str: string): string {
       })
     })
     .join('/')
+}
+
+export function getRelativeFilePath (absoluteRoot: string, absolutePath: string): string {
+  // Get relative path, without taking filename in account
+  const dirPath = path.relative(
+    absoluteRoot,
+    path.dirname(absolutePath)
+  )
+  // Add `./` if it's in the same directory and relative resolve an empty string + add filename
+  const filePath = (dirPath || './') + path.basename(absolutePath)
+  // Remove `.ts` extension to prevent typescript warning
+  return filePath.substr(0, filePath.length - path.extname(filePath).length)
 }
