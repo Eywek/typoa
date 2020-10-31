@@ -1,3 +1,5 @@
+import express from 'express'
+
 // tslint:disable-next-line: ban-types
 export function Route (route?: string): Function {
   return () => {
@@ -47,8 +49,10 @@ export function Put (route?: string): Function {
   }
 }
 
+export type BodyDiscriminatorFunction = (req: express.Request) => Promise<string> | string
+
 // tslint:disable-next-line: ban-types
-export function Body (contentType: string = 'application/json'): Function {
+export function Body (contentType: string = 'application/json', discriminator?: BodyDiscriminatorFunction): Function {
   return () => {
     return
   }

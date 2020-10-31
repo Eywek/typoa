@@ -7,6 +7,11 @@ import { securityMiddleware } from '{{securityMiddleware}}'
 {{/if}}
 {{#each controllers}}
 import { {{name}} } from '{{path}}'
+{{#each methods}}
+{{#if bodyDiscriminator}}
+import { {{bodyDiscriminator.name}} } from '{{bodyDiscriminator.path}}'
+{{/if}}
+{{/each}}
 {{/each}}
 
 const schemas = {{json schemas}}
@@ -19,11 +24,12 @@ export function bindToRouter (router: express.Router) {
       const controller = new {{../name}}()
       const data = await controller.{{name}}.apply(
         controller,
-        Validator.validateAndParse(
+        await Validator.validateAndParse(
           req, schemas as any,
           {
             params: {{json params}},
-            body: {{#if body}}{{json body}}{{else}}undefined{{/if}}
+            body: {{#if body}}{{json body}}{{else}}undefined{{/if}},
+            bodyDiscriminatorFn: {{#if bodyDiscriminator}}{{bodyDiscriminator.name}}{{else}}undefined{{/if}}
           }
         ) as any
       )

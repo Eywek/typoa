@@ -1,4 +1,4 @@
-import { Route, Get, Post, Query, Body, Tags, Patch, Path, Response, Delete, Security } from '../src'
+import { Route, Get, Post, Query, Body, Tags, Patch, Path, Response, Delete, Security, BodyDiscriminatorFunction } from '../src'
 
 type Serialize<T extends any> = {
     [key in keyof T]: T[key] extends 'foo' ? 'bare' :
@@ -56,6 +56,11 @@ class GettersClass {
   set barGetAndSet (val: string) {
     return
   }
+}
+
+// tslint:disable-next-line: max-classes-per-file
+class MyModel {
+  MyModel!: string
 }
 
 const securities = { company: [] }
@@ -123,8 +128,12 @@ export class MyController {
   @Patch('/getters')
   @Security(securities)
   getters (
-    @Body() body: GettersClass
+    @Body('application/json', discriminatorFn) body: GettersClass | MyModel
   ): {} {
     return {} as any
   }
+}
+
+export const discriminatorFn: BodyDiscriminatorFunction = (req) => {
+  return 'GettersClass'
 }

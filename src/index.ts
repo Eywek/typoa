@@ -85,14 +85,22 @@ export async function generate (config: OpenAPIConfiguration) {
   const routerFilePath = path.resolve(root, config.router.filePath)
   const routerFileContent = compiledTemplate({
     securityMiddleware: config.router.securityMiddlewarePath ? getRelativeFilePath(
-      root,
+      path.dirname(routerFilePath),
       path.resolve(root, config.router.securityMiddlewarePath)
      ) : undefined,
     controllers: Object.keys(codegenControllers).map((controllerName) => {
       return {
         name: controllerName,
         path: getRelativeFilePath(path.dirname(routerFilePath), controllersPathByName[controllerName]),
-        methods: codegenControllers[controllerName]
+        methods: codegenControllers[controllerName].map((method) => {
+          if (method.bodyDiscriminator) { // Update path
+            method.bodyDiscriminator.path = getRelativeFilePath(
+              path.dirname(routerFilePath),
+              method.bodyDiscriminator.path
+            )
+          }
+          return method
+        })
       }
     }),
     schemas: spec.components?.schemas

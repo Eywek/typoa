@@ -1,6 +1,8 @@
 import express from 'express'
 import { OpenAPIV3 } from 'openapi-types'
 import debug from 'debug'
+import { buildRef } from './resolve'
+import { BodyDiscriminatorFunction } from './decorators'
 
 const log = debug('toag:validator')
 
@@ -13,14 +15,15 @@ export class ValidateError extends Error {
   }
 }
 
-export function validateAndParse (
+export async function validateAndParse (
   req: express.Request,
   schemas: OpenAPIV3.ComponentsObject['schemas'],
   rules: {
     params: OpenAPIV3.ParameterObject[]
-    body: OpenAPIV3.RequestBodyObject
+    body?: OpenAPIV3.RequestBodyObject,
+    bodyDiscriminatorFn?: BodyDiscriminatorFunction
   }
-): any[] {
+): Promise<any[]> {
   const args: any[] = []
   for (const param of (rules.params || [])) {
     // Handling @Request()
@@ -30,7 +33,7 @@ export function validateAndParse (
     }
     // Handling body
     if (param.in === 'body') {
-      args.push(validateBody(req, rules.body, schemas))
+      args.push(await validateBody(req, rules.body!, rules.bodyDiscriminatorFn, schemas))
       continue
     }
     // Handling other params: header, query and path
@@ -56,17 +59,22 @@ export function validateAndParse (
   return []
 }
 
-function validateBody (// TODO: discriminator validation
+async function validateBody (
   req: express.Request,
   rule: OpenAPIV3.RequestBodyObject,
+  discriminatorFn: BodyDiscriminatorFunction | undefined,
   schemas: OpenAPIV3.ComponentsObject['schemas']
-): any {
+): Promise<any> {
   const body = req.body
   const contentType = req.headers['content-type'] ?? 'application/json'
   const expectedSchema = rule.content[contentType]?.schema
   if (typeof expectedSchema === 'undefined') {
     log(`! Warning: body validation skipped, schema is not found for '${contentType}' !`)
     return {}
+  }
+  if (discriminatorFn) {
+    const schemaName = await discriminatorFn(req)
+    return validateAndParseValueAgainstSchema('body', body, { $ref: buildRef(schemaName) }, schemas)
   }
   return validateAndParseValueAgainstSchema('body', body, expectedSchema, schemas)
 }

@@ -1,5 +1,5 @@
 import { OpenAPIV3 } from 'openapi-types'
-import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment } from 'ts-morph'
+import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier } from 'ts-morph'
 import { appendToSpec, extractDecoratorValues, normalizeUrl } from './utils'
 import { buildRef, resolve, stringifyName } from './resolve'
 import debug from 'debug'
@@ -112,11 +112,11 @@ export function addController (
 
     // Handle body
     const bodyParameter = method.getParameters().find(params => params.getDecorator('Body'))
+    let codegenBodyDiscriminator: { path: string, name: string } | undefined
     if (bodyParameter) {
       let contentType: string = 'application/json'
-      const firstArgumentType = bodyParameter
-        .getDecoratorOrThrow('Body')
-        .getArguments()[0]?.getType()
+      const bodyArguments = bodyParameter.getDecoratorOrThrow('Body').getArguments()
+      const firstArgumentType = bodyArguments[0]?.getType()
       if (firstArgumentType && firstArgumentType.compilerType.isLiteral()) {
         contentType = String(firstArgumentType.compilerType.value)
       }
@@ -127,6 +127,16 @@ export function addController (
             schema: resolve(bodyParameter.getType(), spec)
           }
         }
+      }
+      // Handle discriminator
+      // We find the function in the 2nd arg of Body() to be able to
+      // import it and call it at runtime to decide which schema we want to validate against
+      if (bodyArguments[1]) {
+        const node = bodyArguments[1]
+        if (!Node.isIdentifier(node)) {
+          throw new Error(`The 2nd argument of @Body() decorator must be the name of a function`)
+        }
+        codegenBodyDiscriminator = findDiscriminatorFunction(node)
       }
     }
 
@@ -169,8 +179,34 @@ export function addController (
         verb: verb.toLowerCase(),
         security: operation.security,
         params: codegenParameters,
-        body: operation.requestBody
+        body: operation.requestBody,
+        bodyDiscriminator: codegenBodyDiscriminator
       })
     }
   }
+}
+
+function findDiscriminatorFunction (node: Identifier): { path: string, name: string } {
+  const functionName = node.compilerNode.escapedText.toString()
+  const sourceFiles = node.getProject().getSourceFiles()
+  let discriminatorFunction: FunctionDeclaration | VariableDeclaration | undefined
+  const foundFunctions = sourceFiles
+    .map(source => source.getFunction(functionName))
+    .filter(val => typeof val !== 'undefined') as FunctionDeclaration[]
+  const foundVariables = sourceFiles
+    .map(source => source.getVariableDeclaration(functionName))
+    .filter(val => typeof val !== 'undefined') as VariableDeclaration[]
+  if (foundFunctions.length + foundVariables.length > 1) {
+    throw new Error(`The 2nd argument of @Body() decorator must be the name of a function defined only once`)
+  }
+  discriminatorFunction = foundFunctions[0] ?? foundVariables[0]
+  // tslint:disable-next-line: strict-type-predicates
+  if (typeof discriminatorFunction === 'undefined') {
+    throw new Error(`The 2nd argument of @Body() decorator must be the name of a function defined in source files`)
+  }
+  if (discriminatorFunction.isExported() === false) {
+    throw new Error(`The 2nd argument of @Body() decorator must be the name of an exported function`)
+  }
+  const path = discriminatorFunction.getSourceFile().getFilePath().toString()
+  return { path, name: functionName }
 }
