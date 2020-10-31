@@ -30,5 +30,5 @@ And all of this issues are caused by the custom type resolver of tsoa, in this p
 ## Work in progress
 
 - [ ] Documentation
-- [ ] HTTP Validation and parsing (query params to number, validate types, discriminator validation, readOnly validation)
-- [ ] Express router codegen
+- [ ] Test everything
+- [ ] security as tsoa `expressAuthentication(request, name, secMethod[name])` for each security()

@@ -192,7 +192,9 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     // JSDoc tags
     for (const tag of property.compilerSymbol.getJsDocTags()) {
       if (['format', 'example', 'description', 'pattern', 'minimum', 'maximum'].includes(tag.name) && tag.text) {
-        Object.assign(resolvedType, { [tag.name]: tag.text })
+        Object.assign(resolvedType, {
+          [tag.name]: ['minimum', 'maximum'].includes(tag.name) ? parseFloat(tag.text) : tag.text
+        })
       }
     }
     // Add to spec
