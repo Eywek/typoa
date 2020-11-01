@@ -127,7 +127,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/_enum-MyEnum--date..-Date-or-undefined--_"
+									"$ref": "#/components/schemas/_enum-MyEnum--date..-Date-or-undefined--recordString-Record_string.string_--record-Record_foo.string_--mappedType-__key-number_-number--_--_"
 								}
 							}
 						}
@@ -492,7 +492,7 @@
 					"bar"
 				]
 			},
-			"_enum-MyEnum--date..-Date-or-undefined--_": {
+			"_enum-MyEnum--date..-Date-or-undefined--recordString-Record_string.string_--record-Record_foo.string_--mappedType-__key-number_-number--_--_": {
 				"type": "object",
 				"properties": {
 					"enum": {
@@ -501,10 +501,36 @@
 					"date": {
 						"type": "string",
 						"format": "date-time"
+          },
+          "recordString": {
+						"type": "object",
+            "properties": {},
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "record": {
+						"type": "object",
+            "properties": {
+              "foo": {
+                "type": "string"
+              }
+            },
+            "required": ["foo"]
+          },
+          "mappedType": {
+						"type": "object",
+            "properties": {},
+            "additionalProperties": {
+              "type": "number"
+            }
 					}
 				},
 				"required": [
-					"enum"
+          "enum",
+          "recordString",
+          "record",
+          "mappedType"
 				]
 			},
 			"_error_code-910--_": {

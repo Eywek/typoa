@@ -109,25 +109,22 @@ export function resolve (
     if (typeName === 'Date') {
       return { type: 'string', format: 'date-time', description }
     }
+    const resolved = {
+      type: 'object' as const,
+      ...resolveProperties(type, spec),
+      description
+    }
     // Special case for anonymous types and generic interfaces
     const typeArguments = type.getTypeArguments()
     if (typeName === '__type' || typeName === '__object' || typeArguments.length > 0) {
-      return {
-        type: 'object',
-        ...resolveProperties(type, spec),
-        description
-      }
+      return resolved
     }
     // Use ref for models and other defined types
     const refName = stringifyName(typeName)
     // Add to spec components if not already resolved
     // tslint:disable-next-line: strict-type-predicates
     if (typeof spec.components!.schemas![refName] === 'undefined') {
-      spec.components!.schemas![refName] = {
-        type: 'object',
-        ...resolveProperties(type, spec),
-        description
-      }
+      spec.components!.schemas![refName] = resolved
     }
     // Return
     return { $ref: buildRef(refName) }
@@ -180,15 +177,18 @@ export function resolve (
   }
 }
 
-type ResolvePropertiesReturnType = Required<Pick<OpenAPIV3.BaseSchemaObject, 'properties'>> & { required?: string[] }
+type ResolvePropertiesReturnType = Required<Pick<OpenAPIV3.BaseSchemaObject, 'properties'>> &
+  { required?: string[], additionalProperties?: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject }
 function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolvePropertiesReturnType {
   const result: ResolvePropertiesReturnType = type.getProperties().reduce((schema, property) => {
     const firstDeclaration = property.getDeclarations()[0]
+    let propertyType: Type
     // tslint:disable-next-line: strict-type-predicates
-    if (typeof firstDeclaration === 'undefined') {
-      throw new Error(`Can't found declaration on '${type.getText()}.${property.getName()}' property`)
+    if (typeof firstDeclaration === 'undefined') { // Happen with Record<'foo', string>.foo
+      propertyType = property.getTypeAtLocation(type.getSymbolOrThrow().getDeclarations()[0])
+    } else {
+      propertyType = property.getTypeAtLocation(firstDeclaration)
     }
-    const propertyType = property.getTypeAtLocation(firstDeclaration)
     // Handle readonly / getters props
     const modifierFlags = property.getValueDeclaration()?.getCombinedModifierFlags()
     const isReadonly = modifierFlags === ts.ModifierFlags.Readonly || (
@@ -223,10 +223,21 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
       schema.required.push(property.getName())
     }
     return schema
-  }, { properties: {}, required: [] } as Required<ResolvePropertiesReturnType>)
+  }, { properties: {}, required: [] } as Required<Omit<ResolvePropertiesReturnType, 'additionalProperties'>>)
   if (result.required?.length === 0) {
     // OpenAPI don't want the required[] prop if it's empty
     delete result.required
+  }
+  if (Object.keys(result.properties).length === 0) {
+    const stringIndexType = type.getStringIndexType()
+    const numberIndexType = type.getNumberIndexType()
+    // This is a mapped type string string or number as key (ex: { [key: string]: any } or Record<string, any>)
+    if (stringIndexType || numberIndexType) {
+      result.additionalProperties = resolve(
+        stringIndexType ?? numberIndexType!,
+        spec
+      )
+    }
   }
   return result
 }
