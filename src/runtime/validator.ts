@@ -1,7 +1,7 @@
 import express from 'express'
 import { OpenAPIV3 } from 'openapi-types'
 import debug from 'debug'
-import { buildRef } from './resolve'
+import { buildRef } from '../resolve'
 import { BodyDiscriminatorFunction } from './decorators'
 
 const log = debug('toag:validator')

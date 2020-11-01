@@ -26,8 +26,3 @@ And all of this issues are caused by the custom type resolver of tsoa, in this p
 - Runtime validation against openapi schema
 - Use jsdoc for additionnal configuration (example, regex...)
 - Handle getters only and readonly properties
-
-## Work in progress
-
-- [ ] Documentation
-- [ ] Test everything

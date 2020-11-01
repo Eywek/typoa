@@ -1,7 +1,16 @@
 {
+  "name": "toag",
+  "version": "1.0.0-alpha.0",
+  "description": "Help you generate OpenAPI definitions via Typescript",
+  "main": "build/index.js",
+  "files": [
+    "build/"
+  ],
+  "author": "Eywek <contact@eywek.fr>",
   "scripts": {
+    "build": "tsc --project ./tsconfig.build.json",
     "test": "NODE_V8_COVERAGE=./coverage ava",
-    "posttest": "c8 --all report -x example -x src/types.ts -x tests -x src/decorators.ts -x node_modules --temp-directory=./coverage/ --report-dir=./coverage -r text"
+    "posttest": "c8 --all report -x example -x src/types.ts -x tests -x src/runtime/decorators.ts -x node_modules --temp-directory=./coverage/ --report-dir=./coverage -r text"
   },
   "devDependencies": {
     "@types/debug": "^4.1.5",

@@ -108,7 +108,7 @@ export async function generate (config: OpenAPIConfiguration) {
   await fs.promises.writeFile(routerFilePath, routerFileContent)
 }
 
-export * from './decorators'
-export * from './interfaces'
-export * as RuntimeResponse from './response'
-export * as Validator from './validator'
+export * from './runtime/decorators'
+export * from './runtime/interfaces'
+export * as RuntimeResponse from './runtime/response'
+export * as Validator from './runtime/validator'
