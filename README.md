@@ -6,6 +6,8 @@
   This tools is inspired from [tsoa](https://github.com/lukeautry/tsoa), the purpose is to be able to generate openapi definitions and express routes definitions via Typescript typings.
 
   We're using [ts-morph](https://github.com/dsherret/ts-morph) under the hood.
+
+  [![codecov](https://codecov.io/gh/Eywek/toag/branch/main/graph/badge.svg?token=8hLCf5qoDU)](https://codecov.io/gh/Eywek/toag)
 </div>
 
 ## Why
