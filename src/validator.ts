@@ -192,7 +192,7 @@ function validateAndParseValueAgainstSchema (
         [name]: { message: 'This property must be an object', value }
       }, 'Invalid parameter')
     }
-    return Object.keys(currentSchema.properties || {})
+    const filteredProperties = Object.keys(currentSchema.properties || {})
       .filter((propName) => { // Ignore readOnly properties
         const val = currentSchema.properties![propName]
         return !('readOnly' in val) || val.readOnly !== true
@@ -215,6 +215,24 @@ function validateAndParseValueAgainstSchema (
         }
         return props
       }, {} as Record<string, unknown>)
+    // Validate remaining keys with additionalProperties if present
+    if (currentSchema.additionalProperties && typeof currentSchema.additionalProperties !== 'boolean') {
+      const filteredKeys = Object.keys(filteredProperties)
+      const keys = Object.keys(value!).filter(key => filteredKeys.includes(key) === false)
+      return Object.assign(filteredProperties, keys.reduce((props, propName) => {
+        const propValue = (value as Record<string, unknown>)[propName]
+        if (typeof propValue !== 'undefined') {
+          props[propName] = validateAndParseValueAgainstSchema(
+            `${name}.${propName}`,
+            propValue,
+            currentSchema.additionalProperties as any,
+            schemas
+          )
+        }
+        return props
+      }, {} as Record<string, unknown>))
+    }
+    return filteredProperties
   }
   // AllOf
   if (currentSchema.allOf) {

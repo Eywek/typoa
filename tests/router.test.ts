@@ -70,7 +70,12 @@ const body = {
   tuple: ['foo', 1],
   array: ['bar'],
   object: { ignored: 1 },
-  record: {},
+  record: {
+    foo: '1'
+  },
+  mappedType: {
+    foo: 1
+  },
   objectWithProps: {
     string: 'my-string'
   },
@@ -285,6 +290,20 @@ test('Invalid body with array', async (t) => {
   t.is(res.status, 400)
   t.deepEqual(res.data.fields, {
     'body.array': { message: 'This property must be an array', value: {} }
+  })
+})
+
+test('Invalid body with invalid additionnal props', async (t) => {
+  const res = await api.post('/', Object.assign({}, body, {
+    record: { foo: 1 }
+  }), {
+    headers: {
+      'x-custom-header': 'my-header'
+    }
+  })
+  t.is(res.status, 400)
+  t.deepEqual(res.data.fields, {
+    'body.record.foo': { message: 'This property must be a string', value: 1 }
   })
 })
 

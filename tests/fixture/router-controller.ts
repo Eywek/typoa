@@ -50,6 +50,7 @@ export class MyController extends Controller {
       array: string[],
       object: {},
       record: Record<string, string>,
+      mappedType: { [key: string]: number },
       objectWithProps: {
         string: string,
         number?: number
