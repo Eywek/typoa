@@ -114,6 +114,7 @@ export class MyController {
     return {} as any
   }
   @Security({ company: ['my-scope'] })
+  @Security({ foo: ['my-scope'] })
   @Post('/file')
   file (
     @Body('multipart/form-data') body: {

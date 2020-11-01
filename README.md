@@ -31,4 +31,3 @@ And all of this issues are caused by the custom type resolver of tsoa, in this p
 
 - [ ] Documentation
 - [ ] Test everything
-- [ ] security as tsoa `expressAuthentication(request, name, secMethod[name])` for each security()

@@ -19,7 +19,7 @@ const schemas = {{json schemas}}
 export function bindToRouter (router: express.Router) {
   {{#each controllers}}
   {{#each methods}}
-  router.{{verb}}('{{endpoint}}'{{#if security}}, securityMiddleware({{json security}}){{/if}}, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  router.{{verb}}('{{endpoint}}'{{#each security}}, securityMiddleware({{json this}}){{/each}}, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
       const controller = new {{../name}}()
       const data = await controller.{{name}}.apply(
