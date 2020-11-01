@@ -93,6 +93,8 @@ export function resolve (
     return { type: 'object', description }
   }
   if (type.isTuple()) { // OpenAPI doesn't support it, so we take it as an union of array
+    // tslint:disable-next-line: no-console
+    console.warn('Toag warning: Tuple aren\'t supported by OpenAPI, so we\'re transforming it to an array')
     return {
       type: 'array',
       items: {
