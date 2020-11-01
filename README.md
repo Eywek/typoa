@@ -10,7 +10,7 @@
 
 ## Why
 
-Tsoa is working fine for simple typescript typings, which I think are the principal use case, It's used by many developers and It's maintained.
+Tsoa is a great package and it's working fine for simple typescript typings, which I think are the principal use case, It's used by many developers and It's maintained.
 
 **BUT**, I've used tsoa in production projects and I've encountered many issues (I was able to [fix](https://github.com/lukeautry/tsoa/pulls?q=is%3Apr+sort%3Aupdated-desc+is%3Amerged+author%3AEywek) some of them), but when I've tried to use more complex types (inheritance, deep generics, conditionnal types...) tsoa wasn't able to provide me good openapi definitions, and without even telling me it failed to generate the right schema.
 
@@ -26,3 +26,125 @@ And all of this issues are caused by the custom type resolver of tsoa, in this p
 - Runtime validation against openapi schema
 - Use jsdoc for additionnal configuration (example, regex...)
 - Handle getters only and readonly properties
+
+## How to use
+
+### Define your controllers
+
+You only need to add the `@Route()` decorator at the top of your controller class and `@Get()`, `@Post()`... at the top
+of each method definition, like this:
+
+```ts
+import { Route, Get } from 'toag'
+
+@Route()
+class MyController {
+  @Get()
+  public get () {}
+}
+```
+
+You can provide the route path in the `@Route()` decorator or in each verb decorators (eg. `@Get`...) or both.
+
+You also will need to extends the `Controller` class if you want to override the default HTTP status (200 if your method return content, 204 if not):
+
+```ts
+import { Route, Get, Controller } from 'toag'
+
+@Route('/controller-path')
+class MyController extends Controller {
+  @Get('/method-path')
+  public get () {
+    this.setStatus(201)
+    return 'Created'
+  }
+}
+```
+
+To send data to the client you only need to return your data, `toag` will use `res.json()` with it.
+If you return a stream, `toag` will stream it to the client.
+
+#### Body, Query, Path, Header and Request
+
+To use the parsed (and validated) body from toag you only need to provide the `@Body()` decorator:
+
+```ts
+import { Route, Get, Controller } from 'toag'
+
+@Route('/controller-path')
+class MyController extends Controller {
+  @Post('/method-path')
+  public post (
+    @Body() body: { name: string }
+  ) {
+    this.setStatus(201)
+    return 'Created'
+  }
+}
+```
+
+This is the same for query parameters (`@Query('<name>')`), path parameters (`@Path('<name>')`) and headers (`@Header('<name>')`).
+
+You also can use the `@Request()` decorator if you need to access the express request.
+
+**Note:** You can see more examples in the `example/` folder.
+
+##### Body discrimination
+
+Sometimes you want to validate the body against a specific schema depending on which resource the user try to update...
+
+To handle that, you can provide a `discriminator function` to the body decorator:
+
+```ts
+import { Route, Get, Controller, BodyDiscriminatorFunction } from 'toag'
+
+type TypeA = { name: string }
+type TypeB = { name: number }
+
+// The function need to return the name of the type you want to validate against
+export const discriminatorFunction: BodyDiscriminatorFunction = async (req) => 'TypeA'
+
+@Route('/controller-path')
+class MyController extends Controller {
+  @Post('/method-path')
+  public post (
+    @Body(
+      'application/json', // body content-type
+      discriminatorFunction // name of the function you want to use
+    ) body: TypeA | TypeB
+  ) {
+    this.setStatus(201)
+    return 'Created'
+  }
+}
+```
+
+### Generate
+
+To generate the openapi definition and the router you will need to bind to express, you only need to call the `generate` method of `toag`:
+
+```ts
+await generate({
+  tsconfigFilePath: path.resolve(__dirname, './tsconfig.json'),
+  controllers: [path.resolve(__dirname, './*.ts')], // Path of your controllers
+  openapi: {
+    filePath: '/tmp/openapi.json', // Where do you want to generate your openapi file
+    format: 'json', // 'json' | 'yaml'
+    service: { // Used in the openapi definitions
+      name: 'my-service',
+      version: '1.0.0'
+    },
+    securitySchemes: { // Openapi securitySchemes definitions
+      company: {
+        type: 'apiKey',
+        name: 'x-company-id',
+        in: 'header'
+      }
+    }
+  },
+  router: {
+    filePath: './router.ts', // Where do you want to generate the router file
+    securityMiddlewarePath: './security.ts' // Optional, middleware called if you use the @Security() decorator
+  }
+})
+```
