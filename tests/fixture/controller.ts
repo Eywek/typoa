@@ -28,7 +28,7 @@ class Datasource {
    */
   name!: string
   /**
-   * @description This comment is used to test toag
+   * @description This comment is used to test typoa
    */
   versions!: DatasourceVersion[]
   version!: DatasourceVersion | null

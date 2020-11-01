@@ -1,13 +1,13 @@
 <div align="center">
 
-  # toag
-  ## **T**ypescript **O**pen**A**PI **G**enerator
+  <h1>typoa</h1>
+  <h2> <b>Typ</b>escript <b>O</b>pen<b>A</b>PI Generator</h2>
 
   This tools is inspired from [tsoa](https://github.com/lukeautry/tsoa), the purpose is to be able to generate openapi definitions and express routes definitions via Typescript typings.
 
   We're using [ts-morph](https://github.com/dsherret/ts-morph) under the hood.
 
-  [![codecov](https://codecov.io/gh/Eywek/toag/branch/main/graph/badge.svg?token=8hLCf5qoDU)](https://codecov.io/gh/Eywek/toag)
+  [![codecov](https://codecov.io/gh/Eywek/typoa/branch/main/graph/badge.svg?token=8hLCf5qoDU)](https://codecov.io/gh/Eywek/typoa)
 </div>
 
 ## Why
@@ -37,7 +37,7 @@ You only need to add the `@Route()` decorator at the top of your controller clas
 of each method definition, like this:
 
 ```ts
-import { Route, Get } from 'toag'
+import { Route, Get } from 'typoa'
 
 @Route()
 class MyController {
@@ -51,7 +51,7 @@ You can provide the route path in the `@Route()` decorator or in each verb decor
 You also will need to extends the `Controller` class if you want to override the default HTTP status (200 if your method return content, 204 if not):
 
 ```ts
-import { Route, Get, Controller } from 'toag'
+import { Route, Get, Controller } from 'typoa'
 
 @Route('/controller-path')
 class MyController extends Controller {
@@ -63,15 +63,15 @@ class MyController extends Controller {
 }
 ```
 
-To send data to the client you only need to return your data, `toag` will use `res.json()` with it.
-If you return a stream, `toag` will stream it to the client.
+To send data to the client you only need to return your data, `typoa` will use `res.json()` with it.
+If you return a stream, `typoa` will stream it to the client.
 
 #### Body, Query, Path, Header and Request
 
-To use the parsed (and validated) body from toag you only need to provide the `@Body()` decorator:
+To use the parsed (and validated) body from typoa you only need to provide the `@Body()` decorator:
 
 ```ts
-import { Route, Get, Controller } from 'toag'
+import { Route, Get, Controller } from 'typoa'
 
 @Route('/controller-path')
 class MyController extends Controller {
@@ -98,7 +98,7 @@ Sometimes you want to validate the body against a specific schema depending on w
 To handle that, you can provide a `discriminator function` to the body decorator:
 
 ```ts
-import { Route, Get, Controller, BodyDiscriminatorFunction } from 'toag'
+import { Route, Get, Controller, BodyDiscriminatorFunction } from 'typoa'
 
 type TypeA = { name: string }
 type TypeB = { name: number }
@@ -123,7 +123,7 @@ class MyController extends Controller {
 
 ### Generate
 
-To generate the openapi definition and the router you will need to bind to express, you only need to call the `generate` method of `toag`:
+To generate the openapi definition and the router you will need to bind to express, you only need to call the `generate` method of `typoa`:
 
 ```ts
 await generate({

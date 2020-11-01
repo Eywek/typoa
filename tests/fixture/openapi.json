@@ -559,7 +559,7 @@
 						"items": {
 							"$ref": "#/components/schemas/DatasourceVersion"
 						},
-						"description": "This comment is used to test toag"
+						"description": "This comment is used to test typoa"
 					},
 					"version": {
 						"$ref": "#/components/schemas/DatasourceVersion",
@@ -601,7 +601,7 @@
 						"items": {
 							"$ref": "#/components/schemas/DatasourceVersion"
 						},
-						"description": "This comment is used to test toag"
+						"description": "This comment is used to test typoa"
 					},
 					"version": {
 						"$ref": "#/components/schemas/DatasourceVersion"

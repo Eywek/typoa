@@ -7,7 +7,7 @@ class MyModel {
   }
   /**
    * @pattern ^([A-Z]+)
-   * @description This comment is used to test toag
+   * @description This comment is used to test typoa
    */
   name!: string
 }

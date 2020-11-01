@@ -4,7 +4,7 @@ import debug from 'debug'
 import { buildRef } from '../resolve'
 import { BodyDiscriminatorFunction } from './decorators'
 
-const log = debug('toag:validator')
+const log = debug('typoa:validator')
 
 export class ValidateError extends Error {
   public status = 400

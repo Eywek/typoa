@@ -30,7 +30,7 @@ test.before(async (t) => {
     }
   })
   const routerContent = (await fs.promises.readFile(tmpFile)).toString()
-  await fs.promises.writeFile(tmpFile, routerContent.replace(/toag/g, '../../src'))
+  await fs.promises.writeFile(tmpFile, routerContent.replace(/typoa/g, '../../src'))
 
   // Start HTTP server
   const app = express()

@@ -5,7 +5,7 @@ import { buildRef, resolve, stringifyName } from './resolve'
 import debug from 'debug'
 import { CodeGenControllers } from './types'
 
-const log = debug('toag:controller')
+const log = debug('typoa:controller')
 
 const VERB_DECORATORS = ['Get', 'Post', 'Put', 'Delete', 'Patch']
 const PARAMETER_DECORATORS = ['Query', 'Body', 'Path', 'Header', 'Request']
