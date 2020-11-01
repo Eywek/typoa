@@ -21,6 +21,9 @@ test('Should generate the right definition', async (t) => {
           in: 'header'
         }
       }
+    },
+    router: {
+      filePath: '/tmp/router.ts'
     }
   })
   const [specContent, expectedContent] = await Promise.all([
@@ -41,6 +44,9 @@ test('Should generate a valid yaml definition', async (t) => {
         name: 'my-service',
         version: '1.0.0'
       }
+    },
+    router: {
+      filePath: '/tmp/router.ts'
     }
   })
   const specContent = await fs.promises.readFile('/tmp/openapi.yaml')
@@ -65,6 +71,9 @@ test('Should fail with a missing parameter decorator', async (t) => {
         name: 'my-service',
         version: '1.0.0'
       }
+    },
+    router: {
+      filePath: '/tmp/router.ts'
     }
   }), { message: 'Parameter MyController.get.invalidParameter must have a decorator.' })
 })

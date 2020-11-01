@@ -167,7 +167,17 @@ export function addController (
       const verb = decorator.getName()
       // OpenAPI
       log(`Adding '${verb} ${endpoint}' for ${controllerName}.${method.getName()} method to spec`)
-      appendToSpec(spec, endpoint, verb.toLowerCase() as any, operation)
+      appendToSpec(
+        spec,
+        endpoint
+          .split('/')
+          // Remove regex from express paths /foo/{id([A-Z]+)} => /foo/{id}
+          .map(path => path.replace(/{([A-Za-z0-9-_]+)\(.+\)}/g, (match, captureGroup) => {
+            return `{${captureGroup}}`
+          }))
+          .join('/'),
+        verb.toLowerCase() as any, operation
+      )
       // Codegen
       // tslint:disable-next-line: strict-type-predicates
       if (typeof codegenControllers[controllerName] === 'undefined') {
@@ -175,7 +185,11 @@ export function addController (
       }
       codegenControllers[controllerName].push({
         name: method.getName(),
-        endpoint,
+        endpoint: endpoint
+          .split('/')
+          // replace as express format
+          .map(path => path.replace(/{(.+)}/g, (matches, match) => `:${match}`))
+          .join('/'),
         verb: verb.toLowerCase(),
         security: operation.security,
         params: codegenParameters,

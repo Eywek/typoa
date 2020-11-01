@@ -94,7 +94,7 @@ export function Response <T> (httpCode: number, description?: string): Function 
 }
 
 // tslint:disable-next-line: ban-types
-export function Request <T> (httpCode: number, description?: string): Function {
+export function Request (): Function {
   return () => {
     return
   }

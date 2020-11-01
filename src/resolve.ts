@@ -1,4 +1,4 @@
-import { SymbolFlags, Type } from 'ts-morph'
+import { SymbolFlags, Type, Node } from 'ts-morph'
 import ts from 'typescript'
 import { OpenAPIV3 } from 'openapi-types'
 
@@ -40,6 +40,22 @@ function resolveNullableType (
   spec: OpenAPIV3.Document
 ): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
   return Object.assign(resolve(nonNullableType, spec), { nullable: true })
+}
+
+function retrieveTypeName (
+  type: Type
+): string {
+  const typeName = type.getSymbolOrThrow().getName()
+  if (typeName === '__type') {
+    const declaration = type.getSymbolOrThrow().getDeclarations()[0]
+    if (declaration && Node.isTypeLiteralNode(declaration)) {
+      const aliasSymbol = declaration.getType().getAliasSymbol()
+      if (aliasSymbol) {
+        return aliasSymbol.getName()
+      }
+    }
+  }
+  return typeName
 }
 
 export function resolve (
@@ -86,7 +102,7 @@ export function resolve (
     }
   }
   if (type.isClassOrInterface() || type.isObject()) {
-    const typeName = type.getSymbolOrThrow().getName()
+    const typeName = retrieveTypeName(type)
     // Special case for date
     if (typeName === 'Date') {
       return { type: 'string', format: 'date-time', description }
@@ -127,9 +143,11 @@ export function resolve (
       // Add to spec components if not already resolved
       // tslint:disable-next-line: strict-type-predicates
       if (typeof spec.components!.schemas![enumName] === 'undefined') {
+        const resolvedTypes = type.getUnionTypes().map(type => resolve(type, spec) as OpenAPIV3.NonArraySchemaObject)
+        const values = resolvedTypes.map(type => type.enum![0])
         spec.components!.schemas![enumName] = {
-          type: 'string',
-          enum: type.getUnionTypes().map(type => (resolve(type, spec) as OpenAPIV3.NonArraySchemaObject).enum![0]),
+          type: resolvedTypes[0].type,
+          enum: values,
           description,
           pattern
         }

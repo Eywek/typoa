@@ -29,11 +29,6 @@ export function appendToSpec (
 export function normalizeUrl (str: string): string {
   return '/' + str.split('/')
     .filter(s => s.length > 0) // remove useless slashes
-    .map((str) => { // Remove regex from express paths /foo/{id([A-Z]+)} => /foo/{id}
-      return str.replace(/{([A-Za-z0-9-_]+)\(.+\)}/g, (match, captureGroup) => {
-        return `{${captureGroup}}`
-      })
-    })
     .join('/')
 }
 
