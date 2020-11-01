@@ -8,6 +8,7 @@
   ],
   "author": "Eywek <contact@eywek.fr>",
   "scripts": {
+    "prepublish": "yarn build",
     "build": "tsc --project ./tsconfig.build.json",
     "test": "NODE_V8_COVERAGE=./coverage ava",
     "posttest": "c8 --all report -x example -x src/types.ts -x tests -x src/runtime/decorators.ts -x node_modules --temp-directory=./coverage/ --report-dir=./coverage -r json"
