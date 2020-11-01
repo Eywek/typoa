@@ -23,3 +23,8 @@ jobs:
           YARN_CACHE_FOLDER: /github/home/.cache/yarn
       - name: Test
         run: yarn test
+      - name: Export coverage
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage/coverage-final.json

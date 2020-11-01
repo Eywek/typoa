@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc --project ./tsconfig.build.json",
     "test": "NODE_V8_COVERAGE=./coverage ava",
-    "posttest": "c8 --all report -x example -x src/types.ts -x tests -x src/runtime/decorators.ts -x node_modules --temp-directory=./coverage/ --report-dir=./coverage -r text"
+    "posttest": "c8 --all report -x example -x src/types.ts -x tests -x src/runtime/decorators.ts -x node_modules --temp-directory=./coverage/ --report-dir=./coverage -r json"
   },
   "devDependencies": {
     "@types/debug": "^4.1.5",
