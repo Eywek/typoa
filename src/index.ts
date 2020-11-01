@@ -103,7 +103,7 @@ export async function generate (config: OpenAPIConfiguration) {
         })
       }
     }),
-    schemas: spec.components?.schemas
+    schemas: spec.components!.schemas
   })
   await fs.promises.writeFile(routerFilePath, routerFileContent)
 }

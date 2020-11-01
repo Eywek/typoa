@@ -330,6 +330,20 @@ test('Invalid body with intersection', async (t) => {
   })
 })
 
+test('Invalid body with not nullable value', async (t) => {
+  const res = await api.post('/', Object.assign({}, body, {
+    intersection: null
+  }), {
+    headers: {
+      'x-custom-header': 'my-header'
+    }
+  })
+  t.is(res.status, 400)
+  t.deepEqual(res.data.fields, {
+    'body.intersection': { message: 'This property is not nullable' }
+  })
+})
+
 test('Should parse path', async (t) => {
   const res = await api.delete('/20/1')
   t.is(res.status, 200)
