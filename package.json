@@ -10,6 +10,7 @@
   "scripts": {
     "prepublish": "yarn build",
     "build": "tsc --project ./tsconfig.build.json",
+    "postbuild": "mkdir build/template/ && cp src/template/express.ts.hbs build/template/express.ts.hbs",
     "test": "NODE_V8_COVERAGE=./coverage ava",
     "posttest": "c8 --all report -x example -x src/types.ts -x tests -x src/runtime/decorators.ts -x node_modules --temp-directory=./coverage/ --report-dir=./coverage -r json"
   },
