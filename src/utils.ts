@@ -39,7 +39,10 @@ export function getRelativeFilePath (absoluteRoot: string, absolutePath: string)
     path.dirname(absolutePath)
   )
   // Add `./` if it's in the same directory and relative resolve an empty string + add filename
-  const filePath = (dirPath || './') + path.basename(absolutePath)
+  let filePath = (dirPath || '.') + '/' + path.basename(absolutePath)
+  if (!filePath.startsWith('/') && !filePath.startsWith('.')) {
+    filePath = `./${filePath}`
+  }
   // Remove `.ts` extension to prevent typescript warning
   return filePath.substr(0, filePath.length - path.extname(filePath).length)
 }

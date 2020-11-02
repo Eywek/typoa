@@ -15,7 +15,10 @@ test.before(async (t) => {
   const tmpFile = path.resolve(__dirname, './fixture/router.ts')
   await generate({
     tsconfigFilePath: path.resolve(__dirname, './fixture/tsconfig.json'),
-    controllers: [path.resolve(__dirname, './fixture/router-controller.ts')],
+    controllers: [
+      path.resolve(__dirname, './fixture/router-controller.ts'),
+      path.resolve(__dirname, './fixture/folder/*.ts')
+    ],
     openapi: {
       filePath: '/tmp/openapi.json',
       format: 'json',
