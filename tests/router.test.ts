@@ -80,7 +80,8 @@ const body = {
     string: 'my-string'
   },
   union: { foo: 'bar' },
-  intersection: { foo: 'bar', bar: 'foo' }
+  intersection: { foo: 'bar', bar: 'foo' },
+  readonlyProp: 'my prop'
 }
 
 test('Check endpoints', async (t) => {
@@ -99,6 +100,7 @@ test('Valid body', async (t) => {
   t.is(res.status, 201)
   t.is(res.headers['x-foo'], 'bar')
   delete body.object.ignored
+  delete body.readonlyProp
   t.deepEqual(res.data, Object.assign({}, body, { stringWithFormat: body.stringWithFormat.toISOString(), url: '/', formatIsDate: true }))
 })
 

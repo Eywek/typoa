@@ -122,6 +122,10 @@ export class MyController {
        * @format binary
        */
       file: string
+      /**
+       * @readonly
+       */
+      readonlyComment: string
     }
   ): {} {
     return {} as any

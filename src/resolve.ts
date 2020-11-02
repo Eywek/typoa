@@ -189,12 +189,13 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     } else {
       propertyType = property.getTypeAtLocation(firstDeclaration)
     }
-    // Handle readonly / getters props
+    const jsDocTags = property.compilerSymbol.getJsDocTags()
+    // Handle readonly / getters props / @readonly tag
     const modifierFlags = property.getValueDeclaration()?.getCombinedModifierFlags()
     const isReadonly = modifierFlags === ts.ModifierFlags.Readonly || (
       property.hasFlags(SymbolFlags.GetAccessor) === true &&
       property.hasFlags(SymbolFlags.SetAccessor) === false
-    )
+    ) || jsDocTags.some(tag => tag.name === 'readonly')
     // Required by default
     let required = true
     // We resolve the property, overriding the behavior for nullable values
@@ -210,7 +211,7 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
       Object.assign(resolvedType, { readOnly: true })
     }
     // JSDoc tags
-    for (const tag of property.compilerSymbol.getJsDocTags()) {
+    for (const tag of jsDocTags) {
       if (['format', 'example', 'description', 'pattern', 'minimum', 'maximum'].includes(tag.name) && tag.text) {
         Object.assign(resolvedType, {
           [tag.name]: ['minimum', 'maximum'].includes(tag.name) ? parseFloat(tag.text) : tag.text

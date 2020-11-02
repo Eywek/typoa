@@ -268,10 +268,15 @@
 									"file": {
 										"type": "string",
 										"format": "binary"
-									}
+                  },
+                  "readonlyComment": {
+                    "type": "string",
+                    "readOnly": true
+                  }
 								},
 								"required": [
-									"file"
+                  "file",
+                  "readonlyComment"
 								]
 							}
 						}
