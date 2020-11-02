@@ -1,5 +1,4 @@
-import { SymbolFlags, Type, Node } from 'ts-morph'
-import ts from 'typescript'
+import { SymbolFlags, Type, Node, ts } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
 
 export function buildRef (name: string) {
