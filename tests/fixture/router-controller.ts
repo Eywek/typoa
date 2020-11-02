@@ -70,9 +70,10 @@ export class MyController extends Controller {
   @Delete('{id}/{boolean(0|1)}')
   public async delete (
     @Path('id') id: number,
-    @Path('boolean') bool: boolean
+    @Path('boolean') bool: boolean,
+    @Query('limit') limit = 20
   ) {
-    return { id, bool }
+    return { id, bool, limit }
   }
 
   @Patch()
@@ -89,7 +90,9 @@ export class MyController extends Controller {
   }
 
   @Get('/no-content')
-  public async noContent () {
+  public async noContent (
+    @Path('id') id: string
+  ) {
     return
   }
 }

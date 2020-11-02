@@ -1,7 +1,7 @@
 import { OpenAPIV3 } from 'openapi-types'
-import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier, MethodDeclaration } from 'ts-morph'
+import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier, MethodDeclaration, ParameterDeclaration } from 'ts-morph'
 import { appendToSpec, extractDecoratorValues, normalizeUrl } from './utils'
-import { resolve } from './resolve'
+import { resolve, appendMetaToResolvedType } from './resolve'
 import debug from 'debug'
 import { CodeGenControllers } from './types'
 
@@ -92,11 +92,19 @@ export function addController (
         codegenParameters.push({ name: 'request', in: 'request' })
         continue // skip, only for router codegen
       }
+      const node = decorator.getParent() as ParameterDeclaration
+      const initializer = node.getInitializer()
       let required = true
-      const schema = resolve(decorator.getParent().getType(), spec, (type, isUndefined, spec) => {
+      const schema = resolve(node.getType(), spec, (type, isUndefined, spec) => {
         required = false
         return resolve(type, spec) // don't have `nullable` prop
       })
+      const initializerType = initializer?.getType()
+      if (initializerType?.compilerType.isLiteral()) {
+        const value = initializerType.compilerType.value
+        appendMetaToResolvedType(schema, { default: value })
+        required = false
+      }
       const generatedParameter = {
         name: extractDecoratorValues(decorator)[0],
         in: decorator.getName().toLowerCase(),
@@ -145,7 +153,8 @@ export function addController (
 
     // Add to spec + codegen
     for (const decorator of verbDecorators) {
-      const endpoint = normalizeUrl((controllerEndpoint || '/') + '/' + (extractDecoratorValues(decorator)[0] || '/'))
+      const [path, ...tags] = extractDecoratorValues(decorator)
+      const endpoint = normalizeUrl((controllerEndpoint || '/') + '/' + (path || '/'))
       const verb = decorator.getName()
       // OpenAPI
       log(`Adding '${verb} ${endpoint}' for ${controllerName}.${method.getName()} method to spec`)
@@ -158,7 +167,8 @@ export function addController (
             return `{${captureGroup}}`
           }))
           .join('/'),
-        verb.toLowerCase() as any, operation
+        verb.toLowerCase() as any,
+        Object.assign({}, operation, { tags: [...operation.tags ?? [], ...tags] })
       )
       // Codegen
       // tslint:disable-next-line: strict-type-predicates

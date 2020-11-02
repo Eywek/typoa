@@ -105,7 +105,7 @@ export class MyController {
   delete (): SuccessResponse<Datasource> {
     return {} as any
   }
-  @Get('/list')
+  @Get('/list', 'list-tag')
   list (): Partial<Serialized<Datasource>> {
     return {} as any
   }
@@ -141,7 +141,8 @@ export class MyController {
   @Patch('/getters')
   @Security(securities)
   getters (
-    @Body() body: Partial<GettersClass>
+    @Body() body: Partial<GettersClass>,
+    @Query('limit') limit = 20
   ): {} {
     return {} as any
   }

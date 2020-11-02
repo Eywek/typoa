@@ -252,7 +252,7 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
   return result
 }
 
-function appendMetaToResolvedType (
+export function appendMetaToResolvedType (
   type: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject,
   metas: Partial<OpenAPIV3.NonArraySchemaObject>
 ): OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject {

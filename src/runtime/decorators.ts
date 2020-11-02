@@ -15,35 +15,35 @@ export function Tags (...tags: string[]): Function {
 }
 
 // tslint:disable-next-line: ban-types
-export function Get (route?: string): Function {
+export function Get (route?: string, ...tags: string[]): Function {
   return () => {
     return
   }
 }
 
 // tslint:disable-next-line: ban-types
-export function Post (route?: string): Function {
+export function Post (route?: string, ...tags: string[]): Function {
   return () => {
     return
   }
 }
 
 // tslint:disable-next-line: ban-types
-export function Delete (route?: string): Function {
+export function Delete (route?: string, ...tags: string[]): Function {
   return () => {
     return
   }
 }
 
 // tslint:disable-next-line: ban-types
-export function Patch (route?: string): Function {
+export function Patch (route?: string, ...tags: string[]): Function {
   return () => {
     return
   }
 }
 
 // tslint:disable-next-line: ban-types
-export function Put (route?: string): Function {
+export function Put (route?: string, ...tags: string[]): Function {
   return () => {
     return
   }

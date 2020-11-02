@@ -375,7 +375,8 @@ test('Should parse path', async (t) => {
   t.is(res.status, 200)
   t.deepEqual(res.data, {
     id: 20,
-    bool: true
+    bool: true,
+    limit: 20
   })
 })
 
