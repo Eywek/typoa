@@ -10,6 +10,7 @@ import axios, { AxiosInstance } from 'axios'
 
 let api: AxiosInstance
 let server: http.Server
+let endpoint: string
 test.before(async (t) => {
   // Generate router
   const tmpFile = path.resolve(__dirname, './fixture/router.ts')
@@ -52,7 +53,8 @@ test.before(async (t) => {
     })
   })
   const port = (server.address() as AddressInfo).port
-  api = axios.create({ baseURL: `http://localhost:${port}/my-controller`, validateStatus: () => true })
+  endpoint = `http://localhost:${port}`
+  api = axios.create({ baseURL: `${endpoint}/my-controller`, validateStatus: () => true })
 })
 
 test.after(async (t) => {
@@ -411,6 +413,12 @@ test('Should get intercepted', async (t) => {
   const res = await api.get('/intercepted')
   t.is(res.status, 200)
   t.deepEqual(res.data, { scopes: { company: ['read'] } })
+})
+
+test('Should get intercepted with @Security() at controller level', async (t) => {
+  const res = await axios.get(`${endpoint}/my-2nd-controller`)
+  t.is(res.status, 200)
+  t.deepEqual(res.data, { scopes: { company: [] } })
 })
 
 test('Should return 204', async (t) => {

@@ -1,8 +1,9 @@
-import { Route, Get } from '../../../src'
+import { Route, Get, Security } from '../../../src'
 
-@Route()
+@Route('/my-2nd-controller/')
+@Security({ company: [] })
 export class My2ndController {
-  @Get()
+  @Get('/')
   public get () {
     return 'foo'
   }

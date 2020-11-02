@@ -1,5 +1,5 @@
 import { OpenAPIV3 } from 'openapi-types'
-import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier } from 'ts-morph'
+import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier, MethodDeclaration } from 'ts-morph'
 import { appendToSpec, extractDecoratorValues, normalizeUrl } from './utils'
 import { buildRef, resolve, stringifyName } from './resolve'
 import debug from 'debug'
@@ -21,6 +21,7 @@ export function addController (
   const controllerName = controller.getName()!
   const methods = controller.getMethods()
   const controllerTags = extractDecoratorValues(controller.getDecorator('Tags'))
+  const controllerSecurities = getSecurities(controller)
   for (const method of methods) {
     log(`Handle ${controllerName}.${method.getName()} method`)
     const operation: OpenAPIV3.OperationObject = {
@@ -144,22 +145,7 @@ export function addController (
     operation.tags!.push(...extractDecoratorValues(method.getDecorator('Tags')))
 
     // Security
-    const securityDecorators = method.getDecorators().filter(decorator => decorator.getName() === 'Security')
-    if (securityDecorators.length > 0) {
-      operation.security = []
-      for (const securityDecorator of securityDecorators) {
-        const securities = securityDecorator.getArguments()[0].getType()
-        operation.security.push(
-          securities.getProperties().reduce((properties, property) => {
-            const firstDeclaration = property.getDeclarations()[0] as PropertyAssignment
-            const initializer = firstDeclaration.getInitializer() as ArrayLiteralExpression
-            const elements = initializer.getElements() as LiteralExpression[]
-            properties[property.getName()] = elements.map((element) => element.getLiteralText())
-            return properties
-          }, {} as OpenAPIV3.SecurityRequirementObject)
-        )
-      }
-    }
+    operation.security = [...controllerSecurities, ...getSecurities(method)]
 
     // Add to spec + codegen
     for (const decorator of verbDecorators) {
@@ -198,6 +184,26 @@ export function addController (
       })
     }
   }
+}
+
+function getSecurities (declaration: ClassDeclaration | MethodDeclaration) {
+  const security: OpenAPIV3.SecurityRequirementObject[] = []
+  const securityDecorators = declaration.getDecorators().filter(decorator => decorator.getName() === 'Security')
+  if (securityDecorators.length > 0) {
+    for (const securityDecorator of securityDecorators) {
+      const securities = securityDecorator.getArguments()[0].getType()
+      security.push(
+        securities.getProperties().reduce((properties, property) => {
+          const firstDeclaration = property.getDeclarations()[0] as PropertyAssignment
+          const initializer = firstDeclaration.getInitializer() as ArrayLiteralExpression
+          const elements = initializer.getElements() as LiteralExpression[]
+          properties[property.getName()] = elements.map((element) => element.getLiteralText())
+          return properties
+        }, {} as OpenAPIV3.SecurityRequirementObject)
+      )
+    }
+  }
+  return security
 }
 
 function findDiscriminatorFunction (node: Identifier): { path: string, name: string } {
