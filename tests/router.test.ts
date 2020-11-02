@@ -385,14 +385,14 @@ test('Should return 404 with path not matching regex', async (t) => {
   t.is(res.status, 404)
 })
 
-test('Should ignore body with not found content-type', async (t) => {
+test('Should throw with not found content-type', async (t) => {
   const res = await api.patch('/', 'hey', {
     headers: {
       'Content-Type': 'text/html'
     }
   })
-  t.is(res.status, 200)
-  t.deepEqual(res.data, {})
+  t.is(res.status, 400)
+  t.deepEqual(res.data.message, 'This content-type is not allowed')
 })
 
 test('Should use discriminator function', async (t) => {
@@ -426,4 +426,14 @@ test('Should return 204', async (t) => {
   const res = await api.get('/no-content')
   t.is(res.status, 204)
   t.is(res.data, '')
+})
+
+test('Should not validate body with file', async (t) => {
+  const res = await api.post('/file', '', {
+    headers: {
+      'content-type': 'multipart/form-data'
+    }
+  })
+  t.is(res.status, 200)
+  t.is(res.data, 'ok')
 })

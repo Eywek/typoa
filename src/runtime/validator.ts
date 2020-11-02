@@ -74,8 +74,12 @@ async function validateBody (
   const contentType = (req.headers['content-type'] ?? 'application/json').split(';')[0]
   const expectedSchema = rule.content[contentType]?.schema
   if (typeof expectedSchema === 'undefined') {
-    log(`! Warning: body validation skipped, schema is not found for '${contentType}' !`)
-    return {}
+    log(`Schema is not found for '${contentType}', throwing error`)
+    throw new ValidateError({}, 'This content-type is not allowed')
+  }
+  if (req.readableEnded === false) {
+    log(`! Warning: Body has not be parsed, body validation skipped !`)
+    return body
   }
   if (discriminatorFn) {
     const schemaName = await discriminatorFn(req)

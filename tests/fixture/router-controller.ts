@@ -93,6 +93,18 @@ export class MyController extends Controller {
   public async noContent () {
     return
   }
+
+  @Post('/file')
+  public async file (
+    @Body('multipart/form-data') body: {
+      /**
+       * @format binary
+       */
+      file: string
+    }
+  ) {
+    return 'ok'
+  }
 }
 
 export const discriminatorFn: BodyDiscriminatorFunction = async (req) => typeof req.query.one === 'string' ? 'BodyTypeOne' : 'BodyTypeTwo'

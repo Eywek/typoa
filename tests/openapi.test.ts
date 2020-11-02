@@ -8,7 +8,7 @@ test('Should generate the right definition', async (t) => {
     tsconfigFilePath: path.resolve(__dirname, './fixture/tsconfig.json'),
     controllers: [path.resolve(__dirname, './fixture/con*.ts')],
     openapi: {
-      filePath: '/tmp/openapi.json',
+      filePath: '/tmp/openapi-test-valid.json',
       format: 'json',
       service: {
         name: 'my-service',
@@ -27,7 +27,7 @@ test('Should generate the right definition', async (t) => {
     }
   })
   const [specContent, expectedContent] = await Promise.all([
-    fs.promises.readFile('/tmp/openapi.json'),
+    fs.promises.readFile('/tmp/openapi-test-valid.json'),
     fs.promises.readFile(path.resolve(__dirname, './fixture/openapi.json'))
   ])
   t.deepEqual(JSON.parse(specContent.toString()), JSON.parse(expectedContent.toString()))
