@@ -1,7 +1,7 @@
 import { OpenAPIV3 } from 'openapi-types'
 import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier, MethodDeclaration } from 'ts-morph'
 import { appendToSpec, extractDecoratorValues, normalizeUrl } from './utils'
-import { buildRef, resolve, stringifyName } from './resolve'
+import { resolve } from './resolve'
 import debug from 'debug'
 import { CodeGenControllers } from './types'
 
@@ -41,16 +41,14 @@ export function addController (
 
     // Resolve response type
     const returnType = method.getReturnType()
-    const returnTypeName = stringifyName(returnType.getText())
     operation.responses![200] = {
       description: 'Ok',
       content: {
         'application/json': {
-          schema: { $ref: buildRef(returnTypeName) }
+          schema: resolve(returnType, spec)
         }
       }
     }
-    spec.components!.schemas![returnTypeName] = resolve(returnType, spec)
 
     // Other response
     const responses = method.getDecorators().filter(decorator => decorator.getName() === 'Response')
@@ -59,13 +57,11 @@ export function addController (
       const typeArguments = responseDecorator.getTypeArguments()
       if (typeArguments.length > 0) {
         const type = typeArguments[0].getType()
-        const typeName = stringifyName(type.getText())
-        spec.components!.schemas![typeName] = resolve(type, spec)
         operation.responses![httpCode] = {
           description: description ?? '',
           content: {
             'application/json': {
-              schema: { $ref: buildRef(typeName) }
+              schema: resolve(type, spec)
             }
           }
         }

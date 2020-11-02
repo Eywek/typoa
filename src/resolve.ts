@@ -6,7 +6,7 @@ export function buildRef (name: string) {
   return `#/components/schemas/${name}`
 }
 
-export function stringifyName (rawName: string) {
+function stringifyName (rawName: string) {
   let name = rawName
   if (name.startsWith('Promise<')) {
     const nameWithoutPromise = name.substr('Promise<'.length)
@@ -104,27 +104,35 @@ export function resolve (
     }
   }
   if (type.isClassOrInterface() || type.isObject()) {
-    const typeName = retrieveTypeName(type)
+    let typeName = retrieveTypeName(type)
     // Special case for date
     if (typeName === 'Date') {
       return { type: 'string', format: 'date-time', description }
     }
-    const resolved = {
-      type: 'object' as const,
-      ...resolveProperties(type, spec),
-      description
+    // Handle mapped types
+    const typeArguments = type.getTypeArguments()
+    const isMappedType = type.getSymbolOrThrow().getDeclarations()[0]?.getKindName() === 'MappedType'
+    if (typeName === '__type' && isMappedType) {
+      typeName = type.getText()
     }
     // Special case for anonymous types and generic interfaces
-    const typeArguments = type.getTypeArguments()
     if (typeName === '__type' || typeName === '__object' || typeArguments.length > 0) {
-      return resolved
+      return {
+        type: 'object',
+        ...resolveProperties(type, spec),
+        description
+      }
     }
     // Use ref for models and other defined types
     const refName = stringifyName(typeName)
     // Add to spec components if not already resolved
     // tslint:disable-next-line: strict-type-predicates
     if (typeof spec.components!.schemas![refName] === 'undefined') {
-      spec.components!.schemas![refName] = resolved
+      spec.components!.schemas![refName] = {
+        type: 'object',
+        ...resolveProperties(type, spec),
+        description
+      }
     }
     // Return
     return { $ref: buildRef(refName) }
@@ -191,10 +199,11 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     }
     const jsDocTags = property.compilerSymbol.getJsDocTags()
     // Handle readonly / getters props / @readonly tag
-    const modifierFlags = property.getValueDeclaration()?.getCombinedModifierFlags()
+    const modifierFlags = property.getValueDeclaration()?.getCombinedModifierFlags() ?? firstDeclaration?.getCombinedModifierFlags()
+    const hasFlags = (flag: SymbolFlags) => property.hasFlags(flag) || firstDeclaration?.getSymbol()?.hasFlags(flag)
     const isReadonly = modifierFlags === ts.ModifierFlags.Readonly || (
-      property.hasFlags(SymbolFlags.GetAccessor) === true &&
-      property.hasFlags(SymbolFlags.SetAccessor) === false
+      hasFlags(SymbolFlags.GetAccessor) === true &&
+      hasFlags(SymbolFlags.SetAccessor) === false
     ) || jsDocTags.some(tag => tag.name === 'readonly')
     // Required by default
     let required = true

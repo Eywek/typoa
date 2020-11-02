@@ -53,6 +53,11 @@ class GettersClass {
   get fooGet () {
     return ''
   }
+  readonly fooReadonly!: string // test again because we use Partial<GettersClass>
+  /**
+   * @readonly
+   */
+  fooReadonlyComment!: string // test again because we use Partial<GettersClass>
   get barGetAndSet () {
     return ''
   }
@@ -133,7 +138,7 @@ export class MyController {
   @Patch('/getters')
   @Security(securities)
   getters (
-    @Body() body: GettersClass
+    @Body() body: Partial<GettersClass>
   ): {} {
     return {} as any
   }

@@ -14,16 +14,55 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/_bar-bare--foo-string--_-and-_id-number--_-and-_h-hi-or-hello--_"
+									"allOf": [
+										{
+											"$ref": "#/components/schemas/_bar-bare--foo-string--_"
+										},
+										{
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "number"
+												}
+											},
+											"required": [
+												"id"
+											]
+										},
+										{
+											"type": "object",
+											"properties": {
+												"h": {
+													"oneOf": [
+														{
+															"type": "string",
+															"enum": [
+																"hi"
+															]
+														},
+														{
+															"type": "string",
+															"enum": [
+																"hello"
+															]
+														}
+													]
+												}
+											},
+											"required": [
+												"h"
+											]
+										}
+									]
 								}
 							}
 						}
 					}
-        },
-        "security": [],
+				},
 				"tags": [
 					"my-tag"
-				]
+				],
+				"security": []
 			},
 			"post": {
 				"parameters": [
@@ -42,17 +81,32 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/DeepGeneric__foo-string--bar-number--__"
+									"allOf": [
+										{
+											"$ref": "#/components/schemas/Pick_DeepDeepGeneric__foo-string--bar-number--__.foo_"
+										},
+										{
+											"type": "object",
+											"properties": {
+												"fobar": {
+													"type": "number"
+												}
+											},
+											"required": [
+												"fobar"
+											]
+										}
+									]
 								}
 							}
 						}
 					}
-        },
-        "security": [],
+				},
 				"tags": [
 					"my-tag",
 					"my-post-tag"
-				]
+				],
+				"security": []
 			}
 		},
 		"/my-2nd-route": {
@@ -64,7 +118,27 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/_fooPost-string--barPost-_barFooPost-string--_--_"
+									"type": "object",
+									"properties": {
+										"fooPost": {
+											"type": "string"
+										},
+										"barPost": {
+											"type": "object",
+											"properties": {
+												"barFooPost": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"barFooPost"
+											]
+										}
+									},
+									"required": [
+										"fooPost",
+										"barPost"
+									]
 								}
 							}
 						}
@@ -74,13 +148,30 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/_readonlyerror_code-911--readonlystatus_code-404--_"
+									"type": "object",
+									"properties": {
+										"error_code": {
+											"type": "number",
+											"enum": [
+												911
+											]
+										},
+										"status_code": {
+											"type": "number",
+											"enum": [
+												404
+											]
+										}
+									},
+									"required": [
+										"error_code",
+										"status_code"
+									]
 								}
 							}
 						}
 					}
-        },
-        "security": [],
+				},
 				"tags": [
 					"my-tag"
 				],
@@ -91,16 +182,7 @@
 							"schema": {
 								"allOf": [
 									{
-										"type": "object",
-										"properties": {
-											"name": {
-												"type": "string",
-												"pattern": "^([A-Z]+)"
-											}
-										},
-										"required": [
-											"name"
-										]
+										"$ref": "#/components/schemas/Pick_Datasource.name_"
 									},
 									{
 										"$ref": "#/components/schemas/DatasourceVersion"
@@ -109,7 +191,8 @@
 							}
 						}
 					}
-				}
+				},
+				"security": []
 			}
 		},
 		"/{id}": {
@@ -130,7 +213,35 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/_enum-MyEnum--date..-Date-or-undefined--recordString-Record_string.string_--record-Record_foo.string_--mappedType-__key-number_-number--_--_"
+									"type": "object",
+									"properties": {
+										"enum": {
+											"$ref": "#/components/schemas/MyEnum"
+										},
+										"date": {
+											"type": "string",
+											"format": "date-time"
+										},
+										"recordString": {
+											"$ref": "#/components/schemas/Record_string.string_"
+										},
+										"record": {
+											"$ref": "#/components/schemas/Record_foo.string_"
+										},
+										"mappedType": {
+											"type": "object",
+											"properties": {},
+											"additionalProperties": {
+												"type": "number"
+											}
+										}
+									},
+									"required": [
+										"enum",
+										"recordString",
+										"record",
+										"mappedType"
+									]
 								}
 							}
 						}
@@ -140,16 +251,27 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/_error_code-910--_"
+									"type": "object",
+									"properties": {
+										"error_code": {
+											"type": "number",
+											"enum": [
+												910
+											]
+										}
+									},
+									"required": [
+										"error_code"
+									]
 								}
 							}
 						}
 					}
-        },
-        "security": [],
+				},
 				"tags": [
 					"my-tag"
-				]
+				],
+				"security": []
 			}
 		},
 		"/": {
@@ -161,7 +283,21 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/SuccessResponse_Datasource_"
+									"type": "object",
+									"properties": {
+										"date": {
+											"type": "string",
+											"format": "date-time",
+											"example": "2020-10-30T19:02:06.523Z"
+										},
+										"data": {
+											"$ref": "#/components/schemas/Datasource"
+										}
+									},
+									"required": [
+										"date",
+										"data"
+									]
 								}
 							}
 						}
@@ -169,11 +305,11 @@
 					"400": {
 						"description": ""
 					}
-        },
-        "security": [],
+				},
 				"tags": [
 					"my-tag"
-				]
+				],
+				"security": []
 			}
 		},
 		"/list": {
@@ -190,11 +326,11 @@
 							}
 						}
 					}
-        },
-        "security": [],
+				},
 				"tags": [
 					"my-tag"
-				]
+				],
+				"security": []
 			}
 		},
 		"/missing": {
@@ -206,16 +342,53 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/_tuple-_string....number-Array_--bool-boolean--nullable-string-or-null--optional..-number-or-undefined--enumLiteral-MyEnum.FOO--_"
+									"type": "object",
+									"properties": {
+										"tuple": {
+											"type": "array",
+											"items": {
+												"oneOf": [
+													{
+														"type": "string"
+													},
+													{
+														"type": "number"
+													}
+												]
+											}
+										},
+										"bool": {
+											"type": "boolean"
+										},
+										"nullable": {
+											"type": "string",
+											"nullable": true
+										},
+										"optional": {
+											"type": "number"
+										},
+										"enumLiteral": {
+											"type": "string",
+											"enum": [
+												"foo"
+											]
+										}
+									},
+									"required": [
+										"tuple",
+										"bool",
+										"nullable",
+										"enumLiteral"
+									]
 								}
 							}
 						}
 					}
-        },
-        "security": [],
+				},
 				"tags": [
 					"my-tag"
-				]
+				],
+				"security": []
 			}
 		},
 		"/no-required/{id}": {
@@ -236,16 +409,35 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/_foo..-string-or-undefined--readonlybarReadonly..-number-or-undefined--unknown-unknown--void-void--_"
+									"type": "object",
+									"properties": {
+										"foo": {
+											"type": "string"
+										},
+										"barReadonly": {
+											"type": "number",
+											"readOnly": true
+										},
+										"unknown": {
+											"type": "object"
+										},
+										"void": {
+											"type": "object"
+										}
+									},
+									"required": [
+										"unknown",
+										"void"
+									]
 								}
 							}
 						}
 					}
-        },
-        "security": [],
+				},
 				"tags": [
 					"my-tag"
-				]
+				],
+				"security": []
 			}
 		},
 		"/file": {
@@ -257,12 +449,13 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/__"
+									"type": "object",
+									"properties": {}
 								}
 							}
 						}
 					}
-        },
+				},
 				"tags": [
 					"my-tag"
 				],
@@ -276,15 +469,15 @@
 									"file": {
 										"type": "string",
 										"format": "binary"
-                  },
-                  "readonlyComment": {
-                    "type": "string",
-                    "readOnly": true
-                  }
+									},
+									"readonlyComment": {
+										"type": "string",
+										"readOnly": true
+									}
 								},
 								"required": [
-                  "file",
-                  "readonlyComment"
+									"file",
+									"readonlyComment"
 								]
 							}
 						}
@@ -308,7 +501,8 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/__"
+									"type": "object",
+									"properties": {}
 								}
 							}
 						}
@@ -316,13 +510,13 @@
 				},
 				"tags": [
 					"my-tag"
-        ],
+				],
 				"requestBody": {
 					"required": true,
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/GettersClass"
+								"$ref": "#/components/schemas/Partial_GettersClass_"
 							}
 						}
 					}
@@ -337,154 +531,68 @@
 	},
 	"components": {
 		"schemas": {
-			"_bar-bare--foo-string--_-and-_id-number--_-and-_h-hi-or-hello--_": {
-				"allOf": [
-					{
-						"type": "object",
-						"properties": {
-							"bar": {
-								"type": "string",
-								"enum": [
-									"bare"
+			"_bar-bare--foo-string--_": {
+				"type": "object",
+				"properties": {
+					"bar": {
+						"type": "string",
+						"enum": [
+							"bare"
+						]
+					},
+					"foo": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"bar",
+					"foo"
+				]
+			},
+			"Pick_DeepDeepGeneric__foo-string--bar-number--__.foo_": {
+				"type": "object",
+				"properties": {
+					"foo": {
+						"allOf": [
+							{
+								"type": "object",
+								"properties": {
+									"value": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"value"
 								]
 							},
-							"foo": {
-								"type": "string"
-							}
-						},
-						"required": [
-							"bar",
-							"foo"
-						]
-					},
-					{
-						"type": "object",
-						"properties": {
-							"id": {
-								"type": "number"
-							}
-						},
-						"required": [
-							"id"
-						]
-					},
-					{
-						"type": "object",
-						"properties": {
-							"h": {
-								"oneOf": [
-									{
-										"type": "string",
-										"enum": [
-											"hi"
-										]
-									},
-									{
-										"type": "string",
-										"enum": [
-											"hello"
-										]
+							{
+								"type": "object",
+								"properties": {
+									"bar": {
+										"type": "string"
 									}
+								},
+								"required": [
+									"bar"
 								]
 							}
-						},
-						"required": [
-							"h"
-						]
-					}
-				]
-			},
-			"DeepGeneric__foo-string--bar-number--__": {
-				"allOf": [
-					{
-						"type": "object",
-						"properties": {
-							"foo": {
-								"allOf": [
-									{
-										"type": "object",
-										"properties": {
-											"value": {
-												"type": "string"
-											}
-										},
-										"required": [
-											"value"
-										]
-									},
-									{
-										"type": "object",
-										"properties": {
-											"bar": {
-												"type": "string"
-											}
-										},
-										"required": [
-											"bar"
-										]
-									}
-								]
-							}
-						},
-						"required": [
-							"foo"
-						]
-					},
-					{
-						"type": "object",
-						"properties": {
-							"fobar": {
-								"type": "number"
-							}
-						},
-						"required": [
-							"fobar"
-						]
-					}
-				]
-			},
-			"_fooPost-string--barPost-_barFooPost-string--_--_": {
-				"type": "object",
-				"properties": {
-					"fooPost": {
-						"type": "string"
-					},
-					"barPost": {
-						"type": "object",
-						"properties": {
-							"barFooPost": {
-								"type": "string"
-							}
-						},
-						"required": [
-							"barFooPost"
 						]
 					}
 				},
 				"required": [
-					"fooPost",
-					"barPost"
+					"foo"
 				]
 			},
-			"_readonlyerror_code-911--readonlystatus_code-404--_": {
+			"Pick_Datasource.name_": {
 				"type": "object",
 				"properties": {
-					"error_code": {
-						"type": "number",
-						"enum": [
-							911
-						]
-					},
-					"status_code": {
-						"type": "number",
-						"enum": [
-							404
-						]
+					"name": {
+						"type": "string",
+						"pattern": "^([A-Z]+)"
 					}
 				},
 				"required": [
-					"error_code",
-					"status_code"
+					"name"
 				]
 			},
 			"DatasourceVersion": {
@@ -505,59 +613,22 @@
 					"bar"
 				]
 			},
-			"_enum-MyEnum--date..-Date-or-undefined--recordString-Record_string.string_--record-Record_foo.string_--mappedType-__key-number_-number--_--_": {
+			"Record_string.string_": {
 				"type": "object",
-				"properties": {
-					"enum": {
-						"$ref": "#/components/schemas/MyEnum"
-					},
-					"date": {
-						"type": "string",
-						"format": "date-time"
-          },
-          "recordString": {
-						"type": "object",
-            "properties": {},
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "record": {
-						"type": "object",
-            "properties": {
-              "foo": {
-                "type": "string"
-              }
-            },
-            "required": ["foo"]
-          },
-          "mappedType": {
-						"type": "object",
-            "properties": {},
-            "additionalProperties": {
-              "type": "number"
-            }
-					}
-				},
-				"required": [
-          "enum",
-          "recordString",
-          "record",
-          "mappedType"
-				]
+				"properties": {},
+				"additionalProperties": {
+					"type": "string"
+				}
 			},
-			"_error_code-910--_": {
+			"Record_foo.string_": {
 				"type": "object",
 				"properties": {
-					"error_code": {
-						"type": "number",
-						"enum": [
-							910
-						]
+					"foo": {
+						"type": "string"
 					}
 				},
 				"required": [
-					"error_code"
+					"foo"
 				]
 			},
 			"Datasource": {
@@ -585,23 +656,6 @@
 					"version"
 				]
 			},
-			"SuccessResponse_Datasource_": {
-				"type": "object",
-				"properties": {
-					"date": {
-            "type": "string",
-            "example": "2020-10-30T19:02:06.523Z",
-						"format": "date-time"
-					},
-					"data": {
-						"$ref": "#/components/schemas/Datasource"
-					}
-				},
-				"required": [
-					"date",
-					"data"
-				]
-			},
 			"Partial_Serialized_Datasource__": {
 				"type": "object",
 				"properties": {
@@ -624,87 +678,25 @@
 					}
 				}
 			},
-			"_tuple-_string....number-Array_--bool-boolean--nullable-string-or-null--optional..-number-or-undefined--enumLiteral-MyEnum.FOO--_": {
-				"type": "object",
-				"properties": {
-					"tuple": {
-						"type": "array",
-						"items": {
-							"oneOf": [
-								{
-									"type": "string"
-								},
-								{
-									"type": "number"
-								}
-							]
-						}
-					},
-					"bool": {
-						"type": "boolean"
-					},
-					"nullable": {
-						"type": "string",
-						"nullable": true
-					},
-					"optional": {
-						"type": "number"
-					},
-					"enumLiteral": {
-						"type": "string",
-						"enum": [
-							"foo"
-						]
-					}
-				},
-				"required": [
-					"tuple",
-					"bool",
-					"nullable",
-					"enumLiteral"
-				]
-			},
-			"_foo..-string-or-undefined--readonlybarReadonly..-number-or-undefined--unknown-unknown--void-void--_": {
-				"type": "object",
-				"properties": {
-					"foo": {
-						"type": "string"
-					},
-					"barReadonly": {
-						"type": "number",
-						"readOnly": true
-					},
-					"unknown": {
-						"type": "object"
-					},
-					"void": {
-						"type": "object"
-					}
-				},
-				"required": [
-					"unknown",
-					"void"
-				]
-			},
-			"__": {
-				"type": "object",
-				"properties": {}
-			},
-			"GettersClass": {
+			"Partial_GettersClass_": {
 				"type": "object",
 				"properties": {
 					"fooGet": {
+            "type": "string",
+            "readOnly": true
+          },
+          "fooReadonly": {
+            "type": "string",
+            "readOnly": true
+					},
+					"fooReadonlyComment": {
 						"type": "string",
 						"readOnly": true
 					},
 					"barGetAndSet": {
 						"type": "string"
 					}
-				},
-				"required": [
-					"fooGet",
-					"barGetAndSet"
-				]
+				}
 			}
 		},
 		"securitySchemes": {
