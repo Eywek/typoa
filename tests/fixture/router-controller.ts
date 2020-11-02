@@ -19,7 +19,7 @@ interface BodyTypeTwo {
   type: 'two'
 }
 
-@Route()
+@Route('my-controller')
 export class MyController extends Controller {
   @Get()
   public async get () {

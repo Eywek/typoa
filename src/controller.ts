@@ -163,7 +163,7 @@ export function addController (
 
     // Add to spec + codegen
     for (const decorator of verbDecorators) {
-      const endpoint = normalizeUrl((controllerEndpoint || '/') + (extractDecoratorValues(decorator)[0] || '/'))
+      const endpoint = normalizeUrl((controllerEndpoint || '/') + '/' + (extractDecoratorValues(decorator)[0] || '/'))
       const verb = decorator.getName()
       // OpenAPI
       log(`Adding '${verb} ${endpoint}' for ${controllerName}.${method.getName()} method to spec`)

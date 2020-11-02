@@ -49,7 +49,7 @@ test.before(async (t) => {
     })
   })
   const port = (server.address() as AddressInfo).port
-  api = axios.create({ baseURL: `http://localhost:${port}`, validateStatus: () => true })
+  api = axios.create({ baseURL: `http://localhost:${port}/my-controller`, validateStatus: () => true })
 })
 
 test.after(async (t) => {
@@ -101,7 +101,7 @@ test('Valid body', async (t) => {
   t.is(res.headers['x-foo'], 'bar')
   delete body.object.ignored
   delete body.readonlyProp
-  t.deepEqual(res.data, Object.assign({}, body, { stringWithFormat: body.stringWithFormat.toISOString(), url: '/', formatIsDate: true }))
+  t.deepEqual(res.data, Object.assign({}, body, { stringWithFormat: body.stringWithFormat.toISOString(), url: '/my-controller/', formatIsDate: true }))
 })
 
 test('Missing header', async (t) => {
