@@ -74,23 +74,18 @@ export function resolve (
     const isUndefined = type.getUnionTypes().some(t => t.isUndefined())
     return resolveNullableTypeFn(type.getNonNullableType(), isUndefined, spec)
   }
-  // JSDoc
-  const jsDocTags = type.getSymbol()?.compilerSymbol.getJsDocTags()
-  const description = jsDocTags?.find(tag => tag.name === 'description')?.text
-  const pattern = jsDocTags?.find(tag => tag.name === 'pattern')?.text
   // Handle types
   if (type.isArray()) {
     return {
       type: 'array',
-      items: resolve(type.getArrayElementTypeOrThrow(), spec),
-      description
+      items: resolve(type.getArrayElementTypeOrThrow(), spec)
     }
   }
   if (type.isBoolean()) {
-    return { type: 'boolean', description }
+    return { type: 'boolean' }
   }
   if (type.isUnknown()) {
-    return { type: 'object', description }
+    return { type: 'object' }
   }
   if (type.isTuple()) { // OpenAPI doesn't support it, so we take it as an union of array
     // tslint:disable-next-line: no-console
@@ -99,15 +94,14 @@ export function resolve (
       type: 'array',
       items: {
         oneOf: type.getTupleElements().map(type => resolve(type, spec))
-      },
-      description
+      }
     }
   }
   if (type.isClassOrInterface() || type.isObject()) {
     let typeName = retrieveTypeName(type)
     // Special case for date
     if (typeName === 'Date') {
-      return { type: 'string', format: 'date-time', description }
+      return { type: 'string', format: 'date-time' }
     }
     // Handle mapped types
     const typeArguments = type.getTypeArguments()
@@ -119,8 +113,7 @@ export function resolve (
     if (typeName === '__type' || typeName === '__object' || typeArguments.length > 0) {
       return {
         type: 'object',
-        ...resolveProperties(type, spec),
-        description
+        ...resolveProperties(type, spec)
       }
     }
     // Use ref for models and other defined types
@@ -130,8 +123,7 @@ export function resolve (
     if (typeof spec.components!.schemas![refName] === 'undefined') {
       spec.components!.schemas![refName] = {
         type: 'object',
-        ...resolveProperties(type, spec),
-        description
+        ...resolveProperties(type, spec)
       }
     }
     // Return
@@ -139,8 +131,7 @@ export function resolve (
   }
   if (type.isIntersection()) {
     return {
-      allOf: type.getIntersectionTypes().map(type => resolve(type, spec)),
-      description
+      allOf: type.getIntersectionTypes().map(type => resolve(type, spec))
     }
   }
   if (type.isUnion()) {
@@ -154,24 +145,19 @@ export function resolve (
         const values = resolvedTypes.map(type => type.enum![0])
         spec.components!.schemas![enumName] = {
           type: resolvedTypes[0].type,
-          enum: values,
-          description,
-          pattern
+          enum: values
         }
       }
       return { $ref: buildRef(enumName) }
     }
     return {
-      oneOf: values,
-      description
+      oneOf: values
     }
   }
   if ((type.isEnumLiteral() || type.isLiteral()) && type.compilerType.isLiteral()) {
     return {
       type: type.isNumberLiteral() ? 'number' : 'string',
-      enum: [type.compilerType.value],
-      description,
-      pattern
+      enum: [type.compilerType.value]
     }
   }
   const typeName = type.getText() as 'string' | 'number' | 'void'
@@ -179,9 +165,7 @@ export function resolve (
     return { type: 'object' }
   }
   return {
-    type: typeName,
-    description,
-    pattern
+    type: typeName
   }
 }
 
@@ -220,13 +204,7 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
       appendMetaToResolvedType(resolvedType, { readOnly: true })
     }
     // JSDoc tags
-    for (const tag of jsDocTags) {
-      if (['format', 'example', 'description', 'pattern', 'minimum', 'maximum'].includes(tag.name) && tag.text) {
-        appendMetaToResolvedType(resolvedType, {
-          [tag.name]: ['minimum', 'maximum'].includes(tag.name) ? parseFloat(tag.text) : tag.text
-        })
-      }
-    }
+    appendJsDocTags(jsDocTags, resolvedType)
     // Add to spec
     schema.properties[property.getName()] = resolvedType
     if (required) {
@@ -265,4 +243,17 @@ export function appendMetaToResolvedType (
     })
   }
   return Object.assign(type, metas)
+}
+
+export function appendJsDocTags (
+  jsDocTags: ts.JSDocTagInfo[],
+  resolvedType: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject
+) {
+  for (const tag of jsDocTags) {
+    if (['format', 'example', 'description', 'pattern', 'minimum', 'maximum'].includes(tag.name) && tag.text) {
+      appendMetaToResolvedType(resolvedType, {
+        [tag.name]: ['minimum', 'maximum'].includes(tag.name) ? parseFloat(tag.text) : tag.text
+      })
+    }
+  }
 }

@@ -142,6 +142,9 @@ export class MyController {
   @Security(securities)
   getters (
     @Body() body: Partial<GettersClass>,
+    /**
+     * @minimum 1
+     */
     @Query('limit') limit = 20
   ): {} {
     return {} as any

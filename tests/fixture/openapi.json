@@ -501,7 +501,8 @@
 						"in": "query",
 						"schema": {
               "type": "number",
-              "default": 20
+              "default": 20,
+              "minimum": 1
 						},
 						"required": false
 					}

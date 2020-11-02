@@ -90,9 +90,7 @@ export class MyController extends Controller {
   }
 
   @Get('/no-content')
-  public async noContent (
-    @Path('id') id: string
-  ) {
+  public async noContent () {
     return
   }
 }
