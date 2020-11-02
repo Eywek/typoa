@@ -48,6 +48,8 @@ interface SuccessResponse<T> {
   data: T
 }
 
+type TestRefReadonlyAndTags = { foo: string }
+
 // tslint:disable-next-line: max-classes-per-file
 class GettersClass {
   get fooGet () {
@@ -56,8 +58,9 @@ class GettersClass {
   readonly fooReadonly!: string // test again because we use Partial<GettersClass>
   /**
    * @readonly
+   * @description my comment
    */
-  fooReadonlyComment!: string // test again because we use Partial<GettersClass>
+  fooReadonlyComment!: TestRefReadonlyAndTags // test again because we use Partial<GettersClass>
   get barGetAndSet () {
     return ''
   }

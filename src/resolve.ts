@@ -39,7 +39,7 @@ function resolveNullableType (
   isUndefined: boolean,
   spec: OpenAPIV3.Document
 ): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
-  return Object.assign(resolve(nonNullableType, spec), { nullable: true })
+  return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
 }
 
 function retrieveTypeName (
@@ -214,15 +214,15 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
         required = false
         return resolve(nonNullableType, spec)
       }
-      return Object.assign(resolve(nonNullableType, spec), { nullable: true })
+      return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
     })
     if (isReadonly) {
-      Object.assign(resolvedType, { readOnly: true })
+      appendMetaToResolvedType(resolvedType, { readOnly: true })
     }
     // JSDoc tags
     for (const tag of jsDocTags) {
       if (['format', 'example', 'description', 'pattern', 'minimum', 'maximum'].includes(tag.name) && tag.text) {
-        Object.assign(resolvedType, {
+        appendMetaToResolvedType(resolvedType, {
           [tag.name]: ['minimum', 'maximum'].includes(tag.name) ? parseFloat(tag.text) : tag.text
         })
       }
@@ -250,4 +250,19 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     }
   }
   return result
+}
+
+function appendMetaToResolvedType (
+  type: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject,
+  metas: Partial<OpenAPIV3.NonArraySchemaObject>
+): OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject {
+  if ('$ref' in type) { // siblings aren't allowed with ref (ex: for readonly) see https://stackoverflow.com/a/51402417
+    const ref = type.$ref
+    delete type.$ref
+    return Object.assign(type, { // Mutate type deleting $ref
+      allOf: [{ $ref: ref }],
+      ...metas
+    })
+  }
+  return Object.assign(type, metas)
 }

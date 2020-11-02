@@ -646,7 +646,7 @@
 						"description": "This comment is used to test typoa"
 					},
 					"version": {
-						"$ref": "#/components/schemas/DatasourceVersion",
+						"allOf": [{ "$ref": "#/components/schemas/DatasourceVersion" }],
 						"nullable": true
 					}
 				},
@@ -690,14 +690,24 @@
             "readOnly": true
 					},
 					"fooReadonlyComment": {
-						"type": "string",
+            "description": "my comment",
+						"allOf": [{ "$ref": "#/components/schemas/TestRefReadonlyAndTags" }],
 						"readOnly": true
 					},
 					"barGetAndSet": {
 						"type": "string"
 					}
 				}
-			}
+      },
+      "TestRefReadonlyAndTags": {
+        "type": "object",
+        "properties": {
+          "foo": {
+            "type": "string"
+          }
+        },
+        "required": ["foo"]
+      }
 		},
 		"securitySchemes": {
 			"company": {
