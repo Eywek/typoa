@@ -333,6 +333,20 @@ test('Invalid body with object', async (t) => {
   })
 })
 
+test('Invalid body with array as object', async (t) => {
+  const res = await api.post('/', Object.assign({}, body, {
+    object: []
+  }), {
+    headers: {
+      'x-custom-header': 'my-header'
+    }
+  })
+  t.is(res.status, 400)
+  t.deepEqual(res.data.fields, {
+    'body.object': { message: 'This property must be an object', value: [] }
+  })
+})
+
 test('Invalid body with union', async (t) => {
   const res = await api.post('/', Object.assign({}, body, {
     union: { bar: 'bar' }

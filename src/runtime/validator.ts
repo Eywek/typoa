@@ -191,7 +191,7 @@ function validateAndParseValueAgainstSchema (
   }
   // Object
   if (currentSchema.type === 'object') {
-    if (typeof value !== 'object') {
+    if (typeof value !== 'object' || Array.isArray(value) === true) {
       throw new ValidateError({
         [name]: { message: 'This property must be an object', value }
       }, 'Invalid parameter')
