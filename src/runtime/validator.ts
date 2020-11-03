@@ -49,18 +49,13 @@ export async function validateAndParse (
         value = req.params[param.name]
         break
     }
-    const isEmpty = value?.length === 0
     const isUndefined = typeof value === 'undefined'
-    if (param.required === true && (isUndefined || isEmpty)) {
+    if (param.required === true && isUndefined) {
       throw new ValidateError({
         [param.name]: { message: 'Param is required', value }
       }, 'Missing parameter')
     }
-    if (param.in === 'query' && isEmpty) {
-      args.push('') // Allow empty values for non-required query values
-      continue
-    }
-    if (isUndefined || isEmpty) { // Don't validate
+    if (isUndefined) { // Don't validate
       args.push(undefined)
       continue
     }
@@ -208,7 +203,7 @@ function validateAndParseValueAgainstSchema (
       })
       .reduce((props, propName) => {
         const propValue = (value as Record<string, unknown>)[propName]
-        const isNotDefined = typeof propValue === 'undefined' || (typeof propValue === 'string' && propValue.length === 0)
+        const isNotDefined = typeof propValue === 'undefined'
         if (currentSchema.required?.includes(propName) && isNotDefined === true) {
           throw new ValidateError({
             [`${name}.${propName}`]: { message: 'This property is required' }
