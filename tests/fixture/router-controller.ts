@@ -58,6 +58,8 @@ export class MyController extends Controller {
       union: { foo: 'bar' } | { bar: 'foo' },
       intersection: { foo: 'bar' } & { bar: 'foo' }
       readonly readonlyProp: string
+      any?: any
+      unknown?: unknown
     },
     @Request() req: express.Request,
     @Query('my-query-param') queryParam?: string

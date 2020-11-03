@@ -277,8 +277,8 @@ function validateAndParseValueAgainstSchema (
     }
     return matchingValue
   }
-  log(`Schema of ${name} is not yet supported, ignoring value`)
-  return undefined // ignored
+  log(`Schema of ${name} is not yet supported, skipping value validation`)
+  return value
 }
 
 function validateAndParseFormat (name: string, value: string, format: string) {

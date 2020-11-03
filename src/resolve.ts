@@ -83,8 +83,11 @@ export function resolve (
   if (type.isBoolean()) {
     return { type: 'boolean' }
   }
-  if (type.isUnknown()) {
-    return { type: 'object' }
+  if (type.isUnknown() || type.isAny()) {
+    spec.components!.schemas!.AnyValue = {
+      description: 'Can be any value'
+    }
+    return { $ref: buildRef('AnyValue') }
   }
   if (type.isTuple()) { // OpenAPI doesn't support it, so we take it as an union of array
     // tslint:disable-next-line: no-console
@@ -189,7 +192,7 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
       hasFlags(SymbolFlags.SetAccessor) === false
     ) || jsDocTags.some(tag => tag.name === 'readonly')
     // Required by default
-    let required = true
+    let required = hasFlags(SymbolFlags.Optional) ? false : true
     // We resolve the property, overriding the behavior for nullable values
     // if the value is optional (isUndefined = true) we don't push in the required array
     const resolvedType = resolve(propertyType, spec, (nonNullableType, isUndefined, spec) => {

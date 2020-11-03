@@ -420,7 +420,7 @@
 											"readOnly": true
 										},
 										"unknown": {
-											"type": "object"
+											"$ref": "#/components/schemas/AnyValue"
 										},
 										"void": {
 											"type": "object"
@@ -719,6 +719,9 @@
           }
         },
         "required": ["foo"]
+      },
+      "AnyValue": {
+        "description": "Can be any value"
       }
 		},
 		"securitySchemes": {

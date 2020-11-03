@@ -375,6 +375,62 @@ test('Invalid body with not nullable value', async (t) => {
   })
 })
 
+for (const type of ['any', 'unknown']) {
+  test(`Valid body with ${type}`, async (t) => {
+    {
+      const res = await api.post('/', Object.assign({}, body, {
+        [type]: 3
+      }), {
+        headers: {
+          'x-custom-header': 'my-header'
+        }
+      })
+      t.is(res.status, 201)
+      t.is(res.data[type], 3)
+    }
+    {
+      const res = await api.post('/', Object.assign({}, body, {
+        [type]: []
+      }), {
+        headers: {
+          'x-custom-header': 'my-header'
+        }
+      })
+      t.is(res.status, 201)
+    }
+    {
+      const res = await api.post('/', Object.assign({}, body, {
+        [type]: {}
+      }), {
+        headers: {
+          'x-custom-header': 'my-header'
+        }
+      })
+      t.is(res.status, 201)
+    }
+    {
+      const res = await api.post('/', Object.assign({}, body, {
+        [type]: '3'
+      }), {
+        headers: {
+          'x-custom-header': 'my-header'
+        }
+      })
+      t.is(res.status, 201)
+    }
+    {
+      const res = await api.post('/', Object.assign({}, body, {
+        [type]: { foo: 1 }
+      }), {
+        headers: {
+          'x-custom-header': 'my-header'
+        }
+      })
+      t.is(res.status, 201)
+    }
+  })
+}
+
 test('Should parse path', async (t) => {
   const res = await api.delete('/20/1')
   t.is(res.status, 200)
