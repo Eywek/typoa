@@ -64,7 +64,7 @@ export class MyController extends Controller {
   ) {
     this.setStatus(201)
     this.setHeader('x-foo', 'bar')
-    return Object.assign({}, body, { url: req.url, formatIsDate: body.stringWithFormat instanceof Date })
+    return Object.assign({}, body, { url: req.url, formatIsDate: body.stringWithFormat instanceof Date, queryParam })
   }
 
   @Delete('{id}/{boolean(0|1)}')

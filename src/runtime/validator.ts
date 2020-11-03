@@ -49,13 +49,18 @@ export async function validateAndParse (
         value = req.params[param.name]
         break
     }
-    const isUndefined = (typeof value === 'undefined' || value.length === 0)
-    if (param.required === true && isUndefined) {
+    const isEmpty = value?.length === 0
+    const isUndefined = typeof value === 'undefined'
+    if (param.required === true && (isUndefined || isEmpty)) {
       throw new ValidateError({
         [param.name]: { message: 'Param is required', value }
       }, 'Missing parameter')
     }
-    if (isUndefined) { // Don't validate
+    if (param.in === 'query' && isEmpty) {
+      args.push('') // Allow empty values for non-required query values
+      continue
+    }
+    if (isUndefined || isEmpty) { // Don't validate
       args.push(undefined)
       continue
     }
