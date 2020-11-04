@@ -180,3 +180,12 @@ export class MyController {
     return undefined
   }
 }
+
+@Route()
+@Hidden()
+export class MyHiddenController {
+  @Get('my-route')
+  get (): string {
+    return {} as any
+  }
+}
