@@ -41,11 +41,15 @@ export function addController (
 
     // Resolve response type
     const returnType = method.getReturnType()
-    operation.responses![200] = {
-      description: 'Ok',
-      content: {
-        'application/json': {
-          schema: resolve(returnType, spec)
+    if (returnType.isUndefined() || returnType.getText() === 'void') {
+      operation.responses![204] = { description: 'No Content' }
+    } else {
+      operation.responses![200] = {
+        description: 'Ok',
+        content: {
+          'application/json': {
+            schema: resolve(returnType, spec)
+          }
         }
       }
     }
