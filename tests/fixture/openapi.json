@@ -539,10 +539,60 @@
 					}
 				]
 			}
+    },
+    "/foo": {
+			"post": {
+        "operationId": "foo-get",
+				"parameters": [],
+				"responses": {
+					"204": {
+						"description": "No Content"
+					}
+				},
+				"tags": [
+					"my-tag"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Foo"
+							}
+						}
+					}
+				},
+				"security": []
+			}
+    },
+    "/undefined": {
+			"get": {
+				"parameters": [],
+				"responses": {
+					"204": {
+						"description": "No Content"
+					}
+				},
+				"tags": [
+					"my-tag"
+				],
+				"security": []
+			}
 		}
 	},
 	"components": {
 		"schemas": {
+      "Foo": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"name"
+				]
+			},
 			"_bar-bare--foo-string--_": {
 				"type": "object",
 				"properties": {

@@ -1,4 +1,5 @@
-import { Route, Get, Post, Query, Body, Tags, Patch, Path, Response, Delete, Security } from '../../src'
+// tslint:disable: max-classes-per-file
+import { Route, Get, Post, Query, Body, Tags, Patch, Path, Response, Delete, Security, OperationId } from '../../src'
 
 type Serialize<T extends any> = {
     [key in keyof T]: T[key] extends 'foo' ? 'bare' :
@@ -21,7 +22,6 @@ class DatasourceVersion {
   type!: string
 }
 type Serialized<T extends any> = T & { id: string }
-// tslint:disable-next-line: max-classes-per-file
 class Datasource {
   /**
    * @pattern ^([A-Z]+)
@@ -50,7 +50,6 @@ interface SuccessResponse<T> {
 
 type TestRefReadonlyAndTags = { foo: string }
 
-// tslint:disable-next-line: max-classes-per-file
 class GettersClass {
   get fooGet () {
     return ''
@@ -67,11 +66,20 @@ class GettersClass {
   set barGetAndSet (val: string) {
     return
   }
+  public ignoredMethod () {
+    return 'foo'
+  }
+}
+
+class Foo {
+  public name!: { value: string }
+  public toJSON (): { name: string } {
+    return { name: this.name.value }
+  }
 }
 
 const securities = { company: [] }
 
-// tslint:disable-next-line: max-classes-per-file
 @Route()
 @Tags('my-tag')
 export class MyController {
@@ -119,7 +127,7 @@ export class MyController {
   @Get('/no-required/{id([A-Z]+)}')
   noRequired (
     @Path('id') id: string
-  ): { foo?: string, readonly barReadonly?: number, unknown: unknown, void: void } {
+  ): { foo?: string, readonly barReadonly?: number, unknown: unknown, void: void, ignored: () => string, ignoredSignature (): string } {
     return {} as any
   }
   @Security({ company: ['my-scope'] })
@@ -148,5 +156,16 @@ export class MyController {
     @Query('limit') limit = 20
   ): {} {
     return {} as any
+  }
+  @Post('/foo')
+  @OperationId('foo-get')
+  foo (
+    @Body() body: Foo
+  ) {
+    return
+  }
+  @Get('/undefined')
+  undefined () {
+    return undefined
   }
 }

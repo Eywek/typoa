@@ -1,4 +1,4 @@
-import { SymbolFlags, Type, Node, ts } from 'ts-morph'
+import { SymbolFlags, Type, Node, ts, Symbol as TsSymbol, MethodDeclaration, MethodSignature } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
 
 export function buildRef (name: string) {
@@ -113,20 +113,14 @@ export function resolve (
     }
     // Special case for anonymous types and generic interfaces
     if (typeName === '__type' || typeName === '__object' || typeArguments.length > 0) {
-      return {
-        type: 'object',
-        ...resolveProperties(type, spec)
-      }
+      return resolveObjectType(type, spec)
     }
     // Use ref for models and other defined types
     const refName = stringifyName(typeName)
     // Add to spec components if not already resolved
     // tslint:disable-next-line: strict-type-predicates
     if (typeof spec.components!.schemas![refName] === 'undefined') {
-      spec.components!.schemas![refName] = {
-        type: 'object',
-        ...resolveProperties(type, spec)
-      }
+      spec.components!.schemas![refName] = resolveObjectType(type, spec)
     }
     // Return
     return { $ref: buildRef(refName) }
@@ -175,20 +169,15 @@ type ResolvePropertiesReturnType = Required<Pick<OpenAPIV3.BaseSchemaObject, 'pr
   { required?: string[], additionalProperties?: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject }
 function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolvePropertiesReturnType {
   const result: ResolvePropertiesReturnType = type.getProperties().reduce((schema, property) => {
-    const firstDeclaration = property.getDeclarations()[0] as Node | undefined
-    if (firstDeclaration?.getKindName() === 'MethodDeclaration') {
+    const node = getDeclarationForProperty(type, property)
+    const propertyType = property.getTypeAtLocation(node)
+    if (Node.isMethodDeclaration(node) || Node.isMethodSignature(node) || propertyType.getCallSignatures().length > 0) {
       return schema// ignore functions
-    }
-    let propertyType: Type
-    if (typeof firstDeclaration === 'undefined') { // Happen with Record<'foo', string>.foo
-      propertyType = property.getTypeAtLocation(type.getSymbolOrThrow().getDeclarations()[0])
-    } else {
-      propertyType = property.getTypeAtLocation(firstDeclaration)
     }
     const jsDocTags = property.compilerSymbol.getJsDocTags()
     // Handle readonly / getters props / @readonly tag
-    const modifierFlags = property.getValueDeclaration()?.getCombinedModifierFlags() ?? firstDeclaration?.getCombinedModifierFlags()
-    const hasFlags = (flag: SymbolFlags) => property.hasFlags(flag) || firstDeclaration?.getSymbol()?.hasFlags(flag)
+    const modifierFlags = property.getValueDeclaration()?.getCombinedModifierFlags() ?? node.getCombinedModifierFlags()
+    const hasFlags = (flag: SymbolFlags) => property.hasFlags(flag) || node.getSymbol()?.hasFlags(flag)
     const isReadonly = modifierFlags === ts.ModifierFlags.Readonly || (
       hasFlags(SymbolFlags.GetAccessor) === true &&
       hasFlags(SymbolFlags.SetAccessor) === false
@@ -232,6 +221,24 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     }
   }
   return result
+}
+
+function resolveObjectType (type: Type, spec: OpenAPIV3.Document): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
+  // toJSON methods
+  const toJSONProperty = type.getProperty('toJSON')
+  if (toJSONProperty) {
+    const node = getDeclarationForProperty(type, toJSONProperty) as MethodDeclaration | MethodSignature
+    return resolve(node.getReturnType(), spec)
+  }
+  return {
+    type: 'object',
+    ...resolveProperties(type, spec)
+  }
+}
+
+function getDeclarationForProperty (rootType: Type, property: TsSymbol): Node {
+  const firstDeclaration = property.getDeclarations()[0] as Node | undefined // Can be undefined with Record<'foo', string>.foo
+  return firstDeclaration ?? rootType.getSymbolOrThrow().getDeclarations()[0]
 }
 
 export function appendMetaToResolvedType (
