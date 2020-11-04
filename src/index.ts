@@ -1,4 +1,4 @@
-import { getCompilerOptionsFromTsConfig, Project } from 'ts-morph'
+import { getCompilerOptionsFromTsConfig, Project, Symbol as TsSymbol } from 'ts-morph'
 import glob from 'glob'
 import { promisify } from 'util'
 import path from 'path'
@@ -10,23 +10,55 @@ import fs from 'fs'
 import { CodeGenControllers } from './types'
 import handlebars from 'handlebars'
 import { getRelativeFilePath } from './utils'
+import { resolve } from './resolve'
 
 export type OpenAPIConfiguration = {
   tsconfigFilePath: string
+  /**
+   * List of controllers paths
+   */
   controllers: string[]
   root?: string
   openapi: {
+    /**
+     * Where you want the spec to be exported
+     */
     filePath: string
+    /**
+     * The exported format
+     */
     format: 'json' | 'yaml'
+    /**
+     * OpenAPI security schemes to add to the spec
+     */
     securitySchemes?: Record<string, OpenAPIV3.SecuritySchemeObject>
+    /**
+     * OpenAPI service informations to add to the spec
+     */
     service: {
       name: string
       version: string
-    }
+    },
+    /**
+     * Additional types you want to export in the schemas of the spec
+     * (could be useful when using the spec to generate typescript openapi clients...)
+     */
+    additionalExportedTypeNames?: string[]
   },
   router: {
+    /**
+     * The handlebars template path we use to generate the router file
+     */
     templateFilePath?: string
+    /**
+     * Where you want the express router to be exported
+     */
     filePath: string,
+    /**
+     * The path of the middleware that must be called when @Security()
+     * decorator is applied on the route
+     * You must export a variable/function named `securityMiddleware`
+     */
     securityMiddlewarePath?: string
   }
 }
@@ -64,6 +96,25 @@ export async function generate (config: OpenAPIConfiguration) {
         controllersPathByName[controller.getName()!] = filePath
       }
     }
+  }
+
+  // additional exported type names
+  for (const typeName of config.openapi.additionalExportedTypeNames ?? []) {
+    const sourceFiles = project.getSourceFiles()
+    const symbols = sourceFiles
+      .map(file => file.getLocal(typeName))
+      .filter(symbol => typeof symbol !== 'undefined') as TsSymbol[]
+    if (symbols.length === 0) {
+      throw new Error(`Unable to find the additional exported type named '${typeName}'`)
+    }
+    if (symbols.length > 1) {
+      throw new Error(`We found multiple references for the additional exported type named '${typeName}'`)
+    }
+    const symbol = symbols[0]
+    const firstDeclaration = symbol.getDeclarations()[0]
+    const type = symbol.getTypeAtLocation(firstDeclaration)
+    // Add to spec
+    resolve(type, spec)
   }
 
   // Write OpenAPI file

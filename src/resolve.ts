@@ -1,4 +1,4 @@
-import { SymbolFlags, Type, Node, ts, Symbol as TsSymbol, MethodDeclaration, MethodSignature } from 'ts-morph'
+import { SymbolFlags, Type, Node, ts, Symbol as TsSymbol, MethodDeclaration, MethodSignature, EnumDeclaration } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
 
 export function buildRef (name: string) {
@@ -99,6 +99,21 @@ export function resolve (
       }
     }
   }
+  if (type.isEnum()) {
+    const symbol = type.getSymbolOrThrow()
+    const enumName = stringifyName(symbol.getName())
+    const declaration = symbol.getDeclarations()[0] as EnumDeclaration
+    // Add to spec components if not already resolved
+    // tslint:disable-next-line: strict-type-predicates
+    if (typeof spec.components!.schemas![enumName] === 'undefined') {
+      const values = declaration.getMembers().map(m => m.getValue()!)
+      spec.components!.schemas![enumName] = {
+        type: (typeof values[0]) as 'string' | 'number',
+        enum: values
+      }
+    }
+    return { $ref: buildRef(enumName) }
+  }
   if (type.isClassOrInterface() || type.isObject()) {
     let typeName = retrieveTypeName(type)
     // Special case for date
@@ -132,20 +147,6 @@ export function resolve (
   }
   if (type.isUnion()) {
     const values = type.getUnionTypes().map(type => resolve(type, spec))
-    if (type.isEnum()) {
-      const enumName = stringifyName(type.getSymbolOrThrow().getName())
-      // Add to spec components if not already resolved
-      // tslint:disable-next-line: strict-type-predicates
-      if (typeof spec.components!.schemas![enumName] === 'undefined') {
-        const resolvedTypes = type.getUnionTypes().map(type => resolve(type, spec) as OpenAPIV3.NonArraySchemaObject)
-        const values = resolvedTypes.map(type => type.enum![0])
-        spec.components!.schemas![enumName] = {
-          type: resolvedTypes[0].type,
-          enum: values
-        }
-      }
-      return { $ref: buildRef(enumName) }
-    }
     return {
       oneOf: values
     }

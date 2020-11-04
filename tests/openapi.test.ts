@@ -20,7 +20,8 @@ test('Should generate the right definition', async (t) => {
           name: 'x-company-id',
           in: 'header'
         }
-      }
+      },
+      additionalExportedTypeNames: ['CustomExportedEnum']
     },
     router: {
       filePath: '/tmp/router.ts'

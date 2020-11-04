@@ -50,6 +50,11 @@ interface SuccessResponse<T> {
 
 type TestRefReadonlyAndTags = { foo: string }
 
+export enum CustomExportedEnum {
+  FOO,
+  BAR
+}
+
 class GettersClass {
   get fooGet () {
     return ''
