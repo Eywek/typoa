@@ -112,9 +112,8 @@ export async function generate (config: OpenAPIConfiguration) {
     }
     const symbol = symbols[0]
     const firstDeclaration = symbol.getDeclarations()[0]
-    const type = symbol.getTypeAtLocation(firstDeclaration)
     // Add to spec
-    resolve(type, spec)
+    resolve(firstDeclaration.getType(), spec)
   }
 
   // Write OpenAPI file
