@@ -158,6 +158,9 @@ export function addController (
     // OperationId
     if (method.getDecorator('OperationId')) {
       operation.operationId = extractDecoratorValues(method.getDecorator('OperationId'))[0]
+    } else {
+      const name = method.getName()
+      operation.operationId = name.charAt(0).toUpperCase() + name.slice(1)
     }
 
     // Add to spec + codegen

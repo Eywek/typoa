@@ -7,6 +7,7 @@
 	"paths": {
 		"/my-route": {
 			"get": {
+        "operationId": "Get",
 				"parameters": [],
 				"responses": {
 					"200": {
@@ -65,6 +66,7 @@
 				"security": []
 			},
 			"post": {
+        "operationId": "Post",
 				"parameters": [
 					{
 						"name": "my-param",
@@ -111,6 +113,7 @@
 		},
 		"/my-2nd-route": {
 			"post": {
+        "operationId": "PostRaw",
 				"parameters": [],
 				"responses": {
 					"200": {
@@ -197,6 +200,7 @@
 		},
 		"/{id}": {
 			"patch": {
+        "operationId": "Patch",
 				"parameters": [
 					{
 						"name": "id",
@@ -276,6 +280,7 @@
 		},
 		"/": {
 			"delete": {
+        "operationId": "Delete",
 				"parameters": [],
 				"responses": {
 					"200": {
@@ -314,6 +319,7 @@
 		},
 		"/list": {
 			"get": {
+        "operationId": "List",
 				"parameters": [],
 				"responses": {
 					"200": {
@@ -336,6 +342,7 @@
 		},
 		"/missing": {
 			"post": {
+        "operationId": "Missing",
 				"parameters": [],
 				"responses": {
 					"200": {
@@ -394,6 +401,7 @@
 		},
 		"/no-required/{id}": {
 			"get": {
+        "operationId": "NoRequired",
 				"parameters": [
 					{
 						"name": "id",
@@ -443,6 +451,7 @@
 		},
 		"/file": {
 			"post": {
+        "operationId": "File",
 				"parameters": [],
 				"responses": {
 					"200": {
@@ -495,6 +504,7 @@
 		},
 		"/getters": {
 			"patch": {
+        "operationId": "Getters",
 				"parameters": [
 					{
 						"name": "limit",
@@ -567,6 +577,7 @@
     },
     "/undefined": {
 			"get": {
+        "operationId": "Undefined",
 				"parameters": [],
 				"responses": {
 					"204": {
