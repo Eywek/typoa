@@ -30,11 +30,6 @@ export function addController (
       tags: [...controllerTags] // copy elements
     }
 
-    // Hidden
-    if (method.getDecorator('Hidden') || controller.getDecorator('Hidden')) {
-      continue // skip
-    }
-
     // Get HTTP verbs
     const verbDecorators = method.getDecorators().filter((decorator) => {
       return VERB_DECORATORS.includes(decorator.getName())
@@ -174,24 +169,27 @@ export function addController (
     }
 
     // Add to spec + codegen
+    const isHidden = typeof (method.getDecorator('Hidden') || controller.getDecorator('Hidden')) !== 'undefined'
     for (const decorator of verbDecorators) {
       const [path, ...tags] = extractDecoratorValues(decorator)
       const endpoint = normalizeUrl((controllerEndpoint || '/') + '/' + (path || '/'))
       const verb = decorator.getName()
       // OpenAPI
-      log(`Adding '${verb} ${endpoint}' for ${controllerName}.${method.getName()} method to spec`)
-      appendToSpec(
-        spec,
-        endpoint
-          .split('/')
-          // Remove regex from express paths /foo/{id([A-Z]+)} => /foo/{id}
-          .map(path => path.replace(/{([A-Za-z0-9-_]+)\(.+\)}/g, (match, captureGroup) => {
-            return `{${captureGroup}}`
-          }))
-          .join('/'),
-        verb.toLowerCase() as any,
-        Object.assign({}, operation, { tags: [...operation.tags ?? [], ...tags] })
-      )
+      if (isHidden === false) {
+        log(`Adding '${verb} ${endpoint}' for ${controllerName}.${method.getName()} method to spec`)
+        appendToSpec(
+          spec,
+          endpoint
+            .split('/')
+            // Remove regex from express paths /foo/{id([A-Z]+)} => /foo/{id}
+            .map(path => path.replace(/{([A-Za-z0-9-_]+)\(.+\)}/g, (match, captureGroup) => {
+              return `{${captureGroup}}`
+            }))
+            .join('/'),
+          verb.toLowerCase() as any,
+          Object.assign({}, operation, { tags: [...operation.tags ?? [], ...tags] })
+        )
+      }
       // Codegen
       // tslint:disable-next-line: strict-type-predicates
       if (typeof codegenControllers[controllerName] === 'undefined') {

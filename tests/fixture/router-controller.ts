@@ -1,5 +1,5 @@
 import express from 'express'
-import { Controller, Route, Get, Post, Header, Body, Request, Query, Delete, Path, Patch, BodyDiscriminatorFunction, Security } from '../../src'
+import { Controller, Route, Get, Post, Header, Body, Request, Query, Delete, Path, Patch, BodyDiscriminatorFunction, Security, Hidden } from '../../src'
 
 enum EnumString {
   FOO = 'foo',
@@ -25,6 +25,7 @@ class WithInitializer {
 
 // tslint:disable-next-line: max-classes-per-file
 @Route('my-controller')
+@Hidden()
 export class MyController extends Controller {
   @Get()
   public async get () {
