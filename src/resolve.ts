@@ -175,9 +175,11 @@ type ResolvePropertiesReturnType = Required<Pick<OpenAPIV3.BaseSchemaObject, 'pr
   { required?: string[], additionalProperties?: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject }
 function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolvePropertiesReturnType {
   const result: ResolvePropertiesReturnType = type.getProperties().reduce((schema, property) => {
-    const firstDeclaration = property.getDeclarations()[0]
+    const firstDeclaration = property.getDeclarations()[0] as Node | undefined
+    if (firstDeclaration?.getKindName() === 'MethodDeclaration') {
+      return schema// ignore functions
+    }
     let propertyType: Type
-    // tslint:disable-next-line: strict-type-predicates
     if (typeof firstDeclaration === 'undefined') { // Happen with Record<'foo', string>.foo
       propertyType = property.getTypeAtLocation(type.getSymbolOrThrow().getDeclarations()[0])
     } else {
