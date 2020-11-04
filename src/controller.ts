@@ -155,6 +155,11 @@ export function addController (
     // Security
     operation.security = [...controllerSecurities, ...getSecurities(method)]
 
+    // OperationId
+    if (method.getDecorator('OperationId')) {
+      operation.operationId = extractDecoratorValues(method.getDecorator('OperationId'))[0]
+    }
+
     // Add to spec + codegen
     for (const decorator of verbDecorators) {
       const [path, ...tags] = extractDecoratorValues(decorator)
