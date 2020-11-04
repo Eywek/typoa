@@ -86,7 +86,8 @@ const body = {
   },
   union: { foo: 'bar' },
   intersection: { foo: 'bar', bar: 'foo' },
-  readonlyProp: 'my prop'
+  readonlyProp: 'my prop',
+  class: {}
 }
 
 test('Check endpoints', async (t) => {
@@ -110,7 +111,10 @@ test('Valid body', async (t) => {
     stringWithFormat: body.stringWithFormat.toISOString(),
     url: '/my-controller/?my-query-param',
     formatIsDate: true,
-    queryParam: ''
+    queryParam: '',
+    class: {
+      foo: 'bar'
+    }
   }))
 })
 

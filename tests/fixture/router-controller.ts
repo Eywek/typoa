@@ -19,6 +19,11 @@ interface BodyTypeTwo {
   type: 'two'
 }
 
+class WithInitializer {
+  public foo = 'bar'
+}
+
+// tslint:disable-next-line: max-classes-per-file
 @Route('my-controller')
 export class MyController extends Controller {
   @Get()
@@ -59,7 +64,8 @@ export class MyController extends Controller {
       intersection: { foo: 'bar' } & { bar: 'foo' }
       readonly readonlyProp: string
       any?: any
-      unknown?: unknown
+      unknown?: unknown,
+      class: WithInitializer
     },
     @Request() req: express.Request,
     @Query('my-query-param') queryParam?: string

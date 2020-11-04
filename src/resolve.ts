@@ -1,4 +1,4 @@
-import { SymbolFlags, Type, Node, ts, Symbol as TsSymbol, MethodDeclaration, MethodSignature, EnumDeclaration } from 'ts-morph'
+import { SymbolFlags, Type, Node, ts, Symbol as TsSymbol, MethodDeclaration, MethodSignature, EnumDeclaration, ParameterDeclaration, PropertyDeclaration } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
 
 export function buildRef (name: string) {
@@ -199,6 +199,12 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     }
     // JSDoc tags
     appendJsDocTags(jsDocTags, resolvedType)
+    // initializer
+    if (Node.isPropertyDeclaration(node)) {
+      if (appendInitializer(node, resolvedType)) {
+        required = false
+      }
+    }
     // Add to spec
     schema.properties[property.getName()] = resolvedType
     if (required) {
@@ -268,4 +274,19 @@ export function appendJsDocTags (
       })
     }
   }
+}
+
+export function appendInitializer (
+  node: ParameterDeclaration | PropertyDeclaration,
+  schema: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject
+): boolean {
+  // Default value
+  const initializer = node.getInitializer()
+  const initializerType = initializer?.getType()
+  if (initializerType?.compilerType.isLiteral()) {
+    const value = initializerType.compilerType.value
+    appendMetaToResolvedType(schema, { default: value })
+    return true
+  }
+  return false
 }

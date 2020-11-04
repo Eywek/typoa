@@ -1,7 +1,7 @@
 import { OpenAPIV3 } from 'openapi-types'
 import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier, MethodDeclaration, ParameterDeclaration } from 'ts-morph'
 import { appendToSpec, extractDecoratorValues, normalizeUrl } from './utils'
-import { resolve, appendMetaToResolvedType, appendJsDocTags } from './resolve'
+import { resolve, appendJsDocTags, appendInitializer } from './resolve'
 import debug from 'debug'
 import { CodeGenControllers } from './types'
 
@@ -104,11 +104,7 @@ export function addController (
         return resolve(type, spec) // don't have `nullable` prop
       })
       // Default value
-      const initializer = node.getInitializer()
-      const initializerType = initializer?.getType()
-      if (initializerType?.compilerType.isLiteral()) {
-        const value = initializerType.compilerType.value
-        appendMetaToResolvedType(schema, { default: value })
+      if (appendInitializer(node, schema)) {
         required = false
       }
       // JSDoc tags

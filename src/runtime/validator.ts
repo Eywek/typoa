@@ -113,7 +113,7 @@ function validateAndParseValueAgainstSchema (
   // Nullable
   if (value === null) {
     if (currentSchema.nullable) {
-      return null
+      return currentSchema.default ?? null
     }
     throw new ValidateError({
       [name]: { message: 'This property is not nullable' }
@@ -216,6 +216,11 @@ function validateAndParseValueAgainstSchema (
             currentSchema.properties![propName],
             schemas
           )
+        } else {
+          const propertySchema = getFromRef(currentSchema.properties![propName], schemas)
+          if (propertySchema.default) {
+            props[propName] = propertySchema.default
+          }
         }
         return props
       }, {} as Record<string, unknown>)
