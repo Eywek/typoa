@@ -577,6 +577,7 @@
     },
     "/undefined": {
 			"get": {
+        "deprecated": true,
         "operationId": "Undefined",
 				"parameters": [],
 				"responses": {

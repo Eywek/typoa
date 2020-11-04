@@ -1,5 +1,5 @@
 // tslint:disable: max-classes-per-file
-import { Route, Get, Post, Query, Body, Tags, Patch, Path, Response, Delete, Security, OperationId } from '../../src'
+import { Route, Get, Post, Query, Body, Tags, Patch, Path, Response, Delete, Security, OperationId, Deprecated, Hidden } from '../../src'
 
 type Serialize<T extends any> = {
     [key in keyof T]: T[key] extends 'foo' ? 'bare' :
@@ -170,7 +170,13 @@ export class MyController {
     return
   }
   @Get('/undefined')
+  @Deprecated()
   undefined () {
+    return undefined
+  }
+  @Get('/hidden-route')
+  @Hidden()
+  hidden () {
     return undefined
   }
 }

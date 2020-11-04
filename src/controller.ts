@@ -30,6 +30,11 @@ export function addController (
       tags: [...controllerTags] // copy elements
     }
 
+    // Hidden
+    if (method.getDecorator('Hidden') || controller.getDecorator('Hidden')) {
+      continue // skip
+    }
+
     // Get HTTP verbs
     const verbDecorators = method.getDecorators().filter((decorator) => {
       return VERB_DECORATORS.includes(decorator.getName())
@@ -161,6 +166,11 @@ export function addController (
     } else {
       const name = method.getName()
       operation.operationId = name.charAt(0).toUpperCase() + name.slice(1)
+    }
+
+    // Deprecated
+    if (method.getDecorator('Deprecated')) {
+      operation.deprecated = true
     }
 
     // Add to spec + codegen

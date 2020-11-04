@@ -92,3 +92,15 @@ export function OperationId (operation: string): Function {
     return
   }
 }
+
+export function Hidden (): Function {
+  return () => {
+    return
+  }
+}
+
+export function Deprecated (): Function {
+  return () => {
+    return
+  }
+}
