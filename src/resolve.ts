@@ -197,6 +197,9 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     if (isReadonly) {
       appendMetaToResolvedType(resolvedType, { readOnly: true })
     }
+    if (jsDocTags.some(tag => tag.name === 'writeonly')) {
+      appendMetaToResolvedType(resolvedType, { writeOnly: true })
+    }
     // JSDoc tags
     appendJsDocTags(jsDocTags, resolvedType)
     // initializer

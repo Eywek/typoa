@@ -661,7 +661,8 @@
 				"type": "object",
 				"properties": {
 					"name": {
-						"type": "string",
+            "type": "string",
+            "writeOnly": true,
 						"pattern": "^([A-Z]+)"
 					}
 				},
@@ -716,7 +717,8 @@
 				"type": "object",
 				"properties": {
 					"name": {
-						"type": "string",
+            "type": "string",
+            "writeOnly": true,
 						"pattern": "^([A-Z]+)"
 					},
 					"versions": {
@@ -741,7 +743,8 @@
 				"type": "object",
 				"properties": {
 					"name": {
-						"type": "string",
+            "type": "string",
+            "writeOnly": true,
 						"pattern": "^([A-Z]+)"
 					},
 					"versions": {

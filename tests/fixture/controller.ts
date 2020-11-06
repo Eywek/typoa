@@ -25,6 +25,7 @@ type Serialized<T extends any> = T & { id: string }
 class Datasource {
   /**
    * @pattern ^([A-Z]+)
+   * @writeonly
    */
   name!: string
   /**
