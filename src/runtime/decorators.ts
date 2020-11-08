@@ -13,31 +13,31 @@ export function Tags (...tags: string[]): Function {
   }
 }
 
-export function Get (route?: string, ...tags: string[]): Function {
+export function Get (route?: string, ...tagsOrOperation: Function[]): Function {
   return () => {
     return
   }
 }
 
-export function Post (route?: string, ...tags: string[]): Function {
+export function Post (route?: string, ...tagsOrOperation: Function[]): Function {
   return () => {
     return
   }
 }
 
-export function Delete (route?: string, ...tags: string[]): Function {
+export function Delete (route?: string, ...tagsOrOperation: Function[]): Function {
   return () => {
     return
   }
 }
 
-export function Patch (route?: string, ...tags: string[]): Function {
+export function Patch (route?: string, ...tagsOrOperation: Function[]): Function {
   return () => {
     return
   }
 }
 
-export function Put (route?: string, ...tags: string[]): Function {
+export function Put (route?: string, ...tagsOrOperation: Function[]): Function {
   return () => {
     return
   }

@@ -1,15 +1,18 @@
-import { Decorator } from 'ts-morph'
+import { Decorator, Type } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
 import path from 'path'
+
+export function getLiteralFromType (type: Type): string {
+  if (type.isLiteral() && type.compilerType.isLiteral()) {
+    return String(type.compilerType.value)
+  }
+  throw new Error('Not a literal value found')
+}
 
 export function extractDecoratorValues (decorator?: Decorator): string[] {
   if (decorator === undefined) return []
   return decorator.getArguments().map((arg) => {
-    const type = arg.getType()
-    if (type.isLiteral() && type.compilerType.isLiteral()) {
-      return String(type.compilerType.value)
-    }
-    throw new Error('Not a literal value found for decorator')
+    return getLiteralFromType(arg.getType())
   })
 }
 

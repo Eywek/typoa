@@ -319,7 +319,7 @@
 		},
 		"/list": {
 			"get": {
-        "operationId": "List",
+        "operationId": "list-operation",
 				"parameters": [],
 				"responses": {
 					"200": {

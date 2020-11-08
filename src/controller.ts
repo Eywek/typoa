@@ -1,6 +1,6 @@
 import { OpenAPIV3 } from 'openapi-types'
-import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier, MethodDeclaration, ParameterDeclaration } from 'ts-morph'
-import { appendToSpec, extractDecoratorValues, normalizeUrl } from './utils'
+import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier, MethodDeclaration, ParameterDeclaration, CallExpression } from 'ts-morph'
+import { appendToSpec, extractDecoratorValues, normalizeUrl, getLiteralFromType } from './utils'
 import { resolve, appendJsDocTags, appendInitializer } from './resolve'
 import debug from 'debug'
 import { CodeGenControllers } from './types'
@@ -171,7 +171,19 @@ export function addController (
     // Add to spec + codegen
     const isHidden = typeof (method.getDecorator('Hidden') || controller.getDecorator('Hidden')) !== 'undefined'
     for (const decorator of verbDecorators) {
-      const [path, ...tags] = extractDecoratorValues(decorator)
+      const decoratorArgs = decorator.getArguments()
+      const path = decoratorArgs.length > 0 ? getLiteralFromType(decoratorArgs[0].getType()) : undefined
+      const tags: string[] = []
+      let operationId = operation.operationId
+      for (const arg of decoratorArgs.slice(1)) {
+        const fn = arg as CallExpression
+        const args = fn.getArguments().map(arg => getLiteralFromType(arg.getType()))
+        if (fn.getText().startsWith('OperationId')) {
+          operationId = args[0]
+        } else if (fn.getText().startsWith('Tags')) {
+          tags.push(...args)
+        }
+      }
       const endpoint = normalizeUrl((controllerEndpoint || '/') + '/' + (path || '/'))
       const verb = decorator.getName()
       // OpenAPI
@@ -187,7 +199,7 @@ export function addController (
             }))
             .join('/'),
           verb.toLowerCase() as any,
-          Object.assign({}, operation, { tags: [...operation.tags ?? [], ...tags] })
+          Object.assign({}, operation, { tags: [...operation.tags ?? [], ...tags], operationId })
         )
       }
       // Codegen

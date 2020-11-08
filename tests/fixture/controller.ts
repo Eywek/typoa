@@ -119,7 +119,7 @@ export class MyController {
   delete (): SuccessResponse<Datasource> {
     return {} as any
   }
-  @Get('/list', 'list-tag')
+  @Get('/list', Tags('list-tag'), OperationId('list-operation'))
   list (): Partial<Serialized<Datasource>> {
     return {} as any
   }
