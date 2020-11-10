@@ -120,22 +120,25 @@ export function addController (
     }
 
     // Handle body
-    const bodyParameter = method.getParameters().find(params => params.getDecorator('Body'))
+    const bodyParameters = method.getParameters()
+      .filter(param => param.getDecorator('Body'))
+      .map(param => ({ decorator: param.getDecoratorOrThrow('Body'), param }))
+    if (bodyParameters.length > 0) {
+      operation.requestBody = {
+        required: true,
+        content: {}
+      }
+    }
     let codegenBodyDiscriminator: { path: string, name: string } | undefined
-    if (bodyParameter) {
+    for (const { decorator, param } of bodyParameters) {
       let contentType: string = 'application/json'
-      const bodyArguments = bodyParameter.getDecoratorOrThrow('Body').getArguments()
+      const bodyArguments = decorator.getArguments()
       const firstArgumentType = bodyArguments[0]?.getType()
       if (firstArgumentType && firstArgumentType.compilerType.isLiteral()) {
         contentType = String(firstArgumentType.compilerType.value)
       }
-      operation.requestBody = {
-        required: true,
-        content: {
-          [contentType]: {
-            schema: resolve(bodyParameter.getType(), spec)
-          }
-        }
+      (operation.requestBody as Extract<typeof operation.requestBody, { content: any }>).content[contentType] = {
+        schema: resolve(param.getType(), spec)
       }
       // Handle discriminator
       // We find the function in the 2nd arg of Body() to be able to
