@@ -794,6 +794,15 @@
       },
       "AnyValue": {
         "description": "Can be any value"
+      },
+      "C": {
+        "oneOf": [{
+          "type": "string",
+          "enum": ["a"]
+        }, {
+          "type": "string",
+          "enum": ["b"]
+        }]
       }
 		},
 		"securitySchemes": {

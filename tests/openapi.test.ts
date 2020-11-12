@@ -21,7 +21,7 @@ test('Should generate the right definition', async (t) => {
           in: 'header'
         }
       },
-      additionalExportedTypeNames: ['CustomExportedEnum']
+      additionalExportedTypeNames: ['CustomExportedEnum', 'C']
     },
     router: {
       filePath: '/tmp/router.ts'

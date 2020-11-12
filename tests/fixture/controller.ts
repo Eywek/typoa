@@ -18,6 +18,10 @@ enum MyEnum {
   BAR = 'bar'
 }
 
+type A = 'a'
+type B = 'b'
+export type C = A | B
+
 class DatasourceVersion {
   type!: string
 }

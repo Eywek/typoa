@@ -1,4 +1,4 @@
-import { getCompilerOptionsFromTsConfig, Project, Symbol as TsSymbol } from 'ts-morph'
+import { getCompilerOptionsFromTsConfig, Project, Symbol as TsSymbol, TypeAliasDeclaration, ClassDeclaration, InterfaceDeclaration } from 'ts-morph'
 import glob from 'glob'
 import { promisify } from 'util'
 import path from 'path'
@@ -111,9 +111,12 @@ export async function generate (config: OpenAPIConfiguration) {
       throw new Error(`We found multiple references for the additional exported type named '${typeName}'`)
     }
     const symbol = symbols[0]
-    const firstDeclaration = symbol.getDeclarations()[0]
+    const firstDeclaration = symbol.getDeclarations()[0] as TypeAliasDeclaration | ClassDeclaration | InterfaceDeclaration
     // Add to spec
-    resolve(firstDeclaration.getType(), spec)
+    const resolved = resolve(firstDeclaration.getType(), spec)
+    if ('$ref' in resolved === false) {
+      spec.components!.schemas![firstDeclaration.getName()!] = resolved
+    }
   }
 
   // Write OpenAPI file
