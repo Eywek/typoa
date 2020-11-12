@@ -85,7 +85,8 @@ export function resolve (
   }
   if (type.isUnknown() || type.isAny()) {
     spec.components!.schemas!.AnyValue = {
-      description: 'Can be any value'
+      description: 'Can be any value',
+      nullable: true
     }
     return { $ref: buildRef('AnyValue') }
   }

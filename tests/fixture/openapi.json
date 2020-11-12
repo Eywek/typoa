@@ -793,7 +793,8 @@
         "required": ["foo"]
       },
       "AnyValue": {
-        "description": "Can be any value"
+        "description": "Can be any value",
+        "nullable": true
       },
       "C": {
         "oneOf": [{
