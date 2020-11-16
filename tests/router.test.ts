@@ -98,7 +98,7 @@ test('Check endpoints', async (t) => {
 })
 
 test('Valid body', async (t) => {
-  const res = await api.post('/?my-query-param', body, {
+  const res = await api.post('/?my-query-param&my-default-param=bar', body, {
     headers: {
       'x-custom-header': 'my-header'
     }
@@ -109,12 +109,13 @@ test('Valid body', async (t) => {
   delete body.readonlyProp
   t.deepEqual(res.data, Object.assign({}, body, {
     stringWithFormat: body.stringWithFormat.toISOString(),
-    url: '/my-controller/?my-query-param',
+    url: '/my-controller/?my-query-param&my-default-param=bar',
     formatIsDate: true,
     queryParam: '',
     class: {
       foo: 'bar'
-    }
+    },
+    defaultParam: 'bar'
   }))
 })
 

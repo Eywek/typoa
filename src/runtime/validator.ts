@@ -246,14 +246,18 @@ function validateAndParseValueAgainstSchema (
   // AllOf
   if (currentSchema.allOf) {
     // try to validate every allOf and merge their results
-    return Object.assign({}, ...currentSchema.allOf.map((schema, i) => {
+    const schemasValues = currentSchema.allOf.map((schema, i) => {
       return validateAndParseValueAgainstSchema(
         `${name}.${i}`,
         value,
         schema,
         schemas
       )
-    }))
+    })
+    if (schemasValues.length === 1) {
+      return schemasValues[0]
+    }
+    return Object.assign({}, ...schemasValues)
   }
   // OneOf
   if (currentSchema.oneOf) {
