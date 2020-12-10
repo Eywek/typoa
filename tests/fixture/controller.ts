@@ -94,7 +94,7 @@ const securities = { company: [] }
 @Tags('my-tag')
 export class MyController {
   @Get('my-route')
-  get (): Serialize<{ bar: 'foo', foo: string }> & { h: (typeof bar)[number] } {
+  get (): Serialize<{ bar: 'foo', foo: string }> & { h: (typeof bar)[number], true: true, false: false } {
     return {} as any
   }
   @Post(routes.post)

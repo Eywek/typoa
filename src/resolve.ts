@@ -83,6 +83,10 @@ export function resolve (
   if (type.isBoolean()) {
     return { type: 'boolean' }
   }
+  if (type.isBooleanLiteral()) {
+    // @ts-expect-error https://github.com/microsoft/TypeScript/issues/26075
+    return { type: 'boolean', enum: [type.compilerType.intrinsicName] }
+  }
   if (type.isUnknown() || type.isAny()) {
     spec.components!.schemas!.AnyValue = {
       description: 'Can be any value',
