@@ -50,23 +50,24 @@ export class MyController extends Controller {
        * @maximum 10
        */
       numberWithMinAndMax: number
-      numberEnum: EnumNumber,
-      boolean: boolean,
+      numberEnum: EnumNumber
+      boolean: boolean
       tuple: [string, number]
-      array: string[],
-      object: {},
-      record: Record<string, string>,
-      mappedType: { [key: string]: number },
+      array: string[]
+      object: {}
+      record: Record<string, string>
+      mappedType: { [key: string]: number }
       objectWithProps: {
-        string: string,
+        string: string
         number?: number
       },
-      union: { foo: 'bar' } | { bar: 'foo' },
+      union: { foo: 'bar' } | { bar: 'foo' }
       intersection: { foo: 'bar' } & { bar: 'foo' }
       readonly readonlyProp: string
       any?: any
-      unknown?: unknown,
+      unknown?: unknown
       class: WithInitializer
+      anyOnly: any
     },
     @Request() req: express.Request,
     @Query('my-query-param') queryParam?: string,

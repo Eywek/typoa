@@ -204,7 +204,9 @@ function validateAndParseValueAgainstSchema (
       .reduce((props, propName) => {
         const propValue = (value as Record<string, unknown>)[propName]
         const isNotDefined = typeof propValue === 'undefined'
-        if (currentSchema.required?.includes(propName) && isNotDefined === true) {
+        const propSchema = currentSchema.properties![propName]
+        const isAnyValue = '$ref' in propSchema && propSchema.$ref === '#/components/schemas/AnyValue'
+        if (currentSchema.required?.includes(propName) && (isNotDefined === true && isAnyValue === false)) {
           throw new ValidateError({
             [`${name}.${propName}`]: { message: 'This property is required' }
           }, 'Invalid parameter')
