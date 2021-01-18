@@ -87,7 +87,8 @@ const body = {
   union: { foo: 'bar' },
   intersection: { foo: 'bar', bar: 'foo' },
   readonlyProp: 'my prop',
-  class: {}
+  class: {},
+  unionAdditionalProps: { foo: '1', bar: '2' }
 }
 
 test('Check endpoints', async (t) => {

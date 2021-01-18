@@ -68,6 +68,7 @@ export class MyController extends Controller {
       unknown?: unknown
       class: WithInitializer
       anyOnly: any
+      unionAdditionalProps: { foo: string } | { foo: string, bar: string }
     },
     @Request() req: express.Request,
     @Query('my-query-param') queryParam?: string,

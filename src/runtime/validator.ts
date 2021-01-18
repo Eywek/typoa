@@ -266,12 +266,25 @@ function validateAndParseValueAgainstSchema (
     let matchingValue: unknown | undefined
     currentSchema.oneOf.forEach((schema, i) => {
       try {
-        matchingValue = validateAndParseValueAgainstSchema(
+        const parsedValue = validateAndParseValueAgainstSchema(
           `${name}.${i}`,
           value,
           schema,
           schemas
         )
+        // set as matching value if we haven't found one
+        if (typeof matchingValue === 'undefined') {
+          matchingValue = parsedValue
+          return
+        }
+        // replace matched value if the new one have more keys
+        if (
+          typeof matchingValue === 'object' && matchingValue !== null &&
+          typeof parsedValue === 'object' && parsedValue !== null &&
+          Object.keys(parsedValue).length > Object.keys(matchingValue).length
+        ) {
+          matchingValue = parsedValue
+        }
       } catch {
         // noop, try another schema
       }
