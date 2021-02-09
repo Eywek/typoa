@@ -127,6 +127,7 @@ export function resolve (
     }
     // Handle mapped types
     const typeArguments = type.getTypeArguments()
+console.log({ typeArguments, typeName })
     const isMappedType = type.getSymbolOrThrow().getDeclarations()[0]?.getKindName() === 'MappedType'
     if (typeName === '__type' && isMappedType) {
       typeName = type.getText()

@@ -49,6 +49,12 @@
 														}
 													]
                         },
+                        "set": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
                         "true": {
                           "type": "boolean",
                           "enum": ["true"]
@@ -61,7 +67,8 @@
 											"required": [
                         "h",
                         "true",
-                        "false"
+                        "false",
+                        "set"
 											]
 										}
 									]

@@ -88,13 +88,19 @@ class Foo {
   }
 }
 
+export class JsonSet<T> extends Set<T> {
+  toJSON () {
+    return [...this]
+  }
+}
+
 const securities = { company: [] }
 
 @Route()
 @Tags('my-tag')
 export class MyController {
   @Get('my-route')
-  get (): Serialize<{ bar: 'foo', foo: string }> & { h: (typeof bar)[number], true: true, false: false } {
+  get (): Serialize<{ bar: 'foo', foo: string }> & { h: (typeof bar)[number], true: true, false: false, set: JsonSet<string> } {
     return {} as any
   }
   @Post(routes.post)
