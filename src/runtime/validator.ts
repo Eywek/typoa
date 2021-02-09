@@ -141,7 +141,11 @@ function validateAndParseValueAgainstSchema (
   }
   // Numbers
   if (currentSchema.type === 'number') {
-    const parsedValue = parseFloat(String(value))
+    // Note: in body we don't want to parseFloat() because fields should
+    // already be parsed. And we don't want to transform a field with type string | number
+    // into a number if it's a string in the body
+    const isInBody = name === 'body' || name.startsWith('body.')
+    const parsedValue = isInBody ? value as number : parseFloat(String(value))
     if (isNaN(parsedValue)) {
       throw new ValidateError({
         [name]: { message: 'This property must be a number', value }
