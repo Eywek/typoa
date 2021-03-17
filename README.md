@@ -12,7 +12,7 @@
 
 ## Why
 
-Tsoa is a great package and it's working fine for simple typescript typings, which I think are the principal use case, It's used by many developers and It's maintained.
+Tsoa is a great package and it's working fine for simple typescript typings, which I think are principal use cases, it's used by many developers and maintained.
 
 **BUT**, I've used tsoa in production projects and I've encountered many issues (I was able to [fix](https://github.com/lukeautry/tsoa/pulls?q=is%3Apr+sort%3Aupdated-desc+is%3Amerged+author%3AEywek) some of them), but when I've tried to use more complex types (inheritance, deep generics, conditionnal types...) tsoa wasn't able to provide me good openapi definitions, and without even telling me it failed to generate the right schema.
 
