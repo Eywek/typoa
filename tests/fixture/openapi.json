@@ -237,24 +237,41 @@
 											"format": "date-time"
 										},
 										"recordString": {
-											"$ref": "#/components/schemas/Record_string.string_"
-										},
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
 										"record": {
-											"$ref": "#/components/schemas/Record_foo.string_"
-										},
+                      "type": "object",
+                      "properties": {
+                        "foo": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "foo"
+                      ]
+                    },
 										"mappedType": {
 											"type": "object",
 											"properties": {},
 											"additionalProperties": {
 												"type": "number"
 											}
-										}
+										},
+                    "emptyObject": {
+                      "type": "object",
+                      "properties": {}
+                    }
 									},
 									"required": [
 										"enum",
 										"recordString",
 										"record",
-										"mappedType"
+										"mappedType",
+                    "emptyObject"
 									]
 								}
 							}
@@ -703,24 +720,6 @@
 				"enum": [
 					0,
 					1
-				]
-			},
-			"Record_string.string_": {
-				"type": "object",
-				"properties": {},
-				"additionalProperties": {
-					"type": "string"
-				}
-			},
-			"Record_foo.string_": {
-				"type": "object",
-				"properties": {
-					"foo": {
-						"type": "string"
-					}
-				},
-				"required": [
-					"foo"
 				]
 			},
 			"Datasource": {

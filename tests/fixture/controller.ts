@@ -115,7 +115,7 @@ export class MyController {
   @Response<{ error_code: 910 }>(400)
   patch (
     @Path('id') id: string
-  ): Promise<{ enum: MyEnum, date?: Date, recordString: Record<string, string>, record: Record<'foo', string>, mappedType: { [key: number]: number } }> {
+  ): Promise<{ enum: MyEnum, date?: Date, recordString: Record<string, string>, record: Record<'foo', string>, mappedType: { [key: number]: number }, emptyObject: Record<string, never> }> {
     return {} as any
   }
   @Delete('')

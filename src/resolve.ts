@@ -135,6 +135,10 @@ export function resolve (
     if (typeName === '__type' || typeName === '__object' || typeArguments.length > 0) {
       return resolveObjectType(type, spec)
     }
+    const isRecord = type.getAliasSymbol()?.getEscapedName() === 'Record'
+    if (isRecord) { // inline records
+      return resolveObjectType(type, spec)
+    }
     // Use ref for models and other defined types
     const refName = stringifyName(typeName)
     // Add to spec components if not already resolved
@@ -228,7 +232,10 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     const stringIndexType = type.getStringIndexType()
     const numberIndexType = type.getNumberIndexType()
     // This is a mapped type string string or number as key (ex: { [key: string]: any } or Record<string, any>)
-    if (stringIndexType || numberIndexType) {
+    if (
+      (typeof stringIndexType !== 'undefined' && stringIndexType.getText() !== 'never') ||
+      (typeof numberIndexType !== 'undefined' && numberIndexType.getText() !== 'never')
+    ) {
       result.additionalProperties = resolve(
         stringIndexType ?? numberIndexType!,
         spec
