@@ -70,6 +70,7 @@
 						}
 					}
 				},
+        "summary": "My OpenAPI summary",
 				"tags": [
 					"my-tag"
 				],

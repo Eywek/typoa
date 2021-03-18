@@ -24,7 +24,10 @@ export function addController (
   const controllerSecurities = getSecurities(controller)
   for (const method of methods) {
     log(`Handle ${controllerName}.${method.getName()} method`)
+    const jsDocTags = method.getJsDocs().map(doc => doc.getTags()).flat()
+    const summaryTag = jsDocTags.find((tag) => tag.getTagName() === 'summary' || tag.getTagName() === 'description')
     const operation: OpenAPIV3.OperationObject = {
+      summary: summaryTag?.getComment(),
       parameters: [],
       responses: {},
       tags: [...controllerTags] // copy elements
