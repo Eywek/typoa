@@ -298,8 +298,19 @@ export function appendInitializer (
   // Default value
   const initializer = node.getInitializer()
   const initializerType = initializer?.getType()
-  if (initializerType?.compilerType.isLiteral()) {
-    const value = initializerType.compilerType.value
+
+  if (initializerType?.isLiteral()) {
+    const initializerLiteralType = initializerType.compilerType as ts.StringLiteralType | ts.NumberLiteralType | ts.TrueLiteral | ts.FalseLiteral | ts.NullLiteral
+    let value: boolean | string | number | null
+    if ('value' in initializerLiteralType) {
+      value = initializerLiteralType.value
+    } else if (initializerLiteralType.kind === ts.SyntaxKind.TrueKeyword) {
+      value = true
+    } else if (initializerLiteralType.kind === ts.SyntaxKind.FalseKeyword) {
+      value = false
+    } else {
+      value = null
+    }
     appendMetaToResolvedType(schema, { default: value })
     return true
   }

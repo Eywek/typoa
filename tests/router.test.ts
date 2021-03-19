@@ -116,8 +116,19 @@ test('Valid body', async (t) => {
     class: {
       foo: 'bar'
     },
-    defaultParam: 'bar'
+    defaultParam: 'bar',
+    bool: false
   }))
+})
+
+test('Param bool without value should be true', async (t) => {
+  const res = await api.post('/?my-bool', body, {
+    headers: {
+      'x-custom-header': 'my-header'
+    }
+  })
+  t.is(res.status, 201)
+  t.is(res.data.bool, true)
 })
 
 test('Missing header', async (t) => {

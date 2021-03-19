@@ -44,6 +44,10 @@ export async function validateAndParse (
         break
       case 'query':
         value = req.query[param.name] as string | undefined | string[]
+        const schema = param.schema!
+        if ('type' in schema && schema.type === 'boolean' && value?.length === 0) {
+          value = 'true' // allow empty values for param boolean
+        }
         break
       case 'path':
         value = req.params[param.name]

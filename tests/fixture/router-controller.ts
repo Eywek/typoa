@@ -72,11 +72,12 @@ export class MyController extends Controller {
     },
     @Request() req: express.Request,
     @Query('my-query-param') queryParam?: string,
-    @Query('my-default-param') defaultParam: EnumString = EnumString.FOO
+    @Query('my-default-param') defaultParam: EnumString = EnumString.FOO,
+    @Query('my-bool') bool: boolean = false
   ) {
     this.setStatus(201)
     this.setHeader('x-foo', 'bar')
-    return Object.assign({}, body, { url: req.url, formatIsDate: body.stringWithFormat instanceof Date, queryParam, defaultParam })
+    return Object.assign({}, body, { url: req.url, formatIsDate: body.stringWithFormat instanceof Date, queryParam, defaultParam, bool })
   }
 
   @Delete('{id}/{boolean(0|1)}')
