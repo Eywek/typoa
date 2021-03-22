@@ -94,7 +94,7 @@ const securities = { company: [] }
 @Tags('my-tag')
 export class MyController {
   /**
-   * @description My OpenAPI summary
+   * @description My OpenAPI description
    */
   @Get('my-route')
   get (): Serialize<{ bar: 'foo', foo: string }> & { h: (typeof bar)[number], true: true, false: false } {
