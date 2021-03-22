@@ -130,6 +130,16 @@ function validateAndParseValueAgainstSchema (
         [name]: { message: 'This property must be a string', value }
       }, 'Invalid parameter')
     }
+    if (typeof currentSchema.minLength !== 'undefined' && value.length < currentSchema.minLength) {
+      throw new ValidateError({
+        [name]: { message: `This property must have ${currentSchema.minLength} characters minimum`, value }
+      }, 'Invalid parameter')
+    }
+    if (typeof currentSchema.maxLength !== 'undefined' && value.length > currentSchema.maxLength) {
+      throw new ValidateError({
+        [name]: { message: `This property can have ${currentSchema.maxLength} characters maximum`, value }
+      }, 'Invalid parameter')
+    }
     if (currentSchema.enum && currentSchema.enum.includes(value) === false) {
       throw new ValidateError({
         [name]: { message: `This property must be one of ${currentSchema.enum}`, value }
@@ -155,14 +165,14 @@ function validateAndParseValueAgainstSchema (
         [name]: { message: 'This property must be a number', value }
       }, 'Invalid parameter')
     }
-    if (currentSchema.minimum) {
+    if (typeof currentSchema.minimum !== 'undefined') {
       if (parsedValue < currentSchema.minimum) {
         throw new ValidateError({
           [name]: { message: `This property must be >= ${currentSchema.minimum}`, value }
         }, 'Invalid parameter')
       }
     }
-    if (currentSchema.maximum) {
+    if (typeof currentSchema.maximum !== 'undefined') {
       if (parsedValue > currentSchema.maximum) {
         throw new ValidateError({
           [name]: { message: `This property must be <= ${currentSchema.maximum}`, value }
@@ -191,6 +201,16 @@ function validateAndParseValueAgainstSchema (
     if (!Array.isArray(value)) {
       throw new ValidateError({
         [name]: { message: 'This property must be an array', value }
+      }, 'Invalid parameter')
+    }
+    if (typeof currentSchema.minItems !== 'undefined' && value.length < currentSchema.minItems) {
+      throw new ValidateError({
+        [name]: { message: `This property must have ${currentSchema.minItems} items minimum`, value }
+      }, 'Invalid parameter')
+    }
+    if (typeof currentSchema.maxItems !== 'undefined' && value.length > currentSchema.maxItems) {
+      throw new ValidateError({
+        [name]: { message: `This property can have ${currentSchema.maxItems} items maximum`, value }
       }, 'Invalid parameter')
     }
     return value.map((item, i) => {
