@@ -48,6 +48,9 @@ export async function validateAndParse (
         if ('type' in schema && schema.type === 'boolean' && value?.length === 0) {
           value = 'true' // allow empty values for param boolean
         }
+        if ('type' in schema && schema.type === 'array' && typeof value === 'string') {
+          value = [value]
+        }
         break
       case 'path':
         value = req.params[param.name]

@@ -84,7 +84,8 @@ export class MyController extends Controller {
   public async delete (
     @Path('id') id: number,
     @Path('boolean') bool: boolean,
-    @Query('limit') limit = 20
+    @Query('limit') limit = 20,
+    @Query('filter') filter?: string[]
   ) {
     return { id, bool, limit }
   }

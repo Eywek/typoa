@@ -472,6 +472,11 @@ test('Should parse path', async (t) => {
   })
 })
 
+test('Should accept string as string[] for query params', async (t) => {
+  const res = await api.delete('/20/1?filter=a')
+  t.is(res.status, 200)
+})
+
 test('Should return 404 with path not matching regex', async (t) => {
   const res = await api.delete('/20/true')
   t.is(res.status, 404)
