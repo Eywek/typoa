@@ -134,6 +134,7 @@ export class MyController {
     return 'ignored'
   }
   @Post('/missing')
+  @Response<{ error_code: 910, payload: { number: number } }>(400, 'Description for my response')
   missing (): { tuple: [string, ...number[]], bool: boolean, nullable: string | null, optional?: number, enumLiteral: MyEnum.FOO } {
     return {} as any
   }

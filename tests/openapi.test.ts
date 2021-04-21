@@ -39,7 +39,9 @@ test('Should generate the right definition', async (t) => {
         }, {
           name: 'HTTP Code',
           value: { type: 'statusCode' }
-        }]
+        }],
+        sortColumn: 'Error code',
+        uniqueColumn: 'Error code'
       }
     },
     router: {

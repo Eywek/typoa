@@ -70,6 +70,14 @@ export type OpenAPIConfiguration = {
           type: 'description'
         })
       }[]
+      /**
+       * Sort rows by a column
+       */
+      sortColumn?: string
+      /**
+       * Ensure unicity via a column value
+       */
+      uniqueColumn?: string
     }
   },
   router: {
@@ -149,7 +157,8 @@ export async function generate (config: OpenAPIConfiguration) {
 
   // Export all responses
   if (typeof config.openapi.outputErrorsToDescription !== 'undefined' && config.openapi.outputErrorsToDescription.enabled === true) {
-    const tableColumns = config.openapi.outputErrorsToDescription.tableColumns
+    const errorsConfig = config.openapi.outputErrorsToDescription
+    const tableColumns = errorsConfig.tableColumns
     const methods = ['get', 'patch', 'put', 'delete', 'post', 'head', 'options'] as const
     const responses = Object.values(spec.paths)
       .map((path) => {
@@ -162,29 +171,37 @@ export async function generate (config: OpenAPIConfiguration) {
         }
         return list
       }, [])
-    const errorResponses = responses
+    let rows = responses
       .filter((response) => response.code > 300 && typeof response.response.content !== 'undefined')
       .map((response) => {
         const content = response.response.content!['application/json'].schema
         if (typeof content === 'undefined') {
           return undefined
         }
-        return `| ${tableColumns.map(({ value }) => {
+        return tableColumns.map(({ value }) => {
           switch (value.type) {
             case 'path':
-              return resolveProperty(content, spec.components!, value.value)
+              return String(resolveProperty(content, spec.components!, value.value))
             case 'description':
-              return response.response.description
+              return String(response.response.description)
             case 'statusCode':
-              return response.code
+              return String(response.code)
           }
-        }).join(' | ')} |`
+        })
       })
-      .filter(content => typeof content !== 'undefined') as string[]
+      .filter(content => typeof content !== 'undefined') as string[][]
+    if (typeof errorsConfig.sortColumn === 'string') {
+      const columnIndex = tableColumns.findIndex(column => column.name === errorsConfig.sortColumn)
+      rows = rows.sort((a, b) => a[columnIndex].localeCompare(b[columnIndex]))
+    }
+    if (typeof errorsConfig.uniqueColumn === 'string') {
+      const columnIndex = tableColumns.findIndex(column => column.name === errorsConfig.uniqueColumn)
+      rows = rows.filter((row, i) => rows.findIndex(r => r[columnIndex] === row[columnIndex]) === i)
+    }
     const headers = tableColumns.map(column => column.name)
     const markdown = `| ${headers.join(' | ')} |\n` +
       `| ${new Array(headers.length).fill(':---').join(' | ')} |\n` +
-      errorResponses.join('\n')
+      rows.map(row => `| ${row.join(' | ')} |`).join('\n')
     spec.info.description = `# Errors\n${markdown}`
   }
 
