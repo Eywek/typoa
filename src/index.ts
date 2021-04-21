@@ -178,7 +178,7 @@ export async function generate (config: OpenAPIConfiguration) {
         if (typeof content === 'undefined') {
           return undefined
         }
-        return tableColumns.map(({ value }) => {
+        const buildRow = (content: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject) => tableColumns.map(({ value }) => {
           switch (value.type) {
             case 'path':
               const resolved = resolveProperty(content, spec.components!, value.value)
@@ -192,7 +192,12 @@ export async function generate (config: OpenAPIConfiguration) {
               return String(response.code)
           }
         })
+        if ('oneOf' in content && typeof content.oneOf !== 'undefined') {
+          return content.oneOf.map((content) => buildRow(content))
+        }
+        return [buildRow(content)]
       })
+      .flat(1)
       .filter(content => typeof content !== 'undefined') as string[][]
     if (typeof errorsConfig.sortColumn === 'string') {
       const columnIndex = tableColumns.findIndex(column => column.name === errorsConfig.sortColumn)
