@@ -61,7 +61,8 @@ export function resolveProperty (
   if (typeof schema.allOf !== 'undefined') {
     return schema.allOf
       .map((schema) => resolveProperty(schema, components, path))
-      .filter(value => typeof value !== 'string' || value.length > 0)
+      .reverse() // find the last element (override) in the allOf
+      .find(value => typeof value !== 'string' || value.length > 0) ?? ''
   }
   if (schema.type === 'array') {
     return resolveProperty(schema.items, components, path)
@@ -71,7 +72,13 @@ export function resolveProperty (
       return schema.enum
     }
     if (schema.type === 'object') {
-      return JSON.stringify(schema.properties)
+      return JSON.stringify(
+        Object.entries(schema.properties ?? {})
+          .reduce<Record<string, unknown>>((obj, [key, value]) => {
+            obj[key] = resolveProperty(value, components, [])
+            return obj
+          }, {})
+      )
     }
     return schema.type
   }
