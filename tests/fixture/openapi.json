@@ -2,7 +2,8 @@
 	"openapi": "3.0.0",
 	"info": {
 		"title": "my-service",
-		"version": "1.0.0"
+		"version": "1.0.0",
+    "description": "# Errors\n| Error code | Status code | Payload | Description | HTTP Code |\n| :--- | :--- | :--- | :--- | :--- |\n| 911 | 404 |  |  | 404 |\n| 910 |  | {\"number\":{\"type\":\"number\"}} | Description for my response | 400 |"
 	},
 	"paths": {
 		"/my-route": {
@@ -279,7 +280,7 @@
 						}
 					},
 					"400": {
-						"description": "",
+						"description": "Description for my response",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -290,10 +291,22 @@
 											"enum": [
 												910
 											]
-										}
+										},
+                    "payload": {
+                      "properties": {
+                        "number": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "number"
+                      ],
+                      "type": "object"
+                    }
 									},
 									"required": [
-										"error_code"
+										"error_code",
+                    "payload"
 									]
 								}
 							}

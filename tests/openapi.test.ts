@@ -21,7 +21,26 @@ test('Should generate the right definition', async (t) => {
           in: 'header'
         }
       },
-      additionalExportedTypeNames: ['CustomExportedEnum', 'C']
+      additionalExportedTypeNames: ['CustomExportedEnum', 'C'],
+      outputErrorsToDescription: {
+        enabled: true,
+        tableColumns: [{
+          name: 'Error code',
+          value: { type: 'path', value: ['error_code'] }
+        }, {
+          name: 'Status code',
+          value: { type: 'path', value: ['status_code'] }
+        }, {
+          name: 'Payload',
+          value: { type: 'path', value: ['payload'] }
+        }, {
+          name: 'Description',
+          value: { type: 'description' }
+        }, {
+          name: 'HTTP Code',
+          value: { type: 'statusCode' }
+        }]
+      }
     },
     router: {
       filePath: '/tmp/router.ts'

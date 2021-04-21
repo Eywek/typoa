@@ -115,7 +115,7 @@ export class MyController {
     return {} as any
   }
   @Patch('/{id}')
-  @Response<{ error_code: 910 }>(400)
+  @Response<{ error_code: 910, payload: { number: number } }>(400, 'Description for my response')
   patch (
     @Path('id') id: string
   ): Promise<{ enum: MyEnum, date?: Date, recordString: Record<string, string>, record: Record<'foo', string>, mappedType: { [key: number]: number }, emptyObject: Record<string, never> }> {

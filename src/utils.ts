@@ -49,3 +49,30 @@ export function getRelativeFilePath (absoluteRoot: string, absolutePath: string)
   // Remove `.ts` extension to prevent typescript warning
   return filePath.substr(0, filePath.length - path.extname(filePath).length)
 }
+
+export function resolveProperty (
+  schema: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject,
+  components: OpenAPIV3.ComponentsObject,
+  path: string[]
+): unknown {
+  if ('$ref' in schema) {
+    return resolveProperty(components.schemas![schema.$ref.substr('#/components/schemas/'.length)], components, path)
+  }
+  if (schema.type === 'array') {
+    return resolveProperty(schema.items, components, path)
+  }
+  if (path.length === 0) {
+    if (typeof schema.enum !== 'undefined') {
+      return schema.enum
+    }
+    if (schema.type === 'object') {
+      return JSON.stringify(schema.properties)
+    }
+    return schema.type
+  }
+  const property = schema.properties![path[0]] as OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject | undefined
+  if (typeof property === 'undefined') {
+    return ''
+  }
+  return resolveProperty(property, components, path.slice(1))
+}

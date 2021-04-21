@@ -9,7 +9,7 @@ import YAML from 'yamljs'
 import fs from 'fs'
 import { CodeGenControllers } from './types'
 import handlebars from 'handlebars'
-import { getRelativeFilePath } from './utils'
+import { getRelativeFilePath, resolveProperty } from './utils'
 import { resolve } from './resolve'
 
 export type OpenAPIConfiguration = {
@@ -44,6 +44,33 @@ export type OpenAPIConfiguration = {
      * (could be useful when using the spec to generate typescript openapi clients...)
      */
     additionalExportedTypeNames?: string[]
+    /**
+     * If you enable this option we will find every responses
+     * with an HTTP code >300 and output it to a markdown
+     * table on `info.description`
+     */
+    outputErrorsToDescription?: {
+      enabled: false
+    } | {
+      enabled: true
+      /**
+       * Define table columns (name + how value is retrieved)
+       */
+      tableColumns: {
+        name: string
+        value: ({
+          type: 'path',
+          /**
+           * Path of data to display in the cell (e.g. `['status_code']` or `['data', 'payload']`)
+           */
+          value: string[]
+        } | {
+          type: 'statusCode'
+        } | {
+          type: 'description'
+        })
+      }[]
+    }
   },
   router: {
     /**
@@ -118,6 +145,47 @@ export async function generate (config: OpenAPIConfiguration) {
     if (!('$ref' in resolved) || resolved.$ref.substr('#/components/schemas/'.length) !== name) {
       spec.components!.schemas![name] = resolved
     }
+  }
+
+  // Export all responses
+  if (typeof config.openapi.outputErrorsToDescription !== 'undefined' && config.openapi.outputErrorsToDescription.enabled === true) {
+    const tableColumns = config.openapi.outputErrorsToDescription.tableColumns
+    const methods = ['get', 'patch', 'put', 'delete', 'post', 'head', 'options'] as const
+    const responses = Object.values(spec.paths)
+      .map((path) => {
+        return methods.map(method => path[method]?.responses ?? {})
+      }).flat()
+      .reduce<{ code: number, response: OpenAPIV3.ResponseObject }[]>((list, responses) => {
+        for (const code in responses) {
+          // note: we don't generate responses with $ref so we can use `as`
+          list.push({ code: parseInt(code, 10), response: responses[code] as OpenAPIV3.ResponseObject })
+        }
+        return list
+      }, [])
+    const errorResponses = responses
+      .filter((response) => response.code > 300 && typeof response.response.content !== 'undefined')
+      .map((response) => {
+        const content = response.response.content!['application/json'].schema
+        if (typeof content === 'undefined') {
+          return undefined
+        }
+        return `| ${tableColumns.map(({ value }) => {
+          switch (value.type) {
+            case 'path':
+              return resolveProperty(content, spec.components!, value.value)
+            case 'description':
+              return response.response.description
+            case 'statusCode':
+              return response.code
+          }
+        }).join(' | ')} |`
+      })
+      .filter(content => typeof content !== 'undefined') as string[]
+    const headers = tableColumns.map(column => column.name)
+    const markdown = `| ${headers.join(' | ')} |\n` +
+      `| ${new Array(headers.length).fill(':---').join(' | ')} |\n` +
+      errorResponses.join('\n')
+    spec.info.description = `# Errors\n${markdown}`
   }
 
   // Write OpenAPI file
