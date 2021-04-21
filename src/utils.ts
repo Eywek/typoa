@@ -54,40 +54,46 @@ export function resolveProperty (
   schema: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject,
   components: OpenAPIV3.ComponentsObject,
   path: string[]
-): unknown {
+): { value: unknown, meta: { isObject: boolean } } {
   if ('$ref' in schema) {
     return resolveProperty(components.schemas![schema.$ref.substr('#/components/schemas/'.length)], components, path)
   }
   if (typeof schema.allOf !== 'undefined') {
-    return schema.allOf
-      .map((schema) => resolveProperty(schema, components, path))
-      .reverse() // find the last element (override) in the allOf
-      .find(value => typeof value !== 'string' || value.length > 0) ?? ''
+    return {
+      value: schema.allOf
+        .map((schema) => resolveProperty(schema, components, path).value)
+        .reverse() // find the last element (override) in the allOf
+        .find(value => typeof value !== 'string' || value.length > 0) ?? '',
+      meta: { isObject: false }
+    }
   }
   if (schema.type === 'array') {
     return resolveProperty(schema.items, components, path)
   }
   if (path.length === 0) {
     if (typeof schema.enum !== 'undefined') {
-      return schema.enum
+      return { value: schema.enum, meta: { isObject: false } }
     }
     if (schema.type === 'object') {
-      return JSON.stringify(
-        Object.entries(schema.properties ?? {})
-          .reduce<Record<string, unknown>>((obj, [key, value]) => {
-            obj[key] = resolveProperty(value, components, [])
-            return obj
-          }, {})
-      )
+      return {
+        value: JSON.stringify(
+          Object.entries(schema.properties ?? {})
+            .reduce<Record<string, unknown>>((obj, [key, value]) => {
+              obj[key] = resolveProperty(value, components, []).value
+              return obj
+            }, {})
+        ),
+        meta: { isObject: true }
+      }
     }
-    return schema.type
+    return { value: schema.type, meta: { isObject: false } }
   }
   if (typeof schema.properties === 'undefined') {
-    return ''
+    return { value: '', meta: { isObject: false } }
   }
   const property = schema.properties[path[0]] as OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject | undefined
   if (typeof property === 'undefined') {
-    return ''
+    return { value: '', meta: { isObject: false } }
   }
   return resolveProperty(property, components, path.slice(1))
 }

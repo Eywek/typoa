@@ -181,7 +181,11 @@ export async function generate (config: OpenAPIConfiguration) {
         return tableColumns.map(({ value }) => {
           switch (value.type) {
             case 'path':
-              return String(resolveProperty(content, spec.components!, value.value))
+              const resolved = resolveProperty(content, spec.components!, value.value)
+              if (resolved.meta.isObject) {
+                return '```' + String(resolved.value) + '```'
+              }
+              return String(resolved.value)
             case 'description':
               return String(response.response.description)
             case 'statusCode':
@@ -192,7 +196,14 @@ export async function generate (config: OpenAPIConfiguration) {
       .filter(content => typeof content !== 'undefined') as string[][]
     if (typeof errorsConfig.sortColumn === 'string') {
       const columnIndex = tableColumns.findIndex(column => column.name === errorsConfig.sortColumn)
-      rows = rows.sort((a, b) => a[columnIndex].localeCompare(b[columnIndex]))
+      rows = rows.sort((a, b) => {
+        const aValue = a[columnIndex]
+        const bValue = b[columnIndex]
+        if (String(parseFloat(aValue)) === aValue && String(parseFloat(bValue)) === bValue) {
+          return parseFloat(aValue) - parseFloat(bValue)
+        }
+        return aValue.localeCompare(bValue)
+      })
     }
     if (typeof errorsConfig.uniqueColumn === 'string') {
       const columnIndex = tableColumns.findIndex(column => column.name === errorsConfig.uniqueColumn)
