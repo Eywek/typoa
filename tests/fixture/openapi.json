@@ -163,26 +163,37 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"type": "object",
-									"properties": {
-										"error_code": {
-											"type": "number",
-											"enum": [
-												911
-											]
-										},
-										"status_code": {
-											"type": "number",
-											"enum": [
-												404
-											]
-										}
-									},
-									"required": [
-										"error_code",
-										"status_code"
-									]
-								}
+                  "allOf": [{
+                    "type": "object",
+                    "properties": {
+                      "error_code": {
+                        "type": "number",
+                        "enum": [
+                          911
+                        ]
+                      },
+                      "status_code": {
+                        "type": "number",
+                        "enum": [
+                          404
+                        ]
+                      }
+                    },
+                    "required": [
+                      "error_code",
+                      "status_code"
+                    ]
+                  }, {
+                    "properties": {
+                      "foo": {
+                        "enum": ["bar"],
+                        "type": "string"
+                      }
+                    },
+                    "required": ["foo"],
+                    "type": "object"
+                  }]
+                }
 							}
 						}
 					}

@@ -108,7 +108,7 @@ export class MyController {
     return {} as DeepGeneric<{ foo: string, bar: number }>
   }
   @Post('my-2nd-route')
-  @Response<typeof Errors['NotFound']>(Errors.NotFound.status_code)
+  @Response<typeof Errors['NotFound'] & { foo: 'bar' }>(Errors.NotFound.status_code)
   postRaw (
     @Body() body: Omit<Datasource, 'version' | 'versions'> & DatasourceVersion
   ): { fooPost: string, barPost: { barFooPost: string } } {

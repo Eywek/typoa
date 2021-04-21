@@ -58,6 +58,11 @@ export function resolveProperty (
   if ('$ref' in schema) {
     return resolveProperty(components.schemas![schema.$ref.substr('#/components/schemas/'.length)], components, path)
   }
+  if (typeof schema.allOf !== 'undefined') {
+    return schema.allOf
+      .map((schema) => resolveProperty(schema, components, path))
+      .filter(value => typeof value !== 'string' || value.length > 0)
+  }
   if (schema.type === 'array') {
     return resolveProperty(schema.items, components, path)
   }
@@ -70,7 +75,10 @@ export function resolveProperty (
     }
     return schema.type
   }
-  const property = schema.properties![path[0]] as OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject | undefined
+  if (typeof schema.properties === 'undefined') {
+    return ''
+  }
+  const property = schema.properties[path[0]] as OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject | undefined
   if (typeof property === 'undefined') {
     return ''
   }
