@@ -11,6 +11,7 @@ import { CodeGenControllers } from './types'
 import handlebars from 'handlebars'
 import { getRelativeFilePath } from './utils'
 import { resolve } from './resolve'
+import crypto from 'crypto'
 
 export type OpenAPIConfiguration = {
   tsconfigFilePath: string
@@ -66,6 +67,30 @@ export type OpenAPIConfiguration = {
 const promiseGlob = promisify(glob)
 export async function generate (config: OpenAPIConfiguration) {
   const root = config.root ?? path.dirname(path.resolve(config.tsconfigFilePath))
+
+  const start = process.hrtime()
+  const files = (await Promise.all(config.controllers.map(async (controller) => {
+    return promiseGlob(controller)
+  }))).flat()
+
+  const currentFileContent = await fs.promises.readFile(path.resolve(root, config.openapi.filePath))
+    .catch((err) => {
+      if (err.code === 'ENOENT') {
+        return null
+      }
+      throw err
+    })
+  const previousHash = null //currentFileContent !== null ? YAML.parse(String(currentFileContent)).info['x-typoa-hash'] as string | undefined : null
+  const currentHash = crypto.createHash('md5').update(JSON.stringify({
+    config,
+    files: Promise.all(files.map(async (file) => {
+      const fileContent = await fs.promises.readFile(file)
+      return crypto.createHash('md5').update(String(fileContent)).digest('hex')
+    }))
+  })).digest('hex')
+  const end = process.hrtime(start)
+  console.log({ previousHash, currentHash }, `time: ${(end[0] * 1000000000 + end[1]) / 1000000}ms`)
+
   // initialize
   const project = new Project({
     compilerOptions: getCompilerOptionsFromTsConfig(config.tsconfigFilePath).options
@@ -83,18 +108,15 @@ export async function generate (config: OpenAPIConfiguration) {
   const controllersPathByName: Record<string, string> = {}
 
   // Iterate over controllers and patch spec
-  for (const controller of config.controllers) {
-    const files = await promiseGlob(controller)
-    for (const file of files) {
-      const filePath = path.resolve(root, file)
-      const sourceFile = project.getSourceFileOrThrow(filePath)
-      const controllers = sourceFile.getClasses()
-      for (const controller of controllers) {
-        const routeDecorator = controller.getDecorator('Route')
-        if (routeDecorator === undefined) continue // skip
-        addController(controller, spec, codegenControllers)
-        controllersPathByName[controller.getName()!] = filePath
-      }
+  for (const file of files) {
+    const filePath = path.resolve(root, file)
+    const sourceFile = project.getSourceFileOrThrow(filePath)
+    const controllers = sourceFile.getClasses()
+    for (const controller of controllers) {
+      const routeDecorator = controller.getDecorator('Route')
+      if (routeDecorator === undefined) continue // skip
+      addController(controller, spec, codegenControllers)
+      controllersPathByName[controller.getName()!] = filePath
     }
   }
 
