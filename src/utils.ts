@@ -59,12 +59,13 @@ export function resolveProperty (
     return resolveProperty(components.schemas![schema.$ref.substr('#/components/schemas/'.length)], components, path)
   }
   if (typeof schema.allOf !== 'undefined') {
+    const resolved = schema.allOf
+      .map((schema) => resolveProperty(schema, components, path))
+      .reverse() // find the last element (override) in the allOf
+      .find(({ value }) => typeof value !== 'string' || value.length > 0)
     return {
-      value: schema.allOf
-        .map((schema) => resolveProperty(schema, components, path).value)
-        .reverse() // find the last element (override) in the allOf
-        .find(value => typeof value !== 'string' || value.length > 0) ?? '',
-      meta: { isObject: false }
+      value: resolved?.value ?? '',
+      meta: { isObject: resolved?.meta.isObject ?? false }
     }
   }
   if (schema.type === 'array') {
