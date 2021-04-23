@@ -80,7 +80,8 @@ export function resolveProperty (
         value: JSON.stringify(
           Object.entries(schema.properties ?? {})
             .reduce<Record<string, unknown>>((obj, [key, value]) => {
-              obj[key] = resolveProperty(value, components, []).value
+              const resolved = resolveProperty(value, components, [])
+              obj[key] = resolved.meta.isObject ? JSON.parse(resolved.value as string) : resolved.value
               return obj
             }, {})
         ),
