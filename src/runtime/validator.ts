@@ -157,7 +157,7 @@ function validateAndParseValueAgainstSchema (
   // Strings
   if (currentSchema.type === 'string') {
     if (value instanceof Date && currentSchema.format === 'date-time') {
-      value = value.toISOString()
+      return value
     }
     if (typeof value !== 'string') {
       throw new ValidateError({

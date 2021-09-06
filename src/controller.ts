@@ -67,7 +67,9 @@ export function addController (
       } else {
         operation.responses![httpCode] = { description: description ?? '' }
       }
-      if (parseInt(httpCode, 10) >= 200 && parseInt(httpCode, 10) <= 299) hasSuccessResponse = true
+      if (parseInt(httpCode, 10) >= 200 && parseInt(httpCode, 10) <= 299) {
+        hasSuccessResponse = true
+      }
     }
 
     // Add default success response
