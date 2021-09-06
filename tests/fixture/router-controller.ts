@@ -1,5 +1,5 @@
 import express from 'express'
-import { Controller, Route, Get, Post, Header, Body, Request, Query, Delete, Path, Patch, BodyDiscriminatorFunction, Security, Hidden } from '../../src'
+import { Controller, Route, Get, Post, Header, Body, Request, Query, Delete, Path, Patch, BodyDiscriminatorFunction, Security, Hidden, Response } from '../../src'
 
 enum EnumString {
   FOO = 'foo',
@@ -33,6 +33,7 @@ export class MyController extends Controller {
   }
 
   @Post()
+  @Response<ReturnType<MyController['post']>>(201)
   public async post (
     @Header('x-custom-header') header: string,
     @Body() body: {
@@ -118,6 +119,13 @@ export class MyController extends Controller {
     }
   ) {
     return 'ok'
+  }
+
+  @Get('/getExtra')
+  public getExtra (
+  ): { foo: number } {
+    const data = { foo: 1, extra: 42 }
+    return data
   }
 }
 

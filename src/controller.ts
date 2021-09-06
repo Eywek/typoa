@@ -4,6 +4,7 @@ import { appendToSpec, extractDecoratorValues, normalizeUrl, getLiteralFromType 
 import { resolve, appendJsDocTags, appendInitializer } from './resolve'
 import debug from 'debug'
 import { CodeGenControllers } from './types'
+import { OpenAPIConfiguration } from './'
 
 const log = debug('typoa:controller')
 
@@ -13,7 +14,8 @@ const PARAMETER_DECORATORS = ['Query', 'Body', 'Path', 'Header', 'Request']
 export function addController (
   controller: ClassDeclaration,
   spec: OpenAPIV3.Document,
-  codegenControllers: CodeGenControllers
+  codegenControllers: CodeGenControllers,
+  config: OpenAPIConfiguration['router']
 ): void {
   log(`Handle ${controller.getName()} controller`)
   const routeDecorator = controller.getDecoratorOrThrow('Route')
@@ -44,25 +46,13 @@ export function addController (
       continue // skip
     }
 
-    // Resolve response type
+    let hasSuccessResponse = false
     const returnType = method.getReturnType()
-    if (returnType.isUndefined() || returnType.getText() === 'void') {
-      operation.responses![204] = { description: 'No Content' }
-    } else {
-      operation.responses![200] = {
-        description: 'Ok',
-        content: {
-          'application/json': {
-            schema: resolve(returnType, spec)
-          }
-        }
-      }
-    }
 
-    // Other response
+    // Check response
     const responses = method.getDecorators().filter(decorator => decorator.getName() === 'Response')
     for (const responseDecorator of responses) {
-      const [ httpCode, description ] = extractDecoratorValues(responseDecorator)
+      const [httpCode, description] = extractDecoratorValues(responseDecorator)
       const typeArguments = responseDecorator.getTypeArguments()
       if (typeArguments.length > 0) {
         const type = typeArguments[0].getType()
@@ -76,6 +66,23 @@ export function addController (
         }
       } else {
         operation.responses![httpCode] = { description: description ?? '' }
+      }
+      if (parseInt(httpCode, 10) >= 200 && parseInt(httpCode, 10) <= 299) hasSuccessResponse = true
+    }
+
+    // Add default success response
+    if (!hasSuccessResponse) {
+      if (returnType.isUndefined() || returnType.getText() === 'void' || returnType.getText() === 'Promise<void>') {
+        operation.responses![204] = { description: 'No Content' }
+      } else {
+        operation.responses![200] = {
+          description: 'Ok',
+          content: {
+            'application/json': {
+              schema: resolve(returnType, spec)
+            }
+          }
+        }
       }
     }
 
@@ -226,7 +233,9 @@ export function addController (
         security: operation.security,
         params: codegenParameters,
         body: operation.requestBody,
-        bodyDiscriminator: codegenBodyDiscriminator
+        bodyDiscriminator: codegenBodyDiscriminator,
+        responses: operation.responses,
+        validateResponse: config.validateResponse ?? false
       })
     }
   }

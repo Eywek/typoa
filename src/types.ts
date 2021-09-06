@@ -10,5 +10,7 @@ export type CodeGenControllers = Record<string, {
   bodyDiscriminator?: {
     path: string,
     name: string
-  }
+  },
+  responses: OpenAPIV3.OperationObject['responses'],
+  validateResponse: boolean
 }[]>
