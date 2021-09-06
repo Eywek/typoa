@@ -11,7 +11,7 @@ const log = debug('typoa:controller')
 const VERB_DECORATORS = ['Get', 'Post', 'Put', 'Delete', 'Patch']
 const PARAMETER_DECORATORS = ['Query', 'Body', 'Path', 'Header', 'Request']
 
-export function addController (
+export function addController(
   controller: ClassDeclaration,
   spec: OpenAPIV3.Document,
   codegenControllers: CodeGenControllers,
@@ -243,7 +243,7 @@ export function addController (
   }
 }
 
-function getSecurities (declaration: ClassDeclaration | MethodDeclaration) {
+function getSecurities(declaration: ClassDeclaration | MethodDeclaration) {
   const security: OpenAPIV3.SecurityRequirementObject[] = []
   const securityDecorators = declaration.getDecorators().filter(decorator => decorator.getName() === 'Security')
   if (securityDecorators.length > 0) {
@@ -263,7 +263,7 @@ function getSecurities (declaration: ClassDeclaration | MethodDeclaration) {
   return security
 }
 
-function findDiscriminatorFunction (node: Identifier): { path: string, name: string } {
+function findDiscriminatorFunction(node: Identifier): { path: string, name: string } {
   const functionName = node.compilerNode.escapedText.toString()
   const sourceFiles = node.getProject().getSourceFiles()
   let discriminatorFunction: FunctionDeclaration | VariableDeclaration | undefined
