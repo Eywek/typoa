@@ -95,6 +95,12 @@ export type OpenAPIConfiguration = {
      * You must export a variable/function named `securityMiddleware`
      */
     securityMiddlewarePath?: string
+
+    /**
+     * If `true`, the result will be validated against the schema
+     * and any extra properties will be removed.
+     */
+    validateResponse?: boolean;
   }
 }
 
@@ -127,7 +133,7 @@ export async function generate (config: OpenAPIConfiguration) {
       for (const controller of controllers) {
         const routeDecorator = controller.getDecorator('Route')
         if (routeDecorator === undefined) continue // skip
-        addController(controller, spec, codegenControllers)
+        addController(controller, spec, codegenControllers, config.router)
         controllersPathByName[controller.getName()!] = filePath
       }
     }
@@ -242,7 +248,7 @@ export async function generate (config: OpenAPIConfiguration) {
     securityMiddleware: config.router.securityMiddlewarePath ? getRelativeFilePath(
       path.dirname(routerFilePath),
       path.resolve(root, config.router.securityMiddlewarePath)
-     ) : undefined,
+    ) : undefined,
     controllers: Object.keys(codegenControllers).map((controllerName) => {
       return {
         name: controllerName,

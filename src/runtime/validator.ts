@@ -71,6 +71,34 @@ export async function validateAndParse (
   return args
 }
 
+export function validateAndParseResponse (
+  data: unknown,
+  schemas: OpenAPIV3.ComponentsObject['schemas'],
+  rules: Record<string, OpenAPIV3.ResponseObject>,
+  statusCode: string,
+  contentType: string
+): unknown {
+  try {
+    const rule = rules[statusCode] ?? rules.default
+    if (!rule) throw new ValidateError({ response: { message: `Missing response schema for status code ${statusCode}` } }, 'Invalid status code')
+    const expectedSchema = rule.content?.[contentType]?.schema
+    if (typeof expectedSchema === 'undefined') {
+      if (typeof data === 'undefined' || data === null) {
+        return data
+      }
+      log(`Schema is not found for '${contentType}', throwing error`)
+      throw new ValidateError({}, 'This content-type is not allowed')
+    }
+    return validateAndParseValueAgainstSchema('response', data, expectedSchema, schemas)
+  } catch (e) {
+    if (e instanceof ValidateError) {
+      // validation error on the result is a server, not client error
+      e.status = 500
+    }
+    throw e
+  }
+}
+
 async function validateBody (
   req: express.Request,
   rule: OpenAPIV3.RequestBodyObject,
@@ -128,6 +156,9 @@ function validateAndParseValueAgainstSchema (
   }
   // Strings
   if (currentSchema.type === 'string') {
+    if (value instanceof Date && currentSchema.format === 'date-time') {
+      return value
+    }
     if (typeof value !== 'string') {
       throw new ValidateError({
         [name]: { message: 'This property must be a string', value }

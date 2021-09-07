@@ -33,7 +33,17 @@ export function bindToRouter (router: express.Router) {
           }
         ) as any
       )
+      {{#if validateResponse}}
+      const validatedData = Validator.validateAndParseResponse(
+        data, schemas as any, 
+        {{json responses}},
+        ('getStatus' in controller ? (controller as any).getStatus()?.toString() : undefined) ?? (typeof data !== 'undefined' && data !== null ? '200' : '204'),
+        ((('getHeaders' in controller ? (controller as any).getHeaders()?.['content-type'] : undefined) ?? 'application/json')).split(';')[0]
+      )
+      RuntimeResponse.send(controller, validatedData, res)
+      {{else}}
       RuntimeResponse.send(controller, data, res)
+      {{/if}}
     } catch (err) {
       return next(err)
     }

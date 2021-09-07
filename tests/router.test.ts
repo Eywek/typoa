@@ -30,7 +30,8 @@ test.before(async (t) => {
     },
     router: {
       filePath: tmpFile,
-      securityMiddlewarePath: path.resolve(__dirname, './fixture/security-middleware.ts')
+      securityMiddlewarePath: path.resolve(__dirname, './fixture/security-middleware.ts'),
+      validateResponse: true
     }
   })
   const routerContent = (await fs.promises.readFile(tmpFile)).toString()
@@ -533,4 +534,12 @@ test('Should not validate body with file', async (t) => {
   })
   t.is(res.status, 200)
   t.is(res.data, 'ok')
+})
+
+test('Should remove extra props from response', async (t) => {
+  const res = await api.get('/getExtra')
+  t.is(res.status, 200)
+  t.deepEqual(res.data, {
+    foo: 1
+  })
 })
