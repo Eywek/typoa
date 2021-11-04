@@ -1,3 +1,8 @@
-enum FooAdditional {
+export enum FooAdditional {
+  BAR
+}
+
+enum NotExported {
+  FOO,
   BAR
 }

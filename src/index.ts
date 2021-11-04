@@ -1,4 +1,4 @@
-import { getCompilerOptionsFromTsConfig, Project, Symbol as TsSymbol, TypeAliasDeclaration, ClassDeclaration, InterfaceDeclaration } from 'ts-morph'
+import { getCompilerOptionsFromTsConfig, Project, TypeAliasDeclaration, ClassDeclaration, InterfaceDeclaration, ExportedDeclarations } from 'ts-morph'
 import glob from 'glob'
 import { promisify } from 'util'
 import path from 'path'
@@ -142,20 +142,19 @@ export async function generate (config: OpenAPIConfiguration) {
   // additional exported type names
   for (const typeName of config.openapi.additionalExportedTypeNames ?? []) {
     const sourceFiles = project.getSourceFiles()
-    const symbols = sourceFiles
-      .map(file => file.getLocal(typeName))
-      .filter(symbol => typeof symbol !== 'undefined') as TsSymbol[]
-    if (symbols.length === 0) {
+    const declarations = sourceFiles
+      .map(file => ({ file: file.getFilePath(), declaration: file.getExportedDeclarations().get(typeName)?.[0] }))
+      .filter(({ declaration }) => typeof declaration !== 'undefined') as { declaration: ExportedDeclarations, file: string }[]
+    if (declarations.length === 0) {
       throw new Error(`Unable to find the additional exported type named '${typeName}'`)
     }
-    if (symbols.length > 1) {
-      throw new Error(`We found multiple references for the additional exported type named '${typeName}'`)
+    if (declarations.length > 1) {
+      throw new Error(`We found multiple references for the additional exported type named '${typeName}' in ${declarations.map(({ file }) => file).join(', ')}`)
     }
-    const symbol = symbols[0]
-    const firstDeclaration = symbol.getDeclarations()[0] as TypeAliasDeclaration | ClassDeclaration | InterfaceDeclaration
+    const declaration = declarations[0].declaration as TypeAliasDeclaration | ClassDeclaration | InterfaceDeclaration
     // Add to spec
-    const name = firstDeclaration.getName()!
-    const resolved = resolve(firstDeclaration.getType(), spec)
+    const name = declaration.getName()!
+    const resolved = resolve(declaration.getType(), spec)
     if (!('$ref' in resolved) || resolved.$ref.substr('#/components/schemas/'.length) !== name) {
       spec.components!.schemas![name] = resolved
     }

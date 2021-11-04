@@ -1,3 +1,3 @@
-enum FooAdditional {
+export enum FooAdditional {
   FOO
 }
