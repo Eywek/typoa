@@ -18,8 +18,23 @@
 								"schema": {
 									"allOf": [
 										{
-											"$ref": "#/components/schemas/_bar-bare--foo-string--_"
-										},
+                      "type": "object",
+                      "properties": {
+                        "bar": {
+                          "type": "string",
+                          "enum": [
+                            "bare"
+                          ]
+                        },
+                        "foo": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "bar",
+                        "foo"
+                      ]
+                    },
 										{
 											"type": "object",
 											"properties": {
@@ -97,7 +112,7 @@
 								"schema": {
 									"allOf": [
 										{
-											"$ref": "#/components/schemas/Pick_DeepDeepGeneric__foo-string--bar-number--__.foo_"
+											"$ref": "#/components/schemas/DeepDeepGeneric__foo-string--bar-number--___Without_Foo"
 										},
 										{
 											"type": "object",
@@ -208,7 +223,7 @@
 							"schema": {
 								"allOf": [
 									{
-										"$ref": "#/components/schemas/Pick_Datasource.name_"
+										"$ref": "#/components/schemas/Datasource_Without_Name"
 									},
 									{
 										"$ref": "#/components/schemas/DatasourceVersion"
@@ -379,7 +394,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/Partial_Serialized_Datasource__"
+									"$ref": "#/components/schemas/Partial_Serialized_Datasource_"
 								}
 							}
 						}
@@ -623,7 +638,7 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/Partial_GettersClass_"
+								"$ref": "#/components/schemas/Partial_GettersClass"
 							}
 						}
 					}
@@ -690,25 +705,7 @@
 					"name"
 				]
 			},
-			"_bar-bare--foo-string--_": {
-				"type": "object",
-				"properties": {
-					"bar": {
-						"type": "string",
-						"enum": [
-							"bare"
-						]
-					},
-					"foo": {
-						"type": "string"
-					}
-				},
-				"required": [
-					"bar",
-					"foo"
-				]
-			},
-			"Pick_DeepDeepGeneric__foo-string--bar-number--__.foo_": {
+			"DeepDeepGeneric__foo-string--bar-number--___Without_Foo": {
 				"type": "object",
 				"properties": {
 					"foo": {
@@ -742,7 +739,7 @@
 					"foo"
 				]
 			},
-			"Pick_Datasource.name_": {
+			"Datasource_Without_Name": {
 				"type": "object",
 				"properties": {
 					"name": {
@@ -806,7 +803,7 @@
 					"version"
 				]
 			},
-			"Partial_Serialized_Datasource__": {
+			"Partial_Serialized_Datasource_": {
 				"type": "object",
 				"properties": {
 					"name": {
@@ -829,7 +826,7 @@
 					}
 				}
 			},
-			"Partial_GettersClass_": {
+			"Partial_GettersClass": {
 				"type": "object",
 				"properties": {
 					"fooGet": {

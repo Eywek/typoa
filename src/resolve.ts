@@ -5,13 +5,30 @@ export function buildRef (name: string) {
   return `#/components/schemas/${name}`
 }
 
-function stringifyName (rawName: string) {
+function capitalizeFirstLetter (str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+function stringifyName (rawName: string): string {
   let name = rawName
   if (name.startsWith('Promise<')) {
     const nameWithoutPromise = name.substr('Promise<'.length)
     name = nameWithoutPromise.substr(0, nameWithoutPromise.length - 1)
   }
+  if (name.startsWith('Partial<')) {
+    name = `Partial_${name.substr('Partial<'.length, name.length - 'Partial<'.length - 1)}`
+  }
   name = name.replace(/import\(.+\)\./g, '')
+  if (name.startsWith('Pick<')) {
+    const originalName = name.substr('Pick<'.length, name.indexOf(', ') - 'Pick<'.length)
+    const props = name.substr(name.indexOf(','))
+      .split('|')
+      .map(prop => {
+        const updatedProp = prop.substr(prop.indexOf('"') + 1)
+        return capitalizeFirstLetter(updatedProp.substr(0, updatedProp.lastIndexOf('"')))
+      })
+    return stringifyName(`${originalName}_Without_${props.join('_')}`)
+  }
   return encodeURIComponent(
     name
       .replace(/<|>/g, '_')
@@ -132,7 +149,7 @@ export function resolve (
       typeName = type.getText()
     }
     // Special case for anonymous types and generic interfaces
-    if (typeName === '__type' || typeName === '__object' || typeArguments.length > 0) {
+    if (typeName === '__type' || typeName === '__object' || typeArguments.length > 0 || typeName.startsWith('{')) {
       return resolveObjectType(type, spec)
     }
     const isRecord = type.getAliasSymbol()?.getEscapedName() === 'Record'
