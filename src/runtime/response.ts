@@ -13,6 +13,9 @@ export function send (
   data: unknown,
   res: express.Response
 ): void {
+  if (res.writableEnded) {
+    return
+  }
   let status: number | undefined
   let headers: Record<string, string | undefined> | undefined
   // Get defined headers / status
