@@ -154,7 +154,8 @@ export async function generate (config: OpenAPIConfiguration) {
     const declaration = declarations[0].declaration as TypeAliasDeclaration | ClassDeclaration | InterfaceDeclaration
     // Add to spec
     const name = declaration.getName()!
-    const resolved = resolve(declaration.getType(), spec)
+    const type = declaration.getType()
+    const resolved = resolve(type.isAny() ? declaration.getSymbol()?.getDeclaredType() ?? type : type, spec)
     if (!('$ref' in resolved) || resolved.$ref.substr('#/components/schemas/'.length) !== name) {
       spec.components!.schemas![name] = resolved
     }
