@@ -30,8 +30,8 @@ export function addController (
     const summaryTag = jsDocTags.find((tag) => tag.getTagName() === 'summary')
     const descriptionTag = jsDocTags.find((tag) => tag.getTagName() === 'description')
     const operation: OpenAPIV3.OperationObject = {
-      summary: summaryTag?.getComment(),
-      description: descriptionTag?.getComment(),
+      summary: summaryTag?.getCommentText(),
+      description: descriptionTag?.getCommentText(),
       parameters: [],
       responses: {},
       tags: [...controllerTags] // copy elements

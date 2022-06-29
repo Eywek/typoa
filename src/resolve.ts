@@ -64,7 +64,7 @@ function retrieveTypeName (
   const typeName = type.getSymbolOrThrow().getName()
   if (typeName === '__type') {
     const declaration = type.getSymbolOrThrow().getDeclarations()[0]
-    if (declaration && Node.isTypeLiteralNode(declaration)) {
+    if (declaration && Node.isLiteralTypeNode(declaration)) {
       const aliasSymbol = declaration.getType().getAliasSymbol()
       if (aliasSymbol) {
         return aliasSymbol.getName()
@@ -286,6 +286,7 @@ export function appendMetaToResolvedType (
 ): OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject {
   if ('$ref' in type) { // siblings aren't allowed with ref (ex: for readonly) see https://stackoverflow.com/a/51402417
     const ref = type.$ref
+    // @ts-expect-error $ref isn't optionnal
     delete type.$ref
     return Object.assign(type, { // Mutate type deleting $ref
       allOf: [{ $ref: ref }],
@@ -302,7 +303,7 @@ export function appendJsDocTags (
   for (const tag of jsDocTags) {
     if (['format', 'example', 'description', 'pattern', 'minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems'].includes(tag.name) && tag.text) {
       appendMetaToResolvedType(resolvedType, {
-        [tag.name]: ['minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems'].includes(tag.name) ? parseFloat(tag.text) : tag.text
+        [tag.name]: ['minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems'].includes(tag.name) ? parseFloat(tag.text.map(t => t.text).join('')) : tag.text
       })
     }
   }
