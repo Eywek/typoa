@@ -9,47 +9,6 @@ function capitalizeFirstLetter (str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
-function stringifyName (rawName: string): string {
-  let name = rawName
-  if (name.startsWith('Promise<')) {
-    const nameWithoutPromise = name.substr('Promise<'.length)
-    name = nameWithoutPromise.substr(0, nameWithoutPromise.length - 1)
-  }
-  if (name.startsWith('Partial<')) {
-    name = `Partial_${name.substr('Partial<'.length, name.length - 'Partial<'.length - 1)}`
-  }
-  name = name.replace(/import\(.+\)\./g, '')
-  if (name.startsWith('Pick<')) {
-    const originalName = name.substr('Pick<'.length, name.indexOf(', ') - 'Pick<'.length)
-    const props = name.substr(name.indexOf(','))
-      .split('|')
-      .map(prop => {
-        const updatedProp = prop.substr(prop.indexOf('"') + 1)
-        return capitalizeFirstLetter(updatedProp.substr(0, updatedProp.lastIndexOf('"')))
-      })
-    return stringifyName(`${originalName}_Without_${props.join('_')}`)
-  }
-  return encodeURIComponent(
-    name
-      .replace(/<|>/g, '_')
-      .replace(/\s+/g, '')
-      .replace(/,/g, '.')
-      .replace(/\'([^']*)\'/g, '$1')
-      .replace(/\"([^"]*)\"/g, '$1')
-      .replace(/&/g, '-and-')
-      .replace(/\|/g, '-or-')
-      .replace(/\[\]/g, '-Array')
-      .replace(/{|}/g, '_') // SuccessResponse_{indexesCreated-number}_ -> SuccessResponse__indexesCreated-number__
-      .replace(/([a-z]+):([a-z]+)/gi, '$1-$2') // SuccessResponse_indexesCreated:number_ -> SuccessResponse_indexesCreated-number_
-      .replace(/;/g, '--')
-      .replace(/([a-z]+)\[([a-z]+)\]/gi, '$1-at-$2') // Partial_SerializedDatasourceWithVersion[format]_ -> Partial_SerializedDatasourceWithVersion~format~_,
-      .replace(/{|}|\[|\]|\(|\)/g, '_')
-      .replace(/:/g, '-')
-      .replace(/\?/g, '..')
-      .replace(/'|"/g, '')
-  )
-}
-
 function resolveNullableType (
   nonNullableType: Type,
   isUndefined: boolean,
@@ -63,6 +22,10 @@ function retrieveTypeName (
 ): string {
   const typeName = type.getSymbolOrThrow().getName()
   if (typeName === '__type') {
+    const aliasName = type.getAliasSymbol()?.getName()
+    if (typeof aliasName !== 'undefined' && aliasName !== '__type') {
+      return aliasName
+    }
     const declaration = type.getSymbolOrThrow().getDeclarations()[0]
     if (declaration && Node.isLiteralTypeNode(declaration)) {
       const aliasSymbol = declaration.getType().getAliasSymbol()
@@ -72,6 +35,14 @@ function retrieveTypeName (
     }
   }
   return typeName
+}
+
+/**
+ * Returns true if the type could be identified
+ */
+function isTypeIdentifier (type: Type) {
+  const kindName = type.getSymbol()?.getDeclarations()?.[0]?.getKindName()
+  return typeof kindName !== 'undefined' && kindName !== 'MappedType' && (type.isAnonymous() === false || typeof type.getAliasSymbol() !== 'undefined')
 }
 
 export function resolve (
@@ -123,7 +94,7 @@ export function resolve (
   }
   if (type.isEnum()) {
     const symbol = type.getSymbolOrThrow()
-    const enumName = stringifyName(symbol.getName())
+    const enumName = symbol.getName()
     const declaration = symbol.getDeclarations()[0] as EnumDeclaration
     // Add to spec components if not already resolved
     // tslint:disable-next-line: strict-type-predicates
@@ -143,28 +114,41 @@ export function resolve (
       return { type: 'string', format: 'date-time' }
     }
     // Handle mapped types
-    const typeArguments = type.getTypeArguments()
-    const isMappedType = type.getSymbolOrThrow().getDeclarations()[0]?.getKindName() === 'MappedType'
-    if (typeName === '__type' && isMappedType) {
-      typeName = type.getText()
-    }
-    // Special case for anonymous types and generic interfaces
-    if (typeName === '__type' || typeName === '__object' || typeArguments.length > 0 || typeName.startsWith('{')) {
+    const helperName = type.getAliasSymbol()?.getEscapedName()
+    if (helperName === 'Partial' || helperName === 'Omit' || helperName === 'Pick' || helperName === 'Promise') {
+      const typeArguments = type.getAliasTypeArguments()
+      const subjectType = typeArguments[0]
+      if (isTypeIdentifier(subjectType) === false) {
+        return resolveObjectType(type, spec)
+      }
+      switch (helperName) {
+        case 'Omit':
+        case 'Pick':
+          const args = typeArguments[1].getUnionTypes().map(t => capitalizeFirstLetter(String(t.getLiteralValue())))
+          typeName = `${retrieveTypeName(subjectType)}_With${helperName === 'Omit' ? 'out' : ''}_${args.join('_')}`
+          break
+        case 'Partial':
+          typeName = `${retrieveTypeName(subjectType)}_Partial`
+          break
+        case 'Promise':
+          typeName = retrieveTypeName(subjectType)
+          break
+      }
+    } else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1) && isTypeIdentifier(type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0])) { // i.e. Serialized<Datasource> -> Serialized_Datasource
+      const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
+      const name = type.getSymbol()?.getEscapedName() ?? helperName
+      typeName = `${name}_${retrieveTypeName(subjectType)}`
+    } else if (isTypeIdentifier(type) === false) { // For other and anonymous types, don't use ref
       return resolveObjectType(type, spec)
     }
-    const isRecord = type.getAliasSymbol()?.getEscapedName() === 'Record'
-    if (isRecord) { // inline records
-      return resolveObjectType(type, spec)
-    }
-    // Use ref for models and other defined types
-    const refName = stringifyName(typeName)
+
     // Add to spec components if not already resolved
     // tslint:disable-next-line: strict-type-predicates
-    if (typeof spec.components!.schemas![refName] === 'undefined') {
-      spec.components!.schemas![refName] = resolveObjectType(type, spec)
+    if (typeof spec.components!.schemas![typeName] === 'undefined') {
+      spec.components!.schemas![typeName] = resolveObjectType(type, spec)
     }
     // Return
-    return { $ref: buildRef(refName) }
+    return { $ref: buildRef(typeName) }
   }
   if (type.isIntersection()) {
     return {
@@ -303,7 +287,7 @@ export function appendJsDocTags (
   for (const tag of jsDocTags) {
     if (['format', 'example', 'description', 'pattern', 'minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems'].includes(tag.name) && tag.text) {
       appendMetaToResolvedType(resolvedType, {
-        [tag.name]: ['minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems'].includes(tag.name) ? parseFloat(tag.text.map(t => t.text).join('')) : tag.text
+        [tag.name]: ['minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems'].includes(tag.name) ? parseFloat(tag.text.map(t => t.text).join('')) : tag.text.map(t => t.text).join('\n')
       })
     }
   }

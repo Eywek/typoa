@@ -112,8 +112,39 @@
 								"schema": {
 									"allOf": [
 										{
-											"$ref": "#/components/schemas/DeepDeepGeneric__foo-string--bar-number--___Without_Foo"
-										},
+                      "type": "object",
+                      "properties": {
+                        "foo": {
+                          "allOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "value"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "bar": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "bar"
+                              ]
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "foo"
+                      ]
+                    },
 										{
 											"type": "object",
 											"properties": {
@@ -223,7 +254,7 @@
 							"schema": {
 								"allOf": [
 									{
-										"$ref": "#/components/schemas/Datasource_Without_Name"
+										"$ref": "#/components/schemas/Datasource_Without_Version_Versions"
 									},
 									{
 										"$ref": "#/components/schemas/DatasourceVersion"
@@ -355,21 +386,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"type": "object",
-									"properties": {
-										"date": {
-											"type": "string",
-											"format": "date-time",
-											"example": "2020-10-30T19:02:06.523Z"
-										},
-										"data": {
-											"$ref": "#/components/schemas/Datasource"
-										}
-									},
-									"required": [
-										"date",
-										"data"
-									]
+									"$ref": "#/components/schemas/SuccessResponse_Datasource"
 								}
 							}
 						}
@@ -394,8 +411,28 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/Partial_Serialized_Datasource_"
-								}
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "writeOnly": true,
+                      "pattern": "^([A-Z]+)"
+                    },
+                    "versions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DatasourceVersion"
+                      },
+                      "description": "This comment is used to test typoa"
+                    },
+                    "version": {
+                      "$ref": "#/components/schemas/DatasourceVersion"
+                    },
+                    "id": {
+                      "type": "string"
+                    }
+                  }
+                }
 							}
 						}
 					}
@@ -638,7 +675,7 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/Partial_GettersClass"
+								"$ref": "#/components/schemas/GettersClass_Partial"
 							}
 						}
 					}
@@ -705,41 +742,24 @@
 					"name"
 				]
 			},
-			"DeepDeepGeneric__foo-string--bar-number--___Without_Foo": {
-				"type": "object",
-				"properties": {
-					"foo": {
-						"allOf": [
-							{
-								"type": "object",
-								"properties": {
-									"value": {
-										"type": "string"
-									}
-								},
-								"required": [
-									"value"
-								]
-							},
-							{
-								"type": "object",
-								"properties": {
-									"bar": {
-										"type": "string"
-									}
-								},
-								"required": [
-									"bar"
-								]
-							}
-						]
-					}
-				},
-				"required": [
-					"foo"
-				]
-			},
-			"Datasource_Without_Name": {
+      "SuccessResponse_Datasource": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2020-10-30T19:02:06.523Z"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Datasource"
+          }
+        },
+        "required": [
+          "date",
+          "data"
+        ]
+      },
+			"Datasource_Without_Version_Versions": {
 				"type": "object",
 				"properties": {
 					"name": {
@@ -803,30 +823,7 @@
 					"version"
 				]
 			},
-			"Partial_Serialized_Datasource_": {
-				"type": "object",
-				"properties": {
-					"name": {
-            "type": "string",
-            "writeOnly": true,
-						"pattern": "^([A-Z]+)"
-					},
-					"versions": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/DatasourceVersion"
-						},
-						"description": "This comment is used to test typoa"
-					},
-					"version": {
-						"$ref": "#/components/schemas/DatasourceVersion"
-					},
-					"id": {
-						"type": "string"
-					}
-				}
-			},
-			"Partial_GettersClass": {
+			"GettersClass_Partial": {
 				"type": "object",
 				"properties": {
 					"fooGet": {
