@@ -20,7 +20,13 @@ function resolveNullableType (
 function retrieveTypeName (
   type: Type
 ): string {
-  const typeName = type.getSymbolOrThrow().getName()
+  if (type.isArray()) {
+    return retrieveTypeName(type.getArrayElementType()!)
+  }
+  const typeName = type.getSymbol()?.getName()
+  if (typeof typeName === 'undefined') {
+    return type.getText()
+  }
   if (typeName === '__type') {
     const aliasName = type.getAliasSymbol()?.getName()
     if (typeof aliasName !== 'undefined' && aliasName !== '__type') {
