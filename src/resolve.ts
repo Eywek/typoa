@@ -21,7 +21,7 @@ function retrieveTypeName (
   type: Type
 ): string {
   if (type.isArray()) {
-    return retrieveTypeName(type.getArrayElementType()!)
+    return `Array_${retrieveTypeName(type.getArrayElementType()!)}`
   }
   const typeName = type.getSymbol()?.getName()
   if (typeof typeName === 'undefined') {

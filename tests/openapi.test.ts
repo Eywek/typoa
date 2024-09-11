@@ -99,3 +99,25 @@ test('Should fail with a missing parameter decorator', async (t) => {
     }
   }), { message: 'Parameter MyController.get.invalidParameter must have a decorator.' })
 })
+
+test('Should generate the right definition with response object', async (t) => {
+  await generate({
+    tsconfigFilePath: path.resolve(__dirname, './fixture/tsconfig.json'),
+    controllers: [path.resolve(__dirname, './fixture/response-object.ts')],
+    openapi: {
+      filePath: '/tmp/openapi-test-object-response.json',
+      format: 'json',
+      service: {
+        name: 'my-service',
+        version: '1.0.0'
+      },
+      additionalExportedTypeNames: [],
+    },
+    router: {
+      filePath: '/tmp/router.ts'
+    }
+  })
+  const specContent = (await fs.promises.readFile('/tmp/openapi-test-object-response.json')).toString()
+  // we should not have the same type for the get and post endpoint
+  t.snapshot(specContent)
+})
