@@ -142,7 +142,7 @@ export function resolve (
       }
     } else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1) && isTypeIdentifier(type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0])) { // i.e. Serialized<Datasource> -> Serialized_Datasource
       const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
-      const name = type.getSymbol()?.getEscapedName() ?? helperName
+      const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
       typeName = `${name}_${retrieveTypeName(subjectType)}`
     } else if (isTypeIdentifier(type) === false) { // For other and anonymous types, don't use ref
       return resolveObjectType(type, spec)
