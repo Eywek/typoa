@@ -1,4 +1,4 @@
-import { Route, Get, Security, Post } from '../../src'
+import { Route, Get, Security, Post, Put } from '../../src'
 
 type SuccessResponse<T extends any> = { data: T }
 
@@ -16,5 +16,9 @@ export class My3ndController {
   @Post('/')
   public async create (): Promise<SuccessResponse<Entity>> {
     return { data: { name: 'foo' } }
+  }
+  @Put('/')
+  public async update (): Promise<SuccessResponse<{ entity: Entity, count: number }>> {
+    return { data: { entity: { name: 'foo' }, count: 1 } }
   }
 }
