@@ -60,7 +60,7 @@ export function addController (
           description: description ?? '',
           content: {
             'application/json': {
-              schema: resolve(type, spec)
+              schema: resolve(type, spec, undefined, `Response`)
             }
           }
         }
@@ -81,7 +81,7 @@ export function addController (
           description: 'Ok',
           content: {
             'application/json': {
-              schema: resolve(returnType, spec)
+              schema: resolve(returnType, spec, undefined, `Response`)
             }
           }
         }
@@ -115,7 +115,7 @@ export function addController (
       let required = true
       const schema = resolve(type, spec, (type, isUndefined, spec) => {
         required = false
-        return resolve(type, spec) // don't have `nullable` prop
+        return resolve(type, spec, undefined, `Parameter`) // don't have `nullable` prop
       })
       // Default value
       if (appendInitializer(node, schema)) {
@@ -152,7 +152,7 @@ export function addController (
         contentType = String(firstArgumentType.compilerType.value)
       }
       (operation.requestBody as Extract<typeof operation.requestBody, { content: any }>).content[contentType] = {
-        schema: resolve(param.getType(), spec)
+        schema: resolve(param.getType(), spec, undefined, 'RequestBody')
       }
       // Handle discriminator
       // We find the function in the 2nd arg of Body() to be able to

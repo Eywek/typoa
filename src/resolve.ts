@@ -1,5 +1,8 @@
 import { SymbolFlags, Type, Node, ts, Symbol as TsSymbol, MethodDeclaration, MethodSignature, EnumDeclaration, ParameterDeclaration, PropertyDeclaration } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
+import debug from 'debug'
+
+const log = debug('typoa:resolver')
 
 export function buildRef (name: string) {
   return `#/components/schemas/${name}`
@@ -27,6 +30,37 @@ function retrieveTypeName (
   if (typeof typeName === 'undefined') {
     return type.getText()
   }
+  // Handle mapped types
+  const helperName = type.getAliasSymbol()?.getEscapedName()
+  if ((typeof type.getStringIndexType() !== 'undefined' || typeof type.getNumberIndexType() !== 'undefined') && type.getText().includes('Record')) {
+    return `Record_${typeof type.getStringIndexType() !== 'undefined' ? 'string' : 'number'}_${type.getAliasTypeArguments()[1].getAliasSymbol()?.getName() ?? type.getAliasTypeArguments()[1].getBaseTypeOfLiteralType().getText()}`
+  } else if (helperName === 'Partial' || helperName === 'Omit' || helperName === 'Pick' || helperName === 'Promise') {
+    const typeArguments = type.getAliasTypeArguments()
+    const subjectType = typeArguments[0]
+    if (isTypeIdentifier(subjectType)) {
+      switch (helperName) {
+        case 'Omit':
+        case 'Pick':
+          const args = typeArguments[1].isUnion()
+            ? typeArguments[1].getUnionTypes().map(t => capitalizeFirstLetter(String(t.getLiteralValue())))
+            : [capitalizeFirstLetter(String(typeArguments[1].getLiteralValue()))]
+          return `${retrieveTypeName(subjectType)}_With${helperName === 'Omit' ? 'out' : ''}_${args.join('_')}`
+        case 'Partial':
+          return `${retrieveTypeName(subjectType)}_Partial`
+        case 'Promise':
+          return retrieveTypeName(subjectType)
+      }
+    }
+  } else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1) && isTypeIdentifier(type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0])) { // i.e. Serialized<Datasource> -> Serialized_Datasource
+    const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
+    const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
+    return `${name}_${retrieveTypeName(subjectType)}`
+  }  else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1)) { // i.e. Serialized<{ datasource: Datasource }> -> Serialized_datasource
+    const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
+    const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
+    return `${name}_${retrieveTypeName(subjectType)}`
+  }
+
   if (typeName === '__type') {
     const aliasName = type.getAliasSymbol()?.getName()
     if (typeof aliasName !== 'undefined' && aliasName !== '__type') {
@@ -41,9 +75,10 @@ function retrieveTypeName (
     }
     // handle literal record
     if (type.isObject()) {
-      return type.getProperties().map(prop => (`${prop.getName()}-${retrieveTypeName(prop.getTypeAtLocation(getDeclarationForProperty(type, prop)))}`)).join('_')
+      return type.getProperties().length === 0 ? '{}' : type.getProperties().map(prop => (`${prop.getName()}-${retrieveTypeName(prop.getTypeAtLocation(getDeclarationForProperty(type, prop)))}`)).join('_')
     }
   }
+
   return typeName
 }
 
@@ -58,11 +93,12 @@ function isTypeIdentifier (type: Type) {
 export function resolve (
   type: Type,
   spec: OpenAPIV3.Document,
-  resolveNullableTypeFn = resolveNullableType
+  resolveNullableTypeFn = resolveNullableType,
+  prefix?: string
 ): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
   // Promises
   if (type.getSymbol()?.getEscapedName() === 'Promise') {
-    return resolve(type.getTypeArguments()[0], spec)
+    return resolve(type.getTypeArguments()[0], spec, resolveNullableType, prefix)
   }
   // Nullable
   // We allow to override the behavior because for undefined values
@@ -75,7 +111,7 @@ export function resolve (
   if (type.isArray()) {
     return {
       type: 'array',
-      items: resolve(type.getArrayElementTypeOrThrow(), spec)
+      items: resolve(type.getArrayElementTypeOrThrow(), spec, resolveNullableType, prefix)
     }
   }
   if (type.isBoolean()) {
@@ -94,11 +130,11 @@ export function resolve (
   }
   if (type.isTuple()) { // OpenAPI doesn't support it, so we take it as an union of array
     // tslint:disable-next-line: no-console
-    console.warn('typoa warning: Tuple aren\'t supported by OpenAPI, so we\'re transforming it to an array')
+    log('typoa warning: Tuple aren\'t supported by OpenAPI, so we\'re transforming it to an array')
     return {
       type: 'array',
       items: {
-        oneOf: type.getTupleElements().map(type => resolve(type, spec))
+        oneOf: type.getTupleElements().map(type => resolve(type, spec, resolveNullableType, prefix))
       }
     }
   }
@@ -130,30 +166,17 @@ export function resolve (
       const subjectType = typeArguments[0]
       if (isTypeIdentifier(subjectType) === false) {
         return resolveObjectType(type, spec)
+      } else {
+        typeName = retrieveTypeName(subjectType)
       }
-      switch (helperName) {
-        case 'Omit':
-        case 'Pick':
-          const args = typeArguments[1].getUnionTypes().map(t => capitalizeFirstLetter(String(t.getLiteralValue())))
-          typeName = `${retrieveTypeName(subjectType)}_With${helperName === 'Omit' ? 'out' : ''}_${args.join('_')}`
-          break
-        case 'Partial':
-          typeName = `${retrieveTypeName(subjectType)}_Partial`
-          break
-        case 'Promise':
-          typeName = retrieveTypeName(subjectType)
-          break
-      }
-    } else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1) && isTypeIdentifier(type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0])) { // i.e. Serialized<Datasource> -> Serialized_Datasource
-      const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
-      const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
-      typeName = `${name}_${retrieveTypeName(subjectType)}`
-    }  else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1)) { // i.e. Serialized<{ datasource: Datasource }> -> Serialized_datasource
-      const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
-      const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
-      typeName = `${name}_${retrieveTypeName(subjectType)}`
-    } else if (isTypeIdentifier(type) === false) { // For other and anonymous types, don't use ref
+    } else if (type.getAliasTypeArguments().length  > 0) { // i.e. Serialized<Datasource> -> Serialized_Datasource or Serialized<{ datasource: Datasource }> -> Serialized_datasource
+      typeName =  retrieveTypeName(type)
+    }  else if (isTypeIdentifier(type) === false) { // For other and anonymous types, don't use ref
       return resolveObjectType(type, spec)
+    }
+    
+    if (typeof prefix === 'string') {
+      typeName = `${prefix}_${typeName}`
     }
 
     // Add to spec components if not already resolved
@@ -166,11 +189,11 @@ export function resolve (
   }
   if (type.isIntersection()) {
     return {
-      allOf: type.getIntersectionTypes().map(type => resolve(type, spec))
+      allOf: type.getIntersectionTypes().map(type => resolve(type, spec, resolveNullableType, prefix))
     }
   }
   if (type.isUnion()) {
-    const values = type.getUnionTypes().map(type => resolve(type, spec))
+    const values = type.getUnionTypes().map(type => resolve(type, spec, resolveNullableType, prefix))
     return {
       oneOf: values
     }

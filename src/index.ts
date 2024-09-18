@@ -126,17 +126,17 @@ export async function generate (config: OpenAPIConfiguration) {
   // Iterate over controllers and patch spec
   for (const controller of config.controllers) {
     const files = await promiseGlob(controller)
-    for (const file of files) {
+    await Promise.all(files.map(async file => {
       const filePath = path.resolve(root, file)
       const sourceFile = project.getSourceFileOrThrow(filePath)
       const controllers = sourceFile.getClasses()
-      for (const controller of controllers) {
+      await Promise.all(controllers.map(async controller => {
         const routeDecorator = controller.getDecorator('Route')
-        if (routeDecorator === undefined) continue // skip
+        if (routeDecorator === undefined) return // skip
         addController(controller, spec, codegenControllers, config.router)
         controllersPathByName[controller.getName()!] = filePath
-      }
-    }
+      }))
+    }))
   }
 
   // additional exported type names
