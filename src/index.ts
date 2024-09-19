@@ -124,9 +124,9 @@ export async function generate (config: OpenAPIConfiguration) {
   const controllersPathByName: Record<string, string> = {}
 
   // Iterate over controllers and patch spec
-  for (const controller of config.controllers) {
+  await Promise.all(config.controllers.map(async controller => {
     const files = await promiseGlob(controller)
-    for (const file of files) {
+    await Promise.all(files.map(async file => {
       const filePath = path.resolve(root, file)
       const sourceFile = project.getSourceFileOrThrow(filePath)
       const controllers = sourceFile.getClasses()
@@ -136,8 +136,8 @@ export async function generate (config: OpenAPIConfiguration) {
         addController(controller, spec, codegenControllers, config.router)
         controllersPathByName[controller.getName()!] = filePath
       }
-    }
-  }
+    }))
+  }))
 
   // additional exported type names
   for (const typeName of config.openapi.additionalExportedTypeNames ?? []) {
