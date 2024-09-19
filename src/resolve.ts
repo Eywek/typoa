@@ -23,6 +23,12 @@ function retrieveTypeName (
   if (type.isArray()) {
     return `Array_${retrieveTypeName(type.getArrayElementType()!)}`
   }
+  if (type.isIntersection()) {
+    return `Intersection_${type.getIntersectionTypes().map(type => retrieveTypeName(type)).join('_')}`
+  }
+  if (type.isUnion()) {
+    return `Union_${type.getUnionTypes().map(type => retrieveTypeName(type)).join('_')}`
+  }
   const typeName = type.getSymbol()?.getName()
   if (typeof typeName === 'undefined') {
     return type.getText()
@@ -134,7 +140,9 @@ export function resolve (
       switch (helperName) {
         case 'Omit':
         case 'Pick':
-          const args = typeArguments[1].getUnionTypes().map(t => capitalizeFirstLetter(String(t.getLiteralValue())))
+          const args = typeArguments[1].isUnion()
+            ? typeArguments[1].getUnionTypes().map(t => capitalizeFirstLetter(String(t.getAliasSymbol()?.getName() ?? t.getLiteralValue())))
+            : [capitalizeFirstLetter(String(typeArguments[1].getLiteralValue()))]
           typeName = `${retrieveTypeName(subjectType)}_With${helperName === 'Omit' ? 'out' : ''}_${args.join('_')}`
           break
         case 'Partial':
@@ -148,7 +156,7 @@ export function resolve (
       const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
       const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
       typeName = `${name}_${retrieveTypeName(subjectType)}`
-    }  else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1)) { // i.e. Serialized<{ datasource: Datasource }> -> Serialized_datasource
+    }  else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1) && (type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0])?.isAnonymous() === true) { // i.e. Serialized<{ datasource: Datasource }> -> Serialized_datasource
       const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
       const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
       typeName = `${name}_${retrieveTypeName(subjectType)}`
