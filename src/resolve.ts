@@ -160,6 +160,14 @@ export function resolve (
       const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
       const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
       typeName = `${name}_${retrieveTypeName(subjectType)}`
+    } else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1) && (type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0])?.isUnion() === true) { // i.e. Serialized<WorkerDatasource | ProxyDatasource> -> Serialized_Union_WorkerDatasource_ProxyDatasource
+      const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
+      const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
+      typeName = `${name}_Union_${subjectType.getUnionTypes().map(t => retrieveTypeName(t)).join('_')}`
+    } else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1) && (type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0])?.isIntersection() === true) { // i.e. Serialized<WorkerDatasource & ProxyDatasource> -> Serialized_Intersection_WorkerDatasource_ProxyDatasource
+      const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
+      const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
+      typeName = `${name}_Intersection_${subjectType.getIntersectionTypes().map(t => retrieveTypeName(t)).join('_')}`
     } else if (isTypeIdentifier(type) === false) { // For other and anonymous types, don't use ref
       return resolveObjectType(type, spec)
     }
