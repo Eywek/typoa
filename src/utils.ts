@@ -1,4 +1,4 @@
-import { Decorator, Type } from 'ts-morph'
+import { Decorator, Type, Node } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
 import path from 'path'
 
@@ -14,6 +14,65 @@ export function extractDecoratorValues (decorator?: Decorator): string[] {
   return decorator.getArguments().map((arg) => {
     return getLiteralFromType(arg.getType())
   })
+}
+
+export function extractFunctionArguments (decorator?: Decorator): { name: string, path: string, args?: any[] }[] {
+  if (!decorator) return []
+  const arg = decorator.getArguments()[0]
+  return [findFunctionDefinition(arg.getType(), arg)]
+}
+
+function findFunctionDefinition (type: Type, node?: Node): { name: string, path: string, args?: any[] } {
+  const symbol = type.getSymbol()
+  if (!symbol) {
+    throw new Error('Not a function reference found')
+  }
+
+  // Get function name and path
+  const name = symbol.getName()
+  const declarations = symbol.getDeclarations()
+  if (!declarations || declarations.length === 0) {
+    throw new Error(`No declarations found for middleware function '${name}'`)
+  }
+
+  const decl = declarations[0]
+  let filePath: string | undefined
+  let args: any[] | undefined
+
+  // Handle factory function call
+  if (node && Node.isCallExpression(node)) {
+    // Store factory arguments
+    args = node.getArguments().map(arg => {
+      if (Node.isNumericLiteral(arg)) {
+        return Number(arg.getText())
+      }
+      if (Node.isStringLiteral(arg)) {
+        return arg.getText().slice(1, -1) // Remove quotes
+      }
+      return undefined
+    })
+    // Get the factory function declaration
+    const factorySymbol = node.getExpression().getSymbol()
+    if (factorySymbol) {
+      const factoryDecl = factorySymbol.getDeclarations()[0]
+      if (factoryDecl) {
+        filePath = factoryDecl.getSourceFile().getFilePath()
+      }
+    }
+  }
+
+  // Handle normal function or variable
+  if (!filePath) {
+    if (Node.isFunctionDeclaration(decl) && !decl.isExported()) {
+      throw new Error(`Middleware function '${name}' must be exported`)
+    }
+    if (Node.isVariableDeclaration(decl) && !decl.getVariableStatement()?.isExported()) {
+      throw new Error(`Middleware function '${name}' must be exported`)
+    }
+    filePath = decl.getSourceFile().getFilePath()
+  }
+
+  return { name, path: filePath, args }
 }
 
 export function appendToSpec (

@@ -2,9 +2,11 @@
 /* eslint-disable */
 import express from 'express'
 import { RuntimeResponse, Validator } from 'typoa'
+
 {{#if securityMiddleware}}
 import { securityMiddleware } from '{{securityMiddleware}}'
 {{/if}}
+
 {{#each controllers}}
 import { {{name}} } from '{{path}}'
 {{#each methods}}
@@ -14,12 +16,16 @@ import { {{bodyDiscriminator.name}} } from '{{bodyDiscriminator.path}}'
 {{/each}}
 {{/each}}
 
+{{#each middlewares}}
+import { {{name}} } from '{{relativePath}}'
+{{/each}}
+
 const schemas = {{json schemas}}
 
 export function bindToRouter (router: express.Router) {
   {{#each controllers}}
   {{#each methods}}
-  router.{{verb}}('{{endpoint}}'{{#each security}}, securityMiddleware({{json this}}){{/each}}, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  router.{{verb}}('{{endpoint}}'{{#each security}}, securityMiddleware({{json this}}){{/each}}{{#each middlewares}}, {{#if this.args}}{{this.name}}({{#each this.args}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}){{else}}{{this.name}}{{/if}}{{/each}}, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
       const controller = new {{../name}}()
       const data = await controller.{{name}}.apply(
@@ -35,7 +41,7 @@ export function bindToRouter (router: express.Router) {
       )
       {{#if validateResponse}}
       const validatedData = Validator.validateAndParseResponse(
-        data, schemas as any, 
+        data, schemas as any,
         {{json responses}},
         ('getStatus' in controller ? (controller as any).getStatus()?.toString() : undefined) ?? (typeof data !== 'undefined' && data !== null ? '200' : '204'),
         ((('getHeaders' in controller ? (controller as any).getHeaders()?.['content-type'] : undefined) ?? 'application/json')).split(';')[0]
