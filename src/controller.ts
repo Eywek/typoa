@@ -1,6 +1,7 @@
+import path from "node:path";
 import { OpenAPIV3 } from 'openapi-types'
-import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier, MethodDeclaration, ParameterDeclaration, CallExpression } from 'ts-morph'
-import { appendToSpec, extractDecoratorValues, normalizeUrl, getLiteralFromType } from './utils'
+import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier, MethodDeclaration, ParameterDeclaration, CallExpression, SyntaxKind } from 'ts-morph'
+import { appendToSpec, extractDecoratorValues, extractFunctionArguments, normalizeUrl, getLiteralFromType, getRelativeFilePath } from './utils'
 import { resolve, appendJsDocTags, appendInitializer } from './resolve'
 import debug from 'debug'
 import { CodeGenControllers } from './types'
@@ -10,6 +11,7 @@ const log = debug('typoa:controller')
 
 const VERB_DECORATORS = ['Get', 'Post', 'Put', 'Delete', 'Patch']
 const PARAMETER_DECORATORS = ['Query', 'Body', 'Path', 'Header', 'Request']
+const MIDDLEWARE_DECORATOR = 'Middleware'
 
 export function addController (
   controller: ClassDeclaration,
@@ -24,6 +26,7 @@ export function addController (
   const methods = controller.getMethods()
   const controllerTags = extractDecoratorValues(controller.getDecorator('Tags'))
   const controllerSecurities = getSecurities(controller)
+  const controllerMiddlewares = getMiddlewares(controller)
   for (const method of methods) {
     log(`Handle ${controllerName}.${method.getName()} method`)
     const jsDocTags = method.getJsDocs().map(doc => doc.getTags()).flat()
@@ -36,6 +39,16 @@ export function addController (
       responses: {},
       tags: [...controllerTags] // copy elements
     }
+
+    // Get middlewares (combine controller and method level)
+    const methodMiddlewares = getMiddlewares(method)
+    const middlewares = [...controllerMiddlewares, ...methodMiddlewares].map(middleware => ({
+      ...middleware,
+      relativePath: getRelativeFilePath(
+        path.dirname(config.filePath),
+        middleware.path
+      )
+    }))
 
     // Get HTTP verbs
     const verbDecorators = method.getDecorators().filter((decorator) => {
@@ -237,7 +250,8 @@ export function addController (
         body: operation.requestBody,
         bodyDiscriminator: codegenBodyDiscriminator,
         responses: operation.responses,
-        validateResponse: config.validateResponse ?? false
+        validateResponse: config.validateResponse ?? false,
+        middlewares: middlewares.length > 0 ? middlewares : undefined
       })
     }
   }
@@ -261,6 +275,11 @@ function getSecurities (declaration: ClassDeclaration | MethodDeclaration) {
     }
   }
   return security
+}
+
+function getMiddlewares(declaration: ClassDeclaration | MethodDeclaration): { name: string, path: string }[] {
+  const middlewareDecorators = declaration.getDecorators().filter(decorator => decorator.getName() === MIDDLEWARE_DECORATOR)
+  return middlewareDecorators.flatMap(decorator => extractFunctionArguments(decorator))
 }
 
 function findDiscriminatorFunction (node: Identifier): { path: string, name: string } {

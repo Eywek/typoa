@@ -12,5 +12,10 @@ export type CodeGenControllers = Record<string, {
     name: string
   },
   responses: OpenAPIV3.OperationObject['responses'],
-  validateResponse: boolean
+  validateResponse: boolean,
+  middlewares?: {
+    name: string
+    path: string
+    args?: any[]
+  }[]
 }[]>

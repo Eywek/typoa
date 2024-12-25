@@ -242,7 +242,7 @@ export async function generate (config: OpenAPIConfiguration) {
     return JSON.stringify(context)
   })
   const templateContent = await fs.promises.readFile(templateFilePath)
-  const compiledTemplate = handlebars.compile(templateContent.toString(), { noEscape: true }) // don't espace json strings
+  const compiledTemplate = handlebars.compile(templateContent.toString(), { noEscape: true }) // don't escape json strings
   const routerFilePath = path.resolve(root, config.router.filePath)
   const routerFileContent = compiledTemplate({
     securityMiddleware: config.router.securityMiddlewarePath ? getRelativeFilePath(
@@ -264,8 +264,13 @@ export async function generate (config: OpenAPIConfiguration) {
         })
       }
     }),
-    schemas: spec.components!.schemas
+    schemas: spec.components!.schemas,
+    middlewares: Object
+      .values(codegenControllers)
+      .flatMap(controller => controller.flatMap(method => method.middlewares || []))
+      .filter((middleware, index, self) => self.findIndex(m => m.name === middleware.name) === index)
   })
+
   await fs.promises.writeFile(routerFilePath, routerFileContent)
 }
 

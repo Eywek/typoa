@@ -1,5 +1,9 @@
 import { Route, Get, Query, Body, Tags, Patch, Path, Response, Security, BodyDiscriminatorFunction, Header, Controller } from '../src'
 
+export const discriminatorFn: BodyDiscriminatorFunction = (req) => {
+  return 'MyModelTwo'
+}
+
 // tslint:disable-next-line: max-classes-per-file
 class MyModel {
   get id () {
@@ -42,8 +46,4 @@ export class MyController extends Controller {
   ): {} {
     return new MyModelTwo()
   }
-}
-
-export const discriminatorFn: BodyDiscriminatorFunction = (req) => {
-  return 'MyModelTwo'
 }
