@@ -21,6 +21,8 @@ jobs:
         run: yarn install --frozen-lockfile
         env:
           YARN_CACHE_FOLDER: /github/home/.cache/yarn
+      - name: Build
+        run: yarn build
       - name: Test
         run: yarn test
       - name: Export coverage
