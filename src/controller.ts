@@ -1,6 +1,6 @@
-import path from "node:path";
+import * as path from "path";
 import { OpenAPIV3 } from 'openapi-types'
-import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier, MethodDeclaration, ParameterDeclaration, CallExpression, SyntaxKind } from 'ts-morph'
+import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier, MethodDeclaration, ParameterDeclaration, CallExpression } from 'ts-morph'
 import { appendToSpec, extractDecoratorValues, extractFunctionArguments, normalizeUrl, getLiteralFromType, getRelativeFilePath } from './utils'
 import { resolve, appendJsDocTags, appendInitializer } from './resolve'
 import debug from 'debug'
