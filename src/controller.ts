@@ -12,6 +12,7 @@ const log = debug('typoa:controller')
 const VERB_DECORATORS = ['Get', 'Post', 'Put', 'Delete', 'Patch']
 const PARAMETER_DECORATORS = ['Query', 'Body', 'Path', 'Header', 'Request']
 const MIDDLEWARE_DECORATOR = 'Middleware'
+const RESPONSE_DECORATOR = 'Response'
 
 export function addController (
   controller: ClassDeclaration,
@@ -27,6 +28,7 @@ export function addController (
   const controllerTags = extractDecoratorValues(controller.getDecorator('Tags'))
   const controllerSecurities = getSecurities(controller)
   const controllerMiddlewares = getMiddlewares(controller)
+  const controllerResponses = getResponses(controller, spec)
   for (const method of methods) {
     log(`Handle ${controllerName}.${method.getName()} method`)
     const jsDocTags = method.getJsDocs().map(doc => doc.getTags()).flat()
@@ -62,26 +64,55 @@ export function addController (
     let hasSuccessResponse = false
     const returnType = method.getReturnType()
 
-    // Check response
-    const responses = method.getDecorators().filter(decorator => decorator.getName() === 'Response')
-    for (const responseDecorator of responses) {
+    // Check method-level responses
+    const methodResponses = method.getDecorators().filter(decorator => decorator.getName() === RESPONSE_DECORATOR)
+    const methodResponsesMap = new Map<string, {
+      description?: string,
+      schema?: any
+    }>()
+
+    // Process method-level responses
+    for (const responseDecorator of methodResponses) {
       const [httpCode, description] = extractDecoratorValues(responseDecorator)
       const typeArguments = responseDecorator.getTypeArguments()
       if (typeArguments.length > 0) {
         const type = typeArguments[0].getType()
-        operation.responses![httpCode] = {
+        methodResponsesMap.set(httpCode, {
           description: description ?? '',
+          schema: resolve(type, spec)
+        })
+      } else {
+        methodResponsesMap.set(httpCode, { description: description ?? '' })
+      }
+      if (parseInt(httpCode, 10) >= 200 && parseInt(httpCode, 10) <= 299) {
+        hasSuccessResponse = true
+      }
+    }
+
+    // Merge controller and method responses (method takes precedence)
+    // First add controller-level responses that aren't overridden by the method
+    for (const [httpCode, response] of Object.entries(controllerResponses)) {
+      if (!methodResponsesMap.has(httpCode)) {
+        operation.responses![httpCode] = response
+        if (parseInt(httpCode, 10) >= 200 && parseInt(httpCode, 10) <= 299) {
+          hasSuccessResponse = true
+        }
+      }
+    }
+
+    // Then add method-level responses
+    for (const [httpCode, response] of methodResponsesMap.entries()) {
+      if (response.schema) {
+        operation.responses![httpCode] = {
+          description: response.description ?? '',
           content: {
             'application/json': {
-              schema: resolve(type, spec)
+              schema: response.schema
             }
           }
         }
       } else {
-        operation.responses![httpCode] = { description: description ?? '' }
-      }
-      if (parseInt(httpCode, 10) >= 200 && parseInt(httpCode, 10) <= 299) {
-        hasSuccessResponse = true
+        operation.responses![httpCode] = { description: response.description ?? '' }
       }
     }
 
@@ -280,6 +311,31 @@ function getSecurities (declaration: ClassDeclaration | MethodDeclaration) {
 function getMiddlewares(declaration: ClassDeclaration | MethodDeclaration): { name: string, path: string }[] {
   const middlewareDecorators = declaration.getDecorators().filter(decorator => decorator.getName() === MIDDLEWARE_DECORATOR)
   return middlewareDecorators.flatMap(decorator => extractFunctionArguments(decorator))
+}
+
+function getResponses(declaration: ClassDeclaration, spec: OpenAPIV3.Document): Record<string, OpenAPIV3.ResponseObject> {
+  const responses: Record<string, OpenAPIV3.ResponseObject> = {}
+  const responseDecorators = declaration.getDecorators().filter(decorator => decorator.getName() === RESPONSE_DECORATOR)
+
+  for (const responseDecorator of responseDecorators) {
+    const [httpCode, description] = extractDecoratorValues(responseDecorator)
+    const typeArguments = responseDecorator.getTypeArguments()
+    if (typeArguments.length > 0) {
+      const type = typeArguments[0].getType()
+      responses[httpCode] = {
+        description: description ?? '',
+        content: {
+          'application/json': {
+            schema: resolve(type, spec)
+          }
+        }
+      }
+    } else {
+      responses[httpCode] = { description: description ?? '' }
+    }
+  }
+
+  return responses
 }
 
 function findDiscriminatorFunction (node: Identifier): { path: string, name: string } {
