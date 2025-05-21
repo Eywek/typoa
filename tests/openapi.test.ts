@@ -6,7 +6,7 @@ import { generate } from '../src'
 test('Should generate the right definition', async (t) => {
   await generate({
     tsconfigFilePath: path.resolve(__dirname, './fixture/tsconfig.json'),
-    controllers: [path.resolve(__dirname, './fixture/con*.ts')],
+    controllers: [path.resolve(__dirname, './fixture/controller.ts')],
     openapi: {
       filePath: '/tmp/openapi-test-valid.json',
       format: 'json',
