@@ -22,12 +22,10 @@ export type OpenAPIConfiguration = {
   openapi: {
     /**
      * Where you want the spec to be exported
+     * Can be a single file path or an array of file paths
+     * The file extension (.json, .yaml, or .yml) determines the output format
      */
-    filePath: string
-    /**
-     * The exported format
-     */
-    format: 'json' | 'yaml'
+    filePath: string | string[]
     /**
      * OpenAPI security schemes to add to the spec
      */
@@ -227,12 +225,27 @@ export async function generate (config: OpenAPIConfiguration) {
     spec.info.description = `# Errors\n${markdown}`
   }
 
-  // Write OpenAPI file
-  let fileContent = JSON.stringify(spec, null, '\t')
-  if (config.openapi.format === 'yaml') {
-    fileContent = YAML.stringify(JSON.parse(fileContent), 10) // use json anyway to remove undefined
+  // Write OpenAPI file(s)
+  const jsonContent = JSON.stringify(spec, null, '\t')
+  
+  // Convert filePath to array for unified processing
+  const filePaths = Array.isArray(config.openapi.filePath) 
+    ? config.openapi.filePath 
+    : [config.openapi.filePath];
+  
+  // Process each file path
+  for (const filePath of filePaths) {
+    const resolvedPath = path.resolve(root, filePath);
+    
+    // Determine format based on file extension
+    if (filePath.toLowerCase().endsWith('.yaml') || filePath.toLowerCase().endsWith('.yml')) {
+      const yamlContent = YAML.stringify(JSON.parse(jsonContent), 10) // use json anyway to remove undefined
+      await fs.promises.writeFile(resolvedPath, yamlContent);
+    } else {
+      // Default to JSON for any other extension or no extension
+      await fs.promises.writeFile(resolvedPath, jsonContent);
+    }
   }
-  await fs.promises.writeFile(path.resolve(root, config.openapi.filePath), fileContent)
 
   // Codegen
   const templateFilePath = config.router.templateFilePath ?
