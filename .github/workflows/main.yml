@@ -6,12 +6,12 @@ on:
 
 jobs:
   tests:
-    runs-on: ubuntu-20.04
-    container: node:20
+    runs-on: ubuntu-24.04
+    container: node:24
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v2
-      - uses: actions/cache@v1
+        uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: /github/home/.cache/yarn
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
@@ -26,7 +26,7 @@ jobs:
       - name: Test
         run: yarn test
       - name: Export coverage
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage/coverage-final.json
+          files: ./coverage/coverage-final.json
