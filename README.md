@@ -130,8 +130,9 @@ await generate({
   tsconfigFilePath: path.resolve(__dirname, './tsconfig.json'),
   controllers: [path.resolve(__dirname, './*.ts')], // Path of your controllers
   openapi: {
-    filePath: '/tmp/openapi.json', // Where do you want to generate your openapi file
-    format: 'json', // 'json' | 'yaml'
+    // Where do you want to generate your openapi file (or array of file paths)
+    // The file extension (.json, .yaml, or .yml) determines the output format
+    filePath: '/tmp/openapi.json',
     service: { // Used in the openapi definitions
       name: 'my-service',
       version: '1.0.0'

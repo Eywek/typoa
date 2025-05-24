@@ -22,7 +22,6 @@ test.before(async (t) => {
     ],
     openapi: {
       filePath: '/tmp/openapi.json',
-      format: 'json',
       service: {
         name: 'my-service',
         version: '1.0.0'
