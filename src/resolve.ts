@@ -129,6 +129,10 @@ export function resolve (
     if (typeName === 'Date') {
       return { type: 'string', format: 'date-time' }
     }
+    // Special case for Buffer, treat as binary string
+    if (typeName === 'Buffer') {
+      return { type: 'string', format: 'binary' }
+    }
     // Handle mapped types
     const helperName = type.getAliasSymbol()?.getEscapedName()
     if (helperName === 'Partial' || helperName === 'Omit' || helperName === 'Pick' || helperName === 'Promise') {

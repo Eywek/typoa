@@ -11,7 +11,8 @@ const isStream = (data: any): data is Readable =>
 export function send (
   controller: Controller | InstanceType<new () => any>,
   data: unknown,
-  res: express.Response
+  res: express.Response,
+  contentType: string = 'application/json'
 ): void {
   if (res.writableEnded) {
     return
@@ -31,7 +32,11 @@ export function send (
   if (isStream(data)) {
     data.pipe(res)
   } else if (typeof data !== 'undefined' && data !== null) {
-    res.status(status ?? 200).json(data)
+    if (contentType === 'application/json') {
+      res.status(status ?? 200).json(data)
+    } else {
+      res.status(status ?? 200).type(contentType).send(data)
+    }
   } else {
     res.status(status ?? 204).end()
   }
