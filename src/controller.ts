@@ -13,8 +13,9 @@ const VERB_DECORATORS = ['Get', 'Post', 'Put', 'Delete', 'Patch']
 const PARAMETER_DECORATORS = ['Query', 'Body', 'Path', 'Header', 'Request']
 const MIDDLEWARE_DECORATOR = 'Middleware'
 const RESPONSE_DECORATOR = 'Response'
+const PRODUCES_DECORATOR = 'Produces'
 
-export function addController (
+export function addController(
   controller: ClassDeclaration,
   spec: OpenAPIV3.Document,
   codegenControllers: CodeGenControllers,
@@ -51,6 +52,10 @@ export function addController (
         middleware.path
       )
     }))
+
+    // Get content type from @Produces decorator
+    const producesDecorator = method.getDecorator(PRODUCES_DECORATOR) || controller.getDecorator(PRODUCES_DECORATOR)
+    const contentType = producesDecorator ? extractDecoratorValues(producesDecorator)[0] : 'application/json'
 
     // Get HTTP verbs
     const verbDecorators = method.getDecorators().filter((decorator) => {
@@ -106,7 +111,7 @@ export function addController (
         operation.responses![httpCode] = {
           description: response.description ?? '',
           content: {
-            'application/json': {
+            [contentType]: {
               schema: response.schema
             }
           }
@@ -124,7 +129,7 @@ export function addController (
         operation.responses![200] = {
           description: 'Ok',
           content: {
-            'application/json': {
+            [contentType]: {
               schema: resolve(returnType, spec)
             }
           }
@@ -282,7 +287,8 @@ export function addController (
         bodyDiscriminator: codegenBodyDiscriminator,
         responses: operation.responses,
         validateResponse: config.validateResponse ?? false,
-        middlewares: middlewares.length > 0 ? middlewares : undefined
+        middlewares: middlewares.length > 0 ? middlewares : undefined,
+        contentType: contentType
       })
     }
   }
@@ -316,6 +322,8 @@ function getMiddlewares(declaration: ClassDeclaration | MethodDeclaration): { na
 function getResponses(declaration: ClassDeclaration, spec: OpenAPIV3.Document): Record<string, OpenAPIV3.ResponseObject> {
   const responses: Record<string, OpenAPIV3.ResponseObject> = {}
   const responseDecorators = declaration.getDecorators().filter(decorator => decorator.getName() === RESPONSE_DECORATOR)
+  const producesDecorator = declaration.getDecorator(PRODUCES_DECORATOR)
+  const contentType = producesDecorator ? extractDecoratorValues(producesDecorator)[0] : 'application/json'
 
   for (const responseDecorator of responseDecorators) {
     const [httpCode, description] = extractDecoratorValues(responseDecorator)
@@ -325,7 +333,7 @@ function getResponses(declaration: ClassDeclaration, spec: OpenAPIV3.Document): 
       responses[httpCode] = {
         description: description ?? '',
         content: {
-          'application/json': {
+          [contentType]: {
             schema: resolve(type, spec)
           }
         }

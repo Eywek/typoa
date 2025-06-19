@@ -51,6 +51,12 @@ export function Body (contentType: string = 'application/json', discriminator?: 
   }
 }
 
+export function Produces (contentType: string): Function {
+  return () => {
+    return
+  }
+}
+
 export function Query (name: string): Function {
   return () => {
     return

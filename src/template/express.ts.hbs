@@ -44,11 +44,11 @@ export function bindToRouter (router: express.Router) {
         data, schemas as any,
         {{json responses}},
         ('getStatus' in controller ? (controller as any).getStatus()?.toString() : undefined) ?? (typeof data !== 'undefined' && data !== null ? '200' : '204'),
-        ((('getHeaders' in controller ? (controller as any).getHeaders()?.['content-type'] : undefined) ?? 'application/json')).split(';')[0]
+        ((('getHeaders' in controller ? (controller as any).getHeaders()?.['content-type'] : undefined) ?? '{{contentType}}')).split(';')[0]
       )
-      RuntimeResponse.send(controller, validatedData, res)
+      RuntimeResponse.send(controller, validatedData, res, '{{contentType}}')
       {{else}}
-      RuntimeResponse.send(controller, data, res)
+      RuntimeResponse.send(controller, data, res, '{{contentType}}')
       {{/if}}
     } catch (err) {
       return next(err)

@@ -17,5 +17,6 @@ export type CodeGenControllers = Record<string, {
     name: string
     path: string
     args?: any[]
-  }[]
+  }[],
+  contentType: string
 }[]>
