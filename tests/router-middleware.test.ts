@@ -6,7 +6,6 @@ const config = {
   tsconfigFilePath: path.resolve(__dirname, './fixture/tsconfig.json'),
   openapi: {
     filePath: '/tmp/openapi.json',
-    format: 'json' as const,
     service: {
       name: 'my-service',
       version: '1.0.0'
