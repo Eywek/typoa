@@ -8,7 +8,6 @@ generate({
   controllers: [path.resolve(__dirname, './*.ts')],
   openapi: {
     filePath: '/tmp/openapi.yaml',
-    format: 'json',
     service: {
       name: 'my-service',
       version: '1.0.0'

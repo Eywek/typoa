@@ -253,6 +253,9 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
       }
     }
     // Add to spec
+    if ('type' in resolvedType && (resolvedType.type as any) === 'undefined') {
+      return schema
+    }
     schema.properties[property.getName()] = resolvedType
     if (required) {
       schema.required.push(property.getName())
