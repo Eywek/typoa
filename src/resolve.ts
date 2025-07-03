@@ -201,9 +201,10 @@ export function resolve (
       enum: [type.compilerType.value]
     }
   }
-  const typeName = type.getText() as 'string' | 'number' | 'void'
-  if (typeName === 'void') {
-    return { type: 'object' }
+  const typeName = type.getText() as 'string' | 'number' | 'void' | 'null'
+  // map null or void as object so that the schema stays valid
+  if (typeName === 'null' || typeName === 'void') {
+    return { type: 'object' as any }
   }
   return {
     type: typeName
