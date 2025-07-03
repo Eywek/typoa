@@ -100,7 +100,6 @@ export function resolve (
   }
   if (type.isTuple()) { // OpenAPI doesn't support it, so we take it as an union of array
     // tslint:disable-next-line: no-console
-    console.warn('typoa warning: Tuple aren\'t supported by OpenAPI, so we\'re transforming it to an array')
     return {
       type: 'array',
       items: {
