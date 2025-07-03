@@ -31,7 +31,7 @@ function retrieveTypeName (
   }
   const typeName = type.getSymbol()?.getName()
   if (typeof typeName === 'undefined') {
-    return type.getText()
+    return type.getText().replace(/-/g, '_').replace(/"/g, '')
   }
   if (typeName === '__type') {
     const aliasName = type.getAliasSymbol()?.getName()
@@ -47,7 +47,7 @@ function retrieveTypeName (
     }
     // handle literal record
     if (type.isObject()) {
-      return type.getProperties().map(prop => (`${prop.getName()}-${retrieveTypeName(prop.getTypeAtLocation(getDeclarationForProperty(type, prop)))}`)).join('_')
+      return type.getProperties().map(prop => (`${prop.getName()}_${retrieveTypeName(prop.getTypeAtLocation(getDeclarationForProperty(type, prop)))}`)).join('_')
     }
   }
   return typeName
