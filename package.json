@@ -1,6 +1,6 @@
 {
   "name": "typoa",
-  "version": "1.0.0-alpha.53",
+  "version": "1.0.0-alpha.54",
   "description": "Help you generate OpenAPI definitions via Typescript",
   "main": "build/index.js",
   "files": [
