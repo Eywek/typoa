@@ -138,7 +138,7 @@ export function resolve (
       const typeArguments = type.getAliasTypeArguments()
       const subjectType = typeArguments[0]
       if (isTypeIdentifier(subjectType) === false) {
-        return resolveObjectType(type, spec)
+        return resolveMappedObjectType(type, spec, helperName, subjectType, typeArguments)
       }
       switch (helperName) {
         case 'Omit':
@@ -178,7 +178,13 @@ export function resolve (
     // Add to spec components if not already resolved
     // tslint:disable-next-line: strict-type-predicates
     if (typeof spec.components!.schemas![typeName] === 'undefined') {
-      spec.components!.schemas![typeName] = resolveObjectType(type, spec)
+      if (helperName === 'Partial' || helperName === 'Omit' || helperName === 'Pick') {
+        const typeArguments = type.getAliasTypeArguments()
+        const subjectType = typeArguments[0]
+        spec.components!.schemas![typeName] = resolveMappedObjectType(type, spec, helperName, subjectType, typeArguments)
+      } else {
+        spec.components!.schemas![typeName] = resolveObjectType(type, spec)
+      }
     }
     // Return
     return { $ref: buildRef(typeName) }
@@ -283,6 +289,66 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
   return result
 }
 
+/**
+ * Resolves mapped object types when applied to types with toJSON methods.
+ * 
+ * When a mapped type is applied to a class/interface that has a toJSON method, we need to
+ * apply the transformation to the toJSON return type rather than the original object properties.
+ * This is because the toJSON method defines the actual serialized structure.
+ * 
+ * @returns The resolved OpenAPI schema with transformations applied
+ */
+function resolveMappedObjectType (
+  type: Type,
+  spec: OpenAPIV3.Document,
+  helperName: string,
+  subjectType: Type,
+  typeArguments?: Type[]
+): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
+  // Check if the subject type has a toJSON method
+  const toJSONProperty = subjectType.getProperty('toJSON')
+  if (toJSONProperty) {
+    const node = getDeclarationForProperty(subjectType, toJSONProperty) as MethodDeclaration | MethodSignature
+    const toJSONReturnType = resolve(node.getReturnType(), spec)
+    
+    // Apply mapped type transformation to the toJSON return type
+    if ('$ref' in toJSONReturnType) {
+      // For reference types, we need to create a new schema with the transformation applied
+      // This is more complex, so for now we'll fall back to normal resolution
+      return resolveObjectType(type, spec)
+    }
+    
+    if (toJSONReturnType.type === 'object' && toJSONReturnType.properties) {
+      const transformedSchema = { ...toJSONReturnType }
+      
+      switch (helperName) {
+        case 'Partial':
+          // Make all properties optional by removing them from required array
+          delete transformedSchema.required
+          break
+        // Note: Omit and Pick are not implemented because they require understanding
+        // the relationship between input properties and toJSON output properties,
+        // which cannot be determined generically without analyzing the toJSON implementation
+      }
+      
+      return transformedSchema
+    }
+  }
+  
+  // Fall back to normal object resolution if no toJSON or transformation failed
+  return resolveObjectType(type, spec)
+}
+
+/**
+ * Resolves object types (classes, interfaces, and plain objects) to OpenAPI schemas.
+ * 
+ * This function handles the conversion of TypeScript object types to OpenAPI schema objects.
+ * It has special handling for classes/interfaces that have a toJSON method - in such cases,
+ * it resolves to the return type of the toJSON method instead of the object's properties.
+ * For regular objects without toJSON, it resolves all properties using resolveProperties.
+ * 
+ * @returns The resolved OpenAPI schema (either a reference or inline schema)
+ */
 function resolveObjectType (type: Type, spec: OpenAPIV3.Document): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
   // toJSON methods
   const toJSONProperty = type.getProperty('toJSON')
