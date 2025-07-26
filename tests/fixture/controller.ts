@@ -83,9 +83,15 @@ class GettersClass {
 
 class Foo {
   public name!: { value: string }
-  public toJSON (): { name: string } {
-    return { name: this.name.value }
+  public toJSON (): { foo: string } {
+    return { foo: this.name.value }
   }
+}
+
+interface Bar {
+  id: string
+  data: { content: string }
+  toJSON(): { bar: string }
 }
 
 const securities = { company: [] }
@@ -171,6 +177,7 @@ export class MyController {
   ): {} {
     return {} as any
   }
+
   @Post('/foo')
   @OperationId('foo-get')
   foo (
@@ -178,6 +185,31 @@ export class MyController {
   ) {
     return
   }
+
+  @Patch('/partial-foo')
+  @OperationId('partial-foo')
+  partialFoo (
+    @Body() body: Partial<Foo>
+  ) {
+    return
+  }
+
+  @Post('/bar')
+  @OperationId('bar-get')
+  bar (
+    @Body() body: Bar
+  ) {
+    return
+  }
+
+  @Patch('/partial-bar')
+  @OperationId('partial-bar')
+  partialBar (
+    @Body() body: Partial<Bar>
+  ) {
+    return
+  }
+  
   @Get('/undefined')
   @Deprecated()
   undefined () {
