@@ -1,11 +1,11 @@
 import { SymbolFlags, Type, Node, ts, Symbol as TsSymbol, MethodDeclaration, MethodSignature, EnumDeclaration, ParameterDeclaration, PropertyDeclaration } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
 
-export function buildRef (name: string) {
+export function buildRef (name: string): string {
   return `#/components/schemas/${name}`
 }
 
-function capitalizeFirstLetter (str: string) {
+function capitalizeFirstLetter (str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
@@ -17,9 +17,7 @@ function resolveNullableType (
   return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
 }
 
-function retrieveTypeName (
-  type: Type
-): string {
+function retrieveTypeName (type: Type): string {
   if (type.isArray()) {
     return `Array_${retrieveTypeName(type.getArrayElementType()!)}`
   }
@@ -56,7 +54,7 @@ function retrieveTypeName (
 /**
  * Returns true if the type could be identified
  */
-function isTypeIdentifier (type: Type) {
+function isTypeIdentifier (type: Type): boolean {
   const kindName = type.getSymbol()?.getDeclarations()?.[0]?.getKindName()
   return typeof kindName !== 'undefined' && kindName !== 'MappedType' && (type.isAnonymous() === false || typeof type.getAliasSymbol() !== 'undefined')
 }
@@ -218,6 +216,7 @@ export function resolve (
 
 type ResolvePropertiesReturnType = Required<Pick<OpenAPIV3.BaseSchemaObject, 'properties'>> &
   { required?: string[], additionalProperties?: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject }
+  
 function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolvePropertiesReturnType {
   const result: ResolvePropertiesReturnType = type.getProperties().reduce((schema, property) => {
     const node = getDeclarationForProperty(type, property)
@@ -272,20 +271,52 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     // OpenAPI don't want the required[] prop if it's empty
     delete result.required
   }
-  if (Object.keys(result.properties).length === 0) {
-    const stringIndexType = type.getStringIndexType()
-    const numberIndexType = type.getNumberIndexType()
-    // This is a mapped type string string or number as key (ex: { [key: string]: any } or Record<string, any>)
-    if (
-      (typeof stringIndexType !== 'undefined' && stringIndexType.getText() !== 'never') ||
-      (typeof numberIndexType !== 'undefined' && numberIndexType.getText() !== 'never')
-    ) {
-      result.additionalProperties = resolve(
-        stringIndexType ?? numberIndexType!,
-        spec
-      )
+  
+  // Check for index signatures regardless of whether explicit properties exist
+  const stringIndexType = type.getStringIndexType()
+  const numberIndexType = type.getNumberIndexType()
+  
+  // Handle mapped types and objects with index signatures (ex: { [key: string]: any } or Record<string, any>)
+  if (
+    (typeof stringIndexType !== 'undefined' && stringIndexType.getText() !== 'never') ||
+    (typeof numberIndexType !== 'undefined' && numberIndexType.getText() !== 'never')
+  ) {
+    result.additionalProperties = resolve(
+      stringIndexType ?? numberIndexType!,
+      spec
+    )
+  } else {
+    // Edge cases where TypeScript's getStringIndexType() might fail to detect
+    // index signatures in complex type scenarios (e.g., after type transformations) 
+    
+    // Check if the type represents a Record-like structure that should have additionalProperties
+    const typeSymbol = type.getSymbol()
+    const typeText = type.getText()
+    
+    // Handle cases where the type might be a transformed Record type
+    if (typeSymbol?.getName() === '__type' || typeText.includes('Record<')) {
+      // For anonymous types that might be transformed Record types, 
+      // check if the structure suggests it should have additional properties
+      
+      // Check the type's apparent type for index signatures
+      const apparentType = type.getApparentType()
+      if (apparentType && apparentType !== type) {
+        const apparentStringIndexType = apparentType.getStringIndexType()
+        const apparentNumberIndexType = apparentType.getNumberIndexType()
+        
+        if (
+          (typeof apparentStringIndexType !== 'undefined' && apparentStringIndexType.getText() !== 'never') ||
+          (typeof apparentNumberIndexType !== 'undefined' && apparentNumberIndexType.getText() !== 'never')
+        ) {
+          result.additionalProperties = resolve(
+            apparentStringIndexType ?? apparentNumberIndexType!,
+            spec
+          )
+        }
+      }
     }
   }
+  
   return result
 }
 
