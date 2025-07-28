@@ -418,12 +418,40 @@ export function appendJsDocTags (
   jsDocTags: ts.JSDocTagInfo[],
   resolvedType: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject
 ) {
+  const supportedTags = [
+    'format',
+    'example',
+    'description',
+    'title',
+    'pattern',
+    'minimum',
+    'maximum',
+    'minLength',
+    'maxLength',
+    'minItems',
+    'maxItems'
+  ]
+  
+  const numericTags = [
+    'minimum',
+    'maximum',
+    'minLength',
+    'maxLength',
+    'minItems',
+    'maxItems'
+  ]
+  
   for (const tag of jsDocTags) {
-    if (['format', 'example', 'description', 'pattern', 'minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems'].includes(tag.name) && tag.text) {
-      appendMetaToResolvedType(resolvedType, {
-        [tag.name]: ['minimum', 'maximum', 'minLength', 'maxLength', 'minItems', 'maxItems'].includes(tag.name) ? parseFloat(tag.text.map(t => t.text).join('')) : tag.text.map(t => t.text).join('\n')
-      })
+    if (!supportedTags.includes(tag.name) || !tag.text) {
+      continue
     }
+    
+    const textValue = tag.text.map(t => t.text).join('\n')
+    const value = numericTags.includes(tag.name) ? parseFloat(textValue) : textValue
+    
+    appendMetaToResolvedType(resolvedType, {
+      [tag.name]: value
+    })
   }
 }
 
