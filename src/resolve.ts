@@ -1,4 +1,4 @@
-import { SymbolFlags, Type, Node, ts, Symbol as TsSymbol, MethodDeclaration, MethodSignature, EnumDeclaration, ParameterDeclaration, PropertyDeclaration } from 'ts-morph'
+import { SymbolFlags, Type, Node, ts, Symbol as TsSymbol, MethodDeclaration, MethodSignature, EnumDeclaration, ParameterDeclaration, PropertyDeclaration, InterfaceDeclaration } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
 
 export function buildRef (name: string): string {
@@ -371,6 +371,108 @@ function resolveMappedObjectType (
 }
 
 /**
+ * Checks if a type represents an interface that extends other interfaces
+ */
+function hasInterfaceInheritance(type: Type): boolean {
+  const symbol = type.getSymbol()
+  if (!symbol) return false
+  
+  const declarations = symbol.getDeclarations()
+  
+  return declarations.some(decl => 
+    Node.isInterfaceDeclaration(decl) && decl.getExtends().length > 0
+  )
+}
+
+/**
+ * Gets the base interfaces that an interface extends
+ */
+function getBaseInterfaces(type: Type, spec: OpenAPIV3.Document): OpenAPIV3.ReferenceObject[] {
+  const symbol = type.getSymbol()
+  if (!symbol) return []
+  
+  const baseRefs: OpenAPIV3.ReferenceObject[] = []
+  const declarations = symbol.getDeclarations()
+  
+  for (const decl of declarations) {
+    if (!Node.isInterfaceDeclaration(decl)) continue
+    
+    const extendsExpressions = decl.getExtends()
+    for (const extendsExpr of extendsExpressions) {
+      const baseType = extendsExpr.getType()
+      const baseRef = resolve(baseType, spec)
+      if ('$ref' in baseRef) {
+        baseRefs.push(baseRef)
+      }
+    }
+  }
+  
+  return baseRefs
+}
+
+/**
+ * Gets only the properties declared directly in an interface (not inherited)
+ */
+function getOwnInterfaceProperties(type: Type, spec: OpenAPIV3.Document): ResolvePropertiesReturnType {
+  const symbol = type.getSymbol()
+  if (!symbol) {
+    // Fallback to normal property resolution
+    return resolveProperties(type, spec)
+  }
+  
+  const declarations = symbol.getDeclarations()
+  const interfaceDecl = declarations.find(decl => Node.isInterfaceDeclaration(decl)) as InterfaceDeclaration | undefined
+  
+  if (!interfaceDecl) {
+    // Fallback to normal property resolution
+    return resolveProperties(type, spec)
+  }
+  
+  const result: ResolvePropertiesReturnType = {
+    properties: {},
+    required: []
+  }
+  
+  // Get only the properties declared in this interface
+  const propertySignatures = interfaceDecl.getProperties()
+  
+  for (const propSig of propertySignatures) {
+    const propName = propSig.getName()
+    const propType = propSig.getType()
+    const isOptional = propSig.hasQuestionToken()
+    
+    // Resolve the property type
+    const resolvedType = resolve(propType, spec, (nonNullableType, isUndefined, spec) => {
+      if (isUndefined) {
+        return resolve(nonNullableType, spec)
+      }
+      return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
+    })
+    
+    // Handle JSDoc tags
+    const jsDocTags = propSig.getSymbol()?.compilerSymbol.getJsDocTags() ?? []
+    appendJsDocTags(jsDocTags, resolvedType)
+    
+    // Add to properties
+    if (!('type' in resolvedType && (resolvedType.type as any) === 'undefined')) {
+      result.properties[propName] = resolvedType
+      if (!isOptional) {
+        result.required!.push(propName)
+      }
+    }
+  }
+  
+  // Handle method signatures (but ignore them like in resolveProperties)
+  // Methods are already filtered out by only looking at property signatures
+  
+  if (result.required!.length === 0) {
+    delete result.required
+  }
+  
+  return result
+}
+
+/**
  * Resolves object types (classes, interfaces, and plain objects) to OpenAPI schemas.
  * 
  * This function handles the conversion of TypeScript object types to OpenAPI schema objects.
@@ -387,9 +489,39 @@ function resolveObjectType (type: Type, spec: OpenAPIV3.Document): OpenAPIV3.Ref
     const node = getDeclarationForProperty(type, toJSONProperty) as MethodDeclaration | MethodSignature
     return resolve(node.getReturnType(), spec)
   }
+  
+  // Check for interface inheritance
+  if (!hasInterfaceInheritance(type)) {
+    return {
+      type: 'object',
+      ...resolveProperties(type, spec)
+    }
+  }
+  
+  const baseRefs = getBaseInterfaces(type, spec)
+  
+  // If there are no base interfaces, fall back to normal resolution
+  if (baseRefs.length === 0) {
+    return {
+      type: 'object',
+      ...resolveProperties(type, spec)
+    }
+  }
+  
+  // Shallow copy to avoid mutating the original baseRefs array
+  const allOfElements = Array.from<OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>(baseRefs)
+  const ownProps = getOwnInterfaceProperties(type, spec)
+  
+  // Add own properties if any exist
+  if (Object.keys(ownProps.properties).length > 0 || ownProps.additionalProperties) {
+    allOfElements.push({
+      type: 'object',
+      ...ownProps
+    })
+  }
+  
   return {
-    type: 'object',
-    ...resolveProperties(type, spec)
+    allOf: allOfElements
   }
 }
 
