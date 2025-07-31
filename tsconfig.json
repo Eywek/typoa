@@ -20,17 +20,16 @@
       "strict": true,
       "strictNullChecks": true,
       "skipLibCheck": true,
-      "target": "es2018",
+      "target": "es2022",
       "esModuleInterop": true,
       "emitDecoratorMetadata": true,
       "resolveJsonModule": true,
       "lib": [
-        "es2019"
+        "es2022"
       ]
     },
     "exclude": [
       "node_modules",
-      "build",
-      "coverage"
+      "build"
     ]
 }

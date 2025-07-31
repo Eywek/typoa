@@ -1,10 +1,11 @@
-import test from 'ava'
-import fs from 'fs'
-import path from 'path'
+import fs from 'fs';
+import path from 'path';
+import { strict as assert } from 'node:assert';
+import { test } from 'node:test';
 
-import { generate } from '../src'
+import { generate } from '../src';
 
-test('Should handle Partial<> on classes with toJSON correctly', async (t) => {
+test('Should handle Partial<> on classes with toJSON correctly', async () => {
   await generate({
     tsconfigFilePath: path.resolve(__dirname, './fixture/tsconfig.json'),
     controllers: [path.resolve(__dirname, './fixture/controller.*')],
@@ -18,66 +19,66 @@ test('Should handle Partial<> on classes with toJSON correctly', async (t) => {
     router: {
       filePath: '/tmp/partial-tojson-router.ts'
     }
-  })
+  });
 
-  const specContent = await fs.promises.readFile('/tmp/partial-tojson-test.json')
-  const spec = JSON.parse(specContent.toString())
+  const specContent = await fs.promises.readFile('/tmp/partial-tojson-test.json');
+  const spec = JSON.parse(specContent.toString());
 
   // Test Foo schema
-  const fooSchema = spec.components.schemas.Foo
-  t.truthy(fooSchema)
-  t.is(fooSchema.type, 'object')
-  t.truthy(fooSchema.properties.foo)
-  t.is(fooSchema.properties.foo.type, 'string')
-  t.deepEqual(fooSchema.required, ['foo'])
+  const fooSchema = spec.components.schemas.Foo;
+  assert.ok(fooSchema);
+  assert.strictEqual(fooSchema.type, 'object');
+  assert.ok(fooSchema.properties.foo);
+  assert.strictEqual(fooSchema.properties.foo.type, 'string');
+  assert.deepStrictEqual(fooSchema.required, ['foo']);
 
   // Test Foo_Partial schema
-  const fooPartialSchema = spec.components.schemas.Foo_Partial
-  t.truthy(fooPartialSchema)
-  t.is(fooPartialSchema.type, 'object')
-  t.truthy(fooPartialSchema.properties.foo)
-  t.is(fooPartialSchema.properties.foo.type, 'string')
-  t.falsy(fooPartialSchema.required)
+  const fooPartialSchema = spec.components.schemas.Foo_Partial;
+  assert.ok(fooPartialSchema);
+  assert.strictEqual(fooPartialSchema.type, 'object');
+  assert.ok(fooPartialSchema.properties.foo);
+  assert.strictEqual(fooPartialSchema.properties.foo.type, 'string');
+  assert.ok(!fooPartialSchema.required);
 
   // Verify both schemas have the same properties
-  t.deepEqual(
+  assert.deepStrictEqual(
     Object.keys(fooSchema.properties).sort(),
     Object.keys(fooPartialSchema.properties).sort()
-  )
+  );
 
   // Verify toJSON transformation
-  t.falsy(fooSchema.properties.name)
-  t.falsy(fooPartialSchema.properties.name)
-  t.truthy(fooSchema.properties.foo)
-  t.truthy(fooPartialSchema.properties.foo)
+  assert.ok(!fooSchema.properties.name);
+  assert.ok(!fooPartialSchema.properties.name);
+  assert.ok(fooSchema.properties.foo);
+  assert.ok(fooPartialSchema.properties.foo);
 
   // Test Bar interface schema
-  const barSchema = spec.components.schemas.Bar
-  t.truthy(barSchema)
-  t.is(barSchema.type, 'object')
-  t.truthy(barSchema.properties.bar)
-  t.is(barSchema.properties.bar.type, 'string')
-  t.deepEqual(barSchema.required, ['bar'])
+  const barSchema = spec.components.schemas.Bar;
+  assert.ok(barSchema);
+  assert.strictEqual(barSchema.type, 'object');
+  assert.ok(barSchema.properties.bar);
+  assert.strictEqual(barSchema.properties.bar.type, 'string');
+  assert.deepStrictEqual(barSchema.required, ['bar']);
 
   // Test Bar_Partial schema
-  const barPartialSchema = spec.components.schemas.Bar_Partial
-  t.truthy(barPartialSchema)
-  t.is(barPartialSchema.type, 'object')
-  t.truthy(barPartialSchema.properties.bar)
-  t.is(barPartialSchema.properties.bar.type, 'string')
-  t.falsy(barPartialSchema.required)
+  const barPartialSchema = spec.components.schemas.Bar_Partial;
+  assert.ok(barPartialSchema);
+  assert.strictEqual(barPartialSchema.type, 'object');
+  assert.ok(barPartialSchema.properties.bar);
+  assert.strictEqual(barPartialSchema.properties.bar.type, 'string');
+  assert.ok(!barPartialSchema.required);
 
   // Verify Bar schemas have the same properties
-  t.deepEqual(
+  assert.deepStrictEqual(
     Object.keys(barSchema.properties).sort(),
     Object.keys(barPartialSchema.properties).sort()
-  )
+  );
 
   // Verify Bar toJSON transformation
-  t.falsy(barSchema.properties.id)
-  t.falsy(barSchema.properties.data)
-  t.falsy(barPartialSchema.properties.id)
-  t.falsy(barPartialSchema.properties.data)
-  t.truthy(barSchema.properties.bar)
-  t.truthy(barPartialSchema.properties.bar)
-})
+  assert.ok(!barSchema.properties.id);
+  assert.ok(!barSchema.properties.data);
+  assert.ok(!barPartialSchema.properties.id);
+  assert.ok(!barPartialSchema.properties.data);
+  assert.ok(barSchema.properties.bar);
+  assert.ok(barPartialSchema.properties.bar);
+});

@@ -28,9 +28,3 @@ jobs:
 
       - name: Test
         run: yarn test
-
-      - name: Export coverage
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage/coverage-final.json

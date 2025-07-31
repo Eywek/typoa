@@ -7,7 +7,6 @@
 
   We're using [ts-morph](https://github.com/dsherret/ts-morph) under the hood.
 
-  [![codecov](https://codecov.io/gh/Eywek/typoa/branch/main/graph/badge.svg?token=8hLCf5qoDU)](https://codecov.io/gh/Eywek/typoa)
 </div>
 
 ## Why
