@@ -1,6 +1,8 @@
-import test from 'ava'
-import path from 'path'
-import { generate } from '../src'
+import path from 'path';
+import { strict as assert } from 'node:assert';
+import { test } from 'node:test';
+
+import { generate } from '../src';
 
 const config = {
   tsconfigFilePath: path.resolve(__dirname, './fixture/tsconfig.json'),
@@ -14,28 +16,28 @@ const config = {
   router: {
     filePath: '/tmp/router.ts'
   }
-}
+};
 
-test('Should fail generate with not found discriminator function', async (t) => {
-  await t.throwsAsync(() => generate(Object.assign({}, config, {
+test('Should fail generate with not found discriminator function', async () => {
+  await assert.rejects(() => generate(Object.assign({}, config, {
     controllers: [path.resolve(__dirname, './fixture/router-controller-discriminator-not-found.ts')]
-  })), { message: 'The 2nd argument of @Body() decorator must be the name of a function defined in source files' })
-})
+  })), { message: 'The 2nd argument of @Body() decorator must be the name of a function defined in source files' });
+});
 
-test('Should fail generate with discriminator function declared twice', async (t) => {
-  await t.throwsAsync(() => generate(Object.assign({}, config, {
+test('Should fail generate with discriminator function declared twice', async () => {
+  await assert.rejects(() => generate(Object.assign({}, config, {
     controllers: [path.resolve(__dirname, './fixture/router-controller-discriminator-twice.ts')]
-  })), { message: 'The 2nd argument of @Body() decorator must be the name of a function defined only once' })
-})
+  })), { message: 'The 2nd argument of @Body() decorator must be the name of a function defined only once' });
+});
 
-test('Should fail generate with discriminator function not exported', async (t) => {
-  await t.throwsAsync(() => generate(Object.assign({}, config, {
+test('Should fail generate with discriminator function not exported', async () => {
+  await assert.rejects(() => generate(Object.assign({}, config, {
     controllers: [path.resolve(__dirname, './fixture/router-controller-discriminator-not-exported.ts')]
-  })), { message: 'The 2nd argument of @Body() decorator must be the name of an exported function' })
-})
+  })), { message: 'The 2nd argument of @Body() decorator must be the name of an exported function' });
+});
 
-test('Should fail generate with discriminator function invalid', async (t) => {
-  await t.throwsAsync(() => generate(Object.assign({}, config, {
+test('Should fail generate with discriminator function invalid', async () => {
+  await assert.rejects(() => generate(Object.assign({}, config, {
     controllers: [path.resolve(__dirname, './fixture/router-controller-discriminator-arrow-fn.ts')]
-  })), { message: 'The 2nd argument of @Body() decorator must be the name of a function' })
-})
+  })), { message: 'The 2nd argument of @Body() decorator must be the name of a function' });
+});

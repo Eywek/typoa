@@ -1,9 +1,11 @@
-import test from 'ava'
-import fs from 'fs'
-import path from 'path'
-import { generate } from '../src'
+import fs from 'fs';
+import path from 'path';
+import { strict as assert } from 'node:assert';
+import { test } from 'node:test';
 
-test('Should generate openapi definition', async (t) => {
+import { generate } from '../src';
+
+test('Should generate openapi definition', async () => {
   await generate({
     tsconfigFilePath: path.resolve(__dirname, './fixture/tsconfig.json'),
     controllers: [path.resolve(__dirname, './fixture/controller.*')],
@@ -46,22 +48,22 @@ test('Should generate openapi definition', async (t) => {
     router: {
       filePath: '/tmp/router.ts'
     }
-  })
+  });
 
   // Just verify we can read the generated file and it's valid JSON
-  const specContent = await fs.promises.readFile('/tmp/openapi-test-valid.json')
-  const spec = JSON.parse(specContent.toString())
-  t.is(spec.openapi, '3.0.0')
-  t.is(spec.info.title, 'my-service')
-  t.is(spec.info.version, '1.0.0')
+  const specContent = await fs.promises.readFile('/tmp/openapi-test-valid.json');
+  const spec = JSON.parse(specContent.toString());
+  assert.strictEqual(spec.openapi, '3.0.0');
+  assert.strictEqual(spec.info.title, 'my-service');
+  assert.strictEqual(spec.info.version, '1.0.0');
 
   // Verify some specific components in the schema
-  t.truthy(spec.components.schemas.MyEnum)
-  t.truthy(spec.components.schemas.Datasource)
-  t.truthy(spec.paths['/my-route'].get)
-})
+  assert.ok(spec.components.schemas.MyEnum);
+  assert.ok(spec.components.schemas.Datasource);
+  assert.ok(spec.paths['/my-route'].get);
+});
 
-test('Should generate a valid yaml definition', async (t) => {
+test('Should generate a valid yaml definition', async () => {
   await generate({
     tsconfigFilePath: path.resolve(__dirname, './fixture/tsconfig.json'),
     controllers: [],
@@ -75,21 +77,21 @@ test('Should generate a valid yaml definition', async (t) => {
     router: {
       filePath: '/tmp/router.ts'
     }
-  })
-  const specContent = await fs.promises.readFile('/tmp/openapi.yaml')
-  t.is(specContent.toString(), `openapi: 3.0.0
+  });
+  const specContent = await fs.promises.readFile('/tmp/openapi.yaml');
+  assert.strictEqual(specContent.toString(), `openapi: 3.0.0
 info:
     title: my-service
     version: 1.0.0
 paths: {}
 components:
     schemas: {}
-`)
-})
+`);
+});
 
-test('Should generate both json and yaml definitions using array of file paths', async (t) => {
-  const jsonPath = '/tmp/openapi-array-test.json'
-  const yamlPath = '/tmp/openapi-array-test.yaml'
+test('Should generate both json and yaml definitions using array of file paths', async () => {
+  const jsonPath = '/tmp/openapi-array-test.json';
+  const yamlPath = '/tmp/openapi-array-test.yaml';
 
   await generate({
     tsconfigFilePath: path.resolve(__dirname, './fixture/tsconfig.json'),
@@ -104,24 +106,24 @@ test('Should generate both json and yaml definitions using array of file paths',
     router: {
       filePath: '/tmp/router.ts'
     }
-  })
+  });
 
   // Check JSON file
-  const jsonContent = await fs.promises.readFile(jsonPath)
-  const jsonData = JSON.parse(jsonContent.toString())
-  t.is(jsonData.openapi, '3.0.0')
-  t.is(jsonData.info.title, 'my-service')
-  t.is(jsonData.info.version, '1.0.0')
+  const jsonContent = await fs.promises.readFile(jsonPath);
+  const jsonData = JSON.parse(jsonContent.toString());
+  assert.strictEqual(jsonData.openapi, '3.0.0');
+  assert.strictEqual(jsonData.info.title, 'my-service');
+  assert.strictEqual(jsonData.info.version, '1.0.0');
 
   // Check YAML file
-  const yamlContent = await fs.promises.readFile(yamlPath)
-  t.truthy(yamlContent.toString().includes('openapi: 3.0.0'))
-  t.truthy(yamlContent.toString().includes('title: my-service'))
-  t.truthy(yamlContent.toString().includes('version: 1.0.0'))
-})
+  const yamlContent = await fs.promises.readFile(yamlPath);
+  assert.ok(yamlContent.toString().includes('openapi: 3.0.0'));
+  assert.ok(yamlContent.toString().includes('title: my-service'));
+  assert.ok(yamlContent.toString().includes('version: 1.0.0'));
+});
 
-test('Should fail with a missing parameter decorator', async (t) => {
-  await t.throwsAsync(() => generate({
+test('Should fail with a missing parameter decorator', async () => {
+  await assert.rejects(() => generate({
     tsconfigFilePath: path.resolve(__dirname, './fixture/tsconfig.json'),
     controllers: [path.resolve(__dirname, './fixture/invalid-controller.ts')],
     openapi: {
@@ -134,10 +136,10 @@ test('Should fail with a missing parameter decorator', async (t) => {
     router: {
       filePath: '/tmp/router.ts'
     }
-  }), { message: 'Parameter MyController.get.invalidParameter must have a decorator.' })
-})
+  }), { message: 'Parameter MyController.get.invalidParameter must have a decorator.' });
+});
 
-test('Should generate the right definition with response object', async (t) => {
+test('Should generate the right definition with response object', async () => {
   await generate({
     tsconfigFilePath: path.resolve(__dirname, './fixture/tsconfig.json'),
     controllers: [path.resolve(__dirname, './fixture/response-object.ts')],
@@ -152,8 +154,17 @@ test('Should generate the right definition with response object', async (t) => {
     router: {
       filePath: '/tmp/router.ts'
     }
-  })
-  const specContent = (await fs.promises.readFile('/tmp/openapi-test-object-response.json')).toString()
-  // we should not have the same type for the get and post endpoint
-  t.snapshot(specContent)
-})
+  });
+  const specContent = (await fs.promises.readFile('/tmp/openapi-test-object-response.json')).toString();
+  const spec = JSON.parse(specContent);
+
+  // Verify we have different response schemas for different endpoints
+  assert.ok(spec.components.schemas['SuccessResponse_Array_Entity'], 'Should have SuccessResponse_Array_Entity schema');
+  assert.ok(spec.components.schemas['SuccessResponse_Entity'], 'Should have SuccessResponse_Entity schema');
+  assert.ok(spec.components.schemas['SuccessResponse_entity_Entity_count_number'], 'Should have SuccessResponse_entity_Entity_count_number schema');
+
+  // Verify the endpoints reference different schemas (not the same type for get and post)
+  const listResponse = spec.paths['/my-3nd-controller'].get.responses['200'].content['application/json'].schema;
+  const createResponse = spec.paths['/my-3nd-controller'].post.responses['200'].content['application/json'].schema;
+  assert.notStrictEqual(listResponse.$ref, createResponse.$ref, 'GET and POST should have different response schemas');
+});
