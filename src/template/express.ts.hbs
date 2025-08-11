@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import express from 'express'
-import { RuntimeResponse, Validator } from 'typoa'
+import { RuntimeResponse, Validator } from '{{runtimeImport}}'
 
 {{#if securityMiddleware}}
 import { securityMiddleware } from '{{securityMiddleware}}'
