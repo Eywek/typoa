@@ -7,3 +7,6 @@ tests/fixture/router.ts
 /tests/**/generated-*.ts
 /tests/**/generated-*.json
 /tests/**/generated-*.yaml
+
+# Ignore coverage reports
+lcov.info
