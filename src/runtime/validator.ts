@@ -156,7 +156,12 @@ function validateAndParseValueAgainstSchema (
   }
   // Strings
   if (currentSchema.type === 'string') {
+    // Special case for date format
     if (value instanceof Date && currentSchema.format === 'date-time') {
+      return value
+    }
+    // Special case for binary format
+    if (currentSchema.format === 'binary' && Buffer.isBuffer(value)) {
       return value
     }
     if (typeof value !== 'string') {

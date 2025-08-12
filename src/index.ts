@@ -99,6 +99,12 @@ export type OpenAPIConfiguration = {
      * and any extra properties will be removed.
      */
     validateResponse?: boolean;
+
+    /**
+     * Override the module name used for runtime imports inside the generated router
+     * Defaults to 'typoa'. Useful for tests to point to local source (e.g. '../../src').
+     */
+    runtimeImport?: string;
   }
 }
 
@@ -262,6 +268,8 @@ export async function generate (config: OpenAPIConfiguration) {
       path.dirname(routerFilePath),
       path.resolve(root, config.router.securityMiddlewarePath)
     ) : undefined,
+    validateResponse: config.router.validateResponse,
+    runtimeImport: config.router.runtimeImport ?? process.env.TYPOA_RUNTIME_IMPORT ?? 'typoa',
     controllers: Object.keys(codegenControllers).map((controllerName) => {
       return {
         name: controllerName,

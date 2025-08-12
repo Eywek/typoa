@@ -12,7 +12,8 @@
     "prebuild": "rm -rf build",
     "build": "tsc --project ./tsconfig.build.json",
     "postbuild": "mkdir build/template/ && cp src/template/express.ts.hbs build/template/express.ts.hbs",
-    "test": "node --test --experimental-test-coverage --test-coverage-exclude='example/**' --test-coverage-exclude='build/**' --test-coverage-exclude='src/types.ts' --test-coverage-exclude='tests/**' --test-coverage-exclude='src/runtime/decorators.ts' --test-coverage-exclude='node_modules/**' --require ts-node/register tests/**/*.test.ts",
+    "test": "TS_NODE_TRANSPILE_ONLY=true node --test --experimental-test-coverage --test-coverage-exclude='example/**' --test-coverage-exclude='build/**' --test-coverage-exclude='src/types.ts' --test-coverage-exclude='tests/**' --test-coverage-exclude='src/runtime/decorators.ts' --require ts-node/register tests/**/*.test.ts",
+    "test:lcov": "TS_NODE_TRANSPILE_ONLY=true node --test --test-reporter=lcov --test-reporter-destination=lcov.info --experimental-test-coverage --test-coverage-exclude='example/**' --test-coverage-exclude='build/**' --test-coverage-exclude='src/types.ts' --test-coverage-exclude='tests/**' --test-coverage-exclude='src/runtime/decorators.ts' --require ts-node/register tests/**/*.test.ts",
     "lint": "tslint --fix --project ."
   },
   "engines": {
