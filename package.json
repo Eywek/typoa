@@ -1,12 +1,13 @@
 {
   "name": "typoa",
   "version": "1.0.0-alpha.56",
+  "author": "Eywek <contact@eywek.fr>",
   "description": "Help you generate OpenAPI definitions via Typescript",
+  "homepage": "https://github.com/Eywek/typoa#readme",
   "main": "build/index.js",
   "files": [
     "build/"
   ],
-  "author": "Eywek <contact@eywek.fr>",
   "scripts": {
     "prepublishOnly": "yarn build",
     "prebuild": "rm -rf build",
