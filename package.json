@@ -1,20 +1,21 @@
 {
   "name": "typoa",
   "version": "1.0.0-alpha.56",
+  "author": "Eywek <contact@eywek.fr>",
   "description": "Help you generate OpenAPI definitions via Typescript",
+  "homepage": "https://github.com/Eywek/typoa#readme",
   "main": "build/index.js",
   "files": [
     "build/"
   ],
-  "author": "Eywek <contact@eywek.fr>",
   "scripts": {
     "prepublishOnly": "yarn build",
     "prebuild": "rm -rf build",
     "build": "tsc --project ./tsconfig.build.json",
     "postbuild": "mkdir build/template/ && cp src/template/express.ts.hbs build/template/express.ts.hbs",
-    "test": "TS_NODE_TRANSPILE_ONLY=true node --test --experimental-test-coverage --test-coverage-exclude='example/**' --test-coverage-exclude='build/**' --test-coverage-exclude='src/types.ts' --test-coverage-exclude='tests/**' --test-coverage-exclude='src/runtime/decorators.ts' --require ts-node/register tests/**/*.test.ts",
-    "test:lcov": "TS_NODE_TRANSPILE_ONLY=true node --test --test-reporter=lcov --test-reporter-destination=lcov.info --experimental-test-coverage --test-coverage-exclude='example/**' --test-coverage-exclude='build/**' --test-coverage-exclude='src/types.ts' --test-coverage-exclude='tests/**' --test-coverage-exclude='src/runtime/decorators.ts' --require ts-node/register tests/**/*.test.ts",
-    "lint": "tslint --fix --project ."
+    "test": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov",
+    "lint": "tslint --fix --project .",
+    "lint:check": "tslint --project ."
   },
   "engines": {
     "node": ">=18.15.0"
@@ -30,7 +31,6 @@
     "express": "^4.17.1",
     "openapi-types": "^7.0.1",
     "supertest": "^7.1.4",
-    "ts-node": "^10.9.0",
     "tslint": "^6.1.2",
     "tslint-config-standard": "^9.0.0",
     "typescript": "^5.4.5"
