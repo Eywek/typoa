@@ -106,7 +106,7 @@ export function getRelativeFilePath (absoluteRoot: string, absolutePath: string)
     filePath = `./${filePath}`
   }
   // Remove `.ts` extension to prevent typescript warning
-  return filePath.substr(0, filePath.length - path.extname(filePath).length)
+  return filePath.substring(0, filePath.length - path.extname(filePath).length)
 }
 
 export function resolveProperty (
@@ -115,7 +115,7 @@ export function resolveProperty (
   path: string[]
 ): { value: unknown, meta: { isObject: boolean } } {
   if ('$ref' in schema) {
-    return resolveProperty(components.schemas![schema.$ref.substr('#/components/schemas/'.length)], components, path)
+    return resolveProperty(components.schemas![schema.$ref.substring('#/components/schemas/'.length)], components, path)
   }
   if (typeof schema.allOf !== 'undefined') {
     const resolved = schema.allOf

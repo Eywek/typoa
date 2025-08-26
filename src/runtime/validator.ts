@@ -128,7 +128,7 @@ function getFromRef (
   schemas: OpenAPIV3.ComponentsObject['schemas']
 ): OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject {
   if ('$ref' in schema) {
-    const schemaName = schemas![schema.$ref.substr('#/components/schemas/'.length)]
+    const schemaName = schemas![schema.$ref.substring('#/components/schemas/'.length)]
     // tslint:disable-next-line: strict-type-predicates
     if (typeof schemaName === 'undefined') {
       throw new Error(`Schema '${schema.$ref}' not found`)
