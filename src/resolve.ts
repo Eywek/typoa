@@ -336,9 +336,25 @@ function resolveMappedObjectType (
   subjectType: Type,
   typeArguments?: Type[]
 ): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
+  // Check if we're omitting or picking the toJSON property
+  let shouldSkipToJSON = false
+  if ((helperName === 'Omit' || helperName === 'Pick') && typeArguments && typeArguments.length > 1) {
+    const omittedKeys = typeArguments[1].isUnion()
+      ? typeArguments[1].getUnionTypes().map(t => String(t.getLiteralValue()))
+      : [String(typeArguments[1].getLiteralValue())]
+    
+    if (helperName === 'Omit' && omittedKeys.includes('toJSON')) {
+      // If we're omitting toJSON, don't follow it to avoid infinite loops
+      shouldSkipToJSON = true
+    } else if (helperName === 'Pick' && !omittedKeys.includes('toJSON')) {
+      // If we're picking properties and toJSON is not in the list, skip it
+      shouldSkipToJSON = true
+    }
+  }
+  
   // Check if the subject type has a toJSON method
   const toJSONProperty = subjectType.getProperty('toJSON')
-  if (toJSONProperty) {
+  if (toJSONProperty && !shouldSkipToJSON) {
     const node = getDeclarationForProperty(subjectType, toJSONProperty) as MethodDeclaration | MethodSignature
     const toJSONReturnType = resolve(node.getReturnType(), spec)
     
@@ -536,7 +552,7 @@ export function appendMetaToResolvedType (
 ): OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject {
   if ('$ref' in type) { // siblings aren't allowed with ref (ex: for readonly) see https://stackoverflow.com/a/51402417
     const ref = type.$ref
-    // @ts-expect-error $ref isn't optionnal
+    // @ts-expect-error $ref isn't optional but we need to delete it to mutate the type
     delete type.$ref
     return Object.assign(type, { // Mutate type deleting $ref
       allOf: [{ $ref: ref }],
