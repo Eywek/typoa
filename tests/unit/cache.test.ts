@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import os from 'os'
 import { strict as assert } from 'node:assert'
 import { test, describe, beforeEach, afterEach } from 'node:test'
 
@@ -140,7 +141,7 @@ describe('CacheService', () => {
     const firstResult = await cacheService.generateWithCache()
     const firstSpec = JSON.stringify(firstResult.spec)
     
-    const cacheFilePath = path.join(testDir, '.typoa-cache', 'cache.json')
+    const cacheFilePath = path.join(os.tmpdir(), 'typoa', 'cache.json')
     const initialCacheTime = fs.statSync(cacheFilePath).mtime.getTime()
     
     await new Promise(resolve => setTimeout(resolve, 10))
@@ -465,7 +466,7 @@ export class AuthController {
     // Verify files were generated
     assert.ok(fs.existsSync(openapiFile))
     assert.ok(fs.existsSync(routerFile))
-    assert.ok(fs.existsSync(path.join(testDir, '.typoa-cache', 'cache.json')))
+    assert.ok(fs.existsSync(path.join(os.tmpdir(), 'typoa', 'cache.json')))
 
     // Verify router content
     const routerContent = fs.readFileSync(routerFile, 'utf-8')

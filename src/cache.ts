@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import os from 'os'
 import crypto from 'crypto'
 import { Project, getCompilerOptionsFromTsConfig } from 'ts-morph'
 import { promisify } from 'util'
@@ -41,7 +42,7 @@ export class CacheService {
   constructor(config: OpenAPIConfiguration) {
     this._config = config
     this._root = config.root ?? path.dirname(path.resolve(config.tsconfigFilePath))
-    this._cacheDir = path.join(this._root, '.typoa-cache')
+    this._cacheDir = path.join(os.tmpdir(), 'typoa')
     this._cacheFile = path.join(this._cacheDir, 'cache.json')
     
     this._project = new Project({
