@@ -144,8 +144,6 @@ describe('CacheService', () => {
     const cacheFilePath = path.join(os.tmpdir(), 'typoa', 'cache.json')
     const initialCacheTime = fs.statSync(cacheFilePath).mtime.getTime()
     
-    await new Promise(resolve => setTimeout(resolve, 10))
-    
     const controllerPath = path.join(testDir, 'controller.ts')
     const cosmeticChanges = `
       import { Request, Response } from 'express'
@@ -389,14 +387,25 @@ describe('CacheService', () => {
 })
 
 describe('Cache Integration', () => {
-  const openapiFile = path.join(testDir, 'openapi.json')
-  const routerFile = path.join(testDir, 'router.ts')
-  const controllerFile = path.join(testDir, 'controller.ts')
-  const tsConfigFile = path.join(testDir, 'tsconfig.json')
+  let dir: string
+  let openapiFile: string
+  let routerFile: string
+  let controllerFile: string
+  let tsConfigFile: string
 
   beforeEach(() => {
-    cleanupTestDir()
-    fs.mkdirSync(testDir, { recursive: true })
+    // Unique directory for each test to avoid conflicts
+    dir = path.join(testDir, `integration-${Date.now()}`)
+    
+    openapiFile = path.join(dir, 'openapi.json')
+    routerFile = path.join(dir, 'router.ts')
+    controllerFile = path.join(dir, 'controller.ts')
+    tsConfigFile = path.join(dir, 'tsconfig.json')
+
+    if (fs.existsSync(dir)) {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+    fs.mkdirSync(dir, { recursive: true })
 
     // Create basic controller
     fs.writeFileSync(controllerFile, `
@@ -444,14 +453,16 @@ export class AuthController {
   })
 
   afterEach(() => {
-    cleanupTestDir()
+    if (fs.existsSync(dir)) {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
   })
 
-  test('Should generate correctly on first run (no cache)', async () => {
-    await generate({
+  test('Should generate correctly on first run and use cache on subsequent runs', async () => {
+    const generateConfig = {
       tsconfigFilePath: tsConfigFile,
       controllers: [controllerFile],
-      root: testDir,
+      root: dir,
       openapi: {
         filePath: openapiFile,
         service: { name: 'test-service', version: '1.0.0' }
@@ -461,7 +472,10 @@ export class AuthController {
         validateResponse: false
       },
       cache: true
-    })
+    }
+
+    // First run, should generate from scratch
+    await generate(generateConfig)
 
     // Verify files were generated
     assert.ok(fs.existsSync(openapiFile))
@@ -472,56 +486,31 @@ export class AuthController {
     const routerContent = fs.readFileSync(routerFile, 'utf-8')
     assert.ok(routerContent.includes('router.get('))
     assert.ok(routerContent.includes('router.post('))
-  })
-
-  test('Should use cache on second run without changes', async () => {
-    await generate({
-      tsconfigFilePath: tsConfigFile,
-      controllers: [controllerFile],
-      root: testDir,
-      openapi: {
-        filePath: openapiFile,
-        service: { name: 'test-service', version: '1.0.0' }
-      },
-      router: {
-        filePath: routerFile,
-        validateResponse: false
-      },
-      cache: true
-    })
+    assert.ok(routerContent.includes('AuthController'))
 
     const originalRouterTime = fs.statSync(routerFile).mtime
+    const originalOpenapiContent = fs.readFileSync(openapiFile, 'utf-8')
 
-    await new Promise(resolve => setTimeout(resolve, 10))
-
-    await generate({
-      tsconfigFilePath: tsConfigFile,
-      controllers: [controllerFile],
-      root: testDir,
-      openapi: {
-        filePath: openapiFile,
-        service: { name: 'test-service', version: '1.0.0' }
-      },
-      router: {
-        filePath: routerFile,
-        validateResponse: false
-      },
-      cache: true
-    })
+    // Second run - should use cache (no changes)
+    await generate(generateConfig)
 
     const newRouterTime = fs.statSync(routerFile).mtime
+    const newOpenapiContent = fs.readFileSync(openapiFile, 'utf-8')
+
+    // Files should still exist and content should be consistent
+    assert.ok(fs.existsSync(routerFile))
     assert.ok(newRouterTime >= originalRouterTime)
+    assert.strictEqual(originalOpenapiContent, newOpenapiContent)
     
-    const routerContent = fs.readFileSync(routerFile, 'utf-8')
-    assert.ok(routerContent.includes('AuthController'))
+    const cachedRouterContent = fs.readFileSync(routerFile, 'utf-8')
+    assert.ok(cachedRouterContent.includes('AuthController'))
   })
 
   test('Should regenerate when controller changes', async () => {
-    // First generation
-    await generate({
+    const generateConfig = {
       tsconfigFilePath: tsConfigFile,
       controllers: [controllerFile],
-      root: testDir,
+      root: dir,
       openapi: {
         filePath: openapiFile,
         service: { name: 'test-service', version: '1.0.0' }
@@ -531,8 +520,14 @@ export class AuthController {
         validateResponse: false
       },
       cache: true
-    })
+    }
 
+    // First generation
+    await generate(generateConfig)
+
+    const originalRouterContent = fs.readFileSync(routerFile, 'utf-8')
+
+    // Modify controller with semantic changes
     fs.writeFileSync(controllerFile, `
 import { Route, Get, Post, Body } from 'typoa'
 
@@ -565,33 +560,27 @@ export class AuthController {
 }
 `)
 
-    await generate({
-      tsconfigFilePath: tsConfigFile,
-      controllers: [controllerFile],
-      root: testDir,
-      openapi: {
-        filePath: openapiFile,
-        service: { name: 'test-service', version: '1.0.0' }
-      },
-      router: {
-        filePath: routerFile,
-        validateResponse: false
-      },
-      cache: true
-    })
+    // Second generation should detect changes and regenerate
+    await generate(generateConfig)
 
-    const routerContent = fs.readFileSync(routerFile, 'utf-8')
-    assert.ok(routerContent.includes('/auth/profile'))
+    const newRouterContent = fs.readFileSync(routerFile, 'utf-8')
+    const newSpec = JSON.parse(fs.readFileSync(openapiFile, 'utf-8'))
+
+    // Verify new route was added
+    assert.ok(newRouterContent.includes('/auth/profile'))
     
-    const spec = JSON.parse(fs.readFileSync(openapiFile, 'utf-8'))
-    assert.ok(spec.components.schemas.LoginResponse.properties.userId)
+    // Verify schema was updated
+    assert.ok(newSpec.components.schemas.LoginResponse.properties.userId)
+    
+    // Content should be different from original
+    assert.notStrictEqual(originalRouterContent, newRouterContent)
   })
 
-  test('Should handle timestamp changes without content changes', async () => {
-    await generate({
+  test('Should handle cosmetic changes without regenerating but detect semantic changes', async () => {
+    const generateConfig = {
       tsconfigFilePath: tsConfigFile,
       controllers: [controllerFile],
-      root: testDir,
+      root: dir,
       openapi: {
         filePath: openapiFile,
         service: { name: 'test-service', version: '1.0.0' }
@@ -601,49 +590,14 @@ export class AuthController {
         validateResponse: false
       },
       cache: true
-    })
+    }
 
-    const currentTime = new Date()
-    fs.utimesSync(controllerFile, currentTime, currentTime)
+    // Initial generation
+    await generate(generateConfig)
+    
+    const originalOpenapiContent = fs.readFileSync(openapiFile, 'utf-8')
 
-    await generate({
-      tsconfigFilePath: tsConfigFile,
-      controllers: [controllerFile],
-      root: testDir,
-      openapi: {
-        filePath: openapiFile,
-        service: { name: 'test-service', version: '1.0.0' }
-      },
-      router: {
-        filePath: routerFile,
-        validateResponse: false
-      },
-      cache: true
-    })
-
-    assert.ok(fs.existsSync(routerFile))
-    const routerContent = fs.readFileSync(routerFile, 'utf-8')
-    assert.ok(routerContent.includes('AuthController'))
-  })
-
-  test('Should ignore cosmetic changes but detect semantic changes', async () => {
-    await generate({
-      tsconfigFilePath: tsConfigFile,
-      controllers: [controllerFile],
-      root: testDir,
-      openapi: {
-        filePath: openapiFile,
-        service: { name: 'test-service', version: '1.0.0' }
-      },
-      router: {
-        filePath: routerFile,
-        validateResponse: false
-      },
-      cache: true
-    })
-
-    const originalRouterTime = fs.statSync(routerFile).mtime
-
+    // Make cosmetic changes (whitespace, comments, etc.)
     fs.writeFileSync(controllerFile, `
 import { Route, Get, Post, Body } from 'typoa'
 
@@ -670,12 +624,22 @@ export class AuthController {
 }
 `)
 
-    await new Promise(resolve => setTimeout(resolve, 10))
+    // Should use cache for cosmetic changes
+    await generate(generateConfig)
 
-    await generate({
+    const cosmeticOpenapiContent = fs.readFileSync(openapiFile, 'utf-8')
+    const cosmeticRouterContent = fs.readFileSync(routerFile, 'utf-8')
+
+    assert.strictEqual(originalOpenapiContent, cosmeticOpenapiContent)
+    assert.ok(cosmeticRouterContent.includes('AuthController'))
+    assert.ok(!cosmeticRouterContent.includes('/auth/profile'))
+  })
+
+  test('Should handle timestamp changes without affecting cache behavior', async () => {
+    const generateConfig = {
       tsconfigFilePath: tsConfigFile,
       controllers: [controllerFile],
-      root: testDir,
+      root: dir,
       openapi: {
         filePath: openapiFile,
         service: { name: 'test-service', version: '1.0.0' }
@@ -685,13 +649,26 @@ export class AuthController {
         validateResponse: false
       },
       cache: true
-    })
+    }
 
-    const newRouterTime = fs.statSync(routerFile).mtime
-    assert.ok(newRouterTime >= originalRouterTime)
+    // First generation
+    await generate(generateConfig)
 
+    const originalOpenapiContent = fs.readFileSync(openapiFile, 'utf-8')
+
+    // Update file timestamp without changing content
+    const currentTime = new Date()
+    fs.utimesSync(controllerFile, currentTime, currentTime)
+
+    // Second generation should still use cache
+    await generate(generateConfig)
+
+    const newOpenapiContent = fs.readFileSync(openapiFile, 'utf-8')
+
+    assert.ok(fs.existsSync(routerFile))
+    assert.strictEqual(originalOpenapiContent, newOpenapiContent)
+    
     const routerContent = fs.readFileSync(routerFile, 'utf-8')
     assert.ok(routerContent.includes('AuthController'))
-    assert.ok(!routerContent.includes('/auth/profile'))
   })
 })
