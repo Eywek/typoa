@@ -77,9 +77,17 @@ export function resolve (
   }
   // Handle types
   if (type.isArray()) {
+    const elementType = type.getArrayElementTypeOrThrow()
+    // Handle empty arrays where element type is 'never'
+    if (elementType.getText() === 'never') {
+      return {
+        type: 'array',
+        items: {}
+      }
+    }
     return {
       type: 'array',
-      items: resolve(type.getArrayElementTypeOrThrow(), spec)
+      items: resolve(elementType, spec)
     }
   }
   if (type.isBoolean()) {

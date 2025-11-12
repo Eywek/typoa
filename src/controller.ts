@@ -169,7 +169,10 @@ export function addController(
       }
       const node = decorator.getParent() as ParameterDeclaration
       const type = node.getType()
-      let required = true
+
+      const isOptional = node.hasQuestionToken() || node.isOptional()      
+      let required = !isOptional
+
       const schema = resolve(type, spec, (type, isUndefined, spec) => {
         required = false
         return resolve(type, spec) // don't have `nullable` prop
