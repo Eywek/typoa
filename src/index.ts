@@ -41,7 +41,11 @@ export type OpenAPIConfiguration = {
      * Additional types you want to export in the schemas of the spec
      * (could be useful when using the spec to generate typescript openapi clients...)
      */
-    additionalExportedTypeNames?: string[]
+    additionalExportedTypeNames?: string[],
+    /**
+    * Enable x-enum-varnames support
+    */
+    xEnumVarnames: string;
     /**
      * If you enable this option we will find every responses
      * with an HTTP code >300 and output it to a markdown
@@ -75,7 +79,7 @@ export type OpenAPIConfiguration = {
       /**
        * Ensure unicity via a column value
        */
-      uniqueColumn?: string
+      uniqueColumn?: string,
     }
   },
   router: {
@@ -108,6 +112,12 @@ export type OpenAPIConfiguration = {
   }
 }
 
+let configStore: OpenAPIConfiguration | undefined = undefined;
+
+export function getConfig() {
+    return configStore;
+}
+
 const promiseGlob = promisify(glob)
 export async function generate (config: OpenAPIConfiguration) {
   const root = config.root ?? path.dirname(path.resolve(config.tsconfigFilePath))
@@ -116,6 +126,8 @@ export async function generate (config: OpenAPIConfiguration) {
     compilerOptions: getCompilerOptionsFromTsConfig(config.tsconfigFilePath).options
   })
   project.addSourceFilesFromTsConfig(config.tsconfigFilePath)
+
+  configStore = config;
 
   // Init spec
   const spec = createSpec({ name: config.openapi.service.name, version: config.openapi.service.version })
