@@ -43,6 +43,10 @@ export type OpenAPIConfiguration = {
      */
     additionalExportedTypeNames?: string[]
     /**
+     * Add support for x-enum-varnames
+     */
+    xEnumVarnames?: boolean;
+    /**
      * If you enable this option we will find every responses
      * with an HTTP code >300 and output it to a markdown
      * table on `info.description`
@@ -108,8 +112,15 @@ export type OpenAPIConfiguration = {
   }
 }
 
+let configStore: OpenAPIConfiguration | undefined = undefined;
+export function getConfig(): OpenAPIConfiguration | undefined {
+  return configStore;
+}
+
 const promiseGlob = promisify(glob)
-export async function generate (config: OpenAPIConfiguration) {
+export async function generate(config: OpenAPIConfiguration) {
+  configStore = config;
+
   const root = config.root ?? path.dirname(path.resolve(config.tsconfigFilePath))
   // initialize
   const project = new Project({
