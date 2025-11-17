@@ -1,5 +1,6 @@
 import { SymbolFlags, Type, Node, ts, Symbol as TsSymbol, MethodDeclaration, MethodSignature, EnumDeclaration, ParameterDeclaration, PropertyDeclaration, InterfaceDeclaration } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
+import { getConfig } from '.'
 
 export function buildRef (name: string): string {
   return `#/components/schemas/${name}`
@@ -121,9 +122,11 @@ export function resolve (
     // tslint:disable-next-line: strict-type-predicates
     if (typeof spec.components!.schemas![enumName] === 'undefined') {
       const values = declaration.getMembers().map(m => m.getValue()!)
+      const names = declaration.getMembers().map(m => m.getName()!)
       spec.components!.schemas![enumName] = {
         type: (typeof values[0]) as 'string' | 'number',
-        enum: values
+        enum: values,
+        ...(getConfig()?.openapi?.xEnumVarnames ? { "x-enum-varnames": names } : {}),
       }
     }
     return { $ref: buildRef(enumName) }
