@@ -5,7 +5,7 @@ import { appendToSpec, extractDecoratorValues, extractFunctionArguments, normali
 import { resolve, appendJsDocTags, appendInitializer } from './resolve'
 import debug from 'debug'
 import { CodeGenControllers } from './types'
-import { OpenAPIConfiguration } from './'
+import { OpenAPIConfiguration } from './index'
 
 const log = debug('typoa:controller')
 
@@ -36,11 +36,19 @@ export function addController(
     const summaryTag = jsDocTags.find((tag) => tag.getTagName() === 'summary')
     const descriptionTag = jsDocTags.find((tag) => tag.getTagName() === 'description')
     const operation: OpenAPIV3.OperationObject = {
-      summary: summaryTag?.getCommentText(),
-      description: descriptionTag?.getCommentText(),
       parameters: [],
       responses: {},
       tags: [...controllerTags] // copy elements
+    }
+
+    // Only add summary and description if they exist
+    const summary = summaryTag?.getCommentText()
+    const description = descriptionTag?.getCommentText()
+    if (summary) {
+      operation.summary = summary
+    }
+    if (description) {
+      operation.description = description
     }
 
     // Get middlewares (combine controller and method level)
