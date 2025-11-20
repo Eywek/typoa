@@ -57,19 +57,19 @@ export function Produces (contentType: string): Function {
   }
 }
 
-export function Query (name: string): Function {
+export function Query (name?: string): Function {
   return () => {
     return
   }
 }
 
-export function Header (name: string): Function {
+export function Header (name?: string): Function {
   return () => {
     return
   }
 }
 
-export function Path (name: string): Function {
+export function Path (name?: string): Function {
   return () => {
     return
   }

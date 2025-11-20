@@ -176,7 +176,7 @@ export function addController(
       // JSDoc tags
       appendJsDocTags(node.getSymbol()?.compilerSymbol.getJsDocTags() ?? [], schema)
       const generatedParameter = {
-        name: extractDecoratorValues(decorator)[0],
+        name: extractDecoratorValues(decorator)[0] || parameter.getName(),
         in: decorator.getName().toLowerCase(),
         schema,
         required
