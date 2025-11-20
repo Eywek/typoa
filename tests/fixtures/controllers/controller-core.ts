@@ -25,7 +25,7 @@ export class MyCoreController extends Controller {
   post (
     @Header('x-custom-header') header: string,
     @Body() body: any,
-    @Query('my-query-param') queryParam?: string,
+    @Query() queryParam?: string,
     @Query('my-default-param') defaultParam: string = 'foo',
     @Query('my-bool') bool: boolean = false
   ) {
