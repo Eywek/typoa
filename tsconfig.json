@@ -28,8 +28,13 @@
         "es2022"
       ]
     },
+    "include": [
+      "src/**/*.ts",
+      "tests/**/*.ts"
+    ],
     "exclude": [
       "node_modules",
-      "build"
+      "build",
+      "**/**/generated-*.ts"
     ]
 }
