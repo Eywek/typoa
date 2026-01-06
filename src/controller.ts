@@ -2,7 +2,7 @@ import * as path from "path";
 import { OpenAPIV3 } from 'openapi-types'
 import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier, MethodDeclaration, ParameterDeclaration, CallExpression } from 'ts-morph'
 import { appendToSpec, extractDecoratorValues, extractFunctionArguments, normalizeUrl, getLiteralFromType, getRelativeFilePath } from './utils'
-import { resolve, appendJsDocTags, appendInitializer } from './resolve'
+import { resolve, appendJsDocTags, appendInitializer, appendMetaToResolvedType } from './resolve'
 import debug from 'debug'
 import { CodeGenControllers } from './types'
 import { OpenAPIConfiguration } from './'
@@ -165,9 +165,14 @@ export function addController(
       const isOptional = node.hasQuestionToken() || node.isOptional()      
       let required = !isOptional
 
-      const schema = resolve(type, spec, (type, isUndefined, spec) => {
-        required = false
-        return resolve(type, spec) // don't have `nullable` prop
+      const schema = resolve(type, spec, (nonNullableType, isUndefined, isNull, spec) => {
+        if (isUndefined) {
+          required = false
+        }
+        if (isNull) {
+          return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
+        }
+        return resolve(nonNullableType, spec)
       })
       // Default value
       if (appendInitializer(node, schema)) {
@@ -189,9 +194,10 @@ export function addController(
     const bodyParameters = method.getParameters()
       .filter(param => param.getDecorator('Body'))
       .map(param => ({ decorator: param.getDecoratorOrThrow('Body'), param }))
+    let bodyRequired = true
     if (bodyParameters.length > 0) {
       operation.requestBody = {
-        required: true,
+        required: bodyRequired, // Will be updated below if body is nullable/optional
         content: {}
       }
     }
@@ -203,9 +209,23 @@ export function addController(
       if (firstArgumentType && firstArgumentType.compilerType.isLiteral()) {
         contentType = String(firstArgumentType.compilerType.value)
       }
+      // Check if body parameter is optional or nullable
+      const isOptional = param.hasQuestionToken() || param.isOptional()
+      bodyRequired = !isOptional
+      const bodySchema = resolve(param.getType(), spec, (nonNullableType, isUndefined, isNull, spec) => {
+        if (isUndefined) {
+          bodyRequired = false
+        }
+        if (isNull) {
+          return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
+        }
+        return resolve(nonNullableType, spec)
+      });
       (operation.requestBody as Extract<typeof operation.requestBody, { content: any }>).content[contentType] = {
-        schema: resolve(param.getType(), spec)
-      }
+        schema: bodySchema
+      };
+      // Update requestBody.required based on nullability
+      (operation.requestBody as { required?: boolean }).required = bodyRequired
       // Handle discriminator
       // We find the function in the 2nd arg of Body() to be able to
       // import it and call it at runtime to decide which schema we want to validate against
