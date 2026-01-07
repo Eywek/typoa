@@ -13,9 +13,13 @@ function capitalizeFirstLetter (str: string): string {
 function resolveNullableType (
   nonNullableType: Type,
   isUndefined: boolean,
+  isNull: boolean,
   spec: OpenAPIV3.Document
 ): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
-  return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
+  if (isNull) {
+    return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
+  }
+  return resolve(nonNullableType, spec)
 }
 
 function retrieveTypeName (type: Type): string {
@@ -73,8 +77,11 @@ export function resolve (
   // We allow to override the behavior because for undefined values
   // we want to avoid putting it in the `required` prop for objects
   if (type.isNullable()) {
-    const isUndefined = type.getUnionTypes().some(t => t.isUndefined())
-    return resolveNullableTypeFn(type.getNonNullableType(), isUndefined, spec)
+    const unionTypes = type.getUnionTypes()
+    const isUndefined = unionTypes.some(t => t.isUndefined())
+    const isNull = unionTypes.some(t => t.isNull())
+    
+    return resolveNullableTypeFn(type.getNonNullableType(), isUndefined, isNull, spec)
   }
   // Handle types
   if (type.isArray()) {
@@ -247,12 +254,14 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     let required = hasFlags(SymbolFlags.Optional) ? false : true
     // We resolve the property, overriding the behavior for nullable values
     // if the value is optional (isUndefined = true) we don't push in the required array
-    const resolvedType = resolve(propertyType, spec, (nonNullableType, isUndefined, spec) => {
+    const resolvedType = resolve(propertyType, spec, (nonNullableType, isUndefined, isNull, spec) => {
       if (isUndefined) {
         required = false
-        return resolve(nonNullableType, spec)
       }
-      return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
+      if (isNull) {
+        return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
+      }
+      return resolve(nonNullableType, spec)
     })
     if (isReadonly) {
       appendMetaToResolvedType(resolvedType, { readOnly: true })
@@ -466,15 +475,22 @@ function getOwnInterfaceProperties(type: Type, spec: OpenAPIV3.Document): Resolv
   for (const propSig of propertySignatures) {
     const propName = propSig.getName()
     const propType = propSig.getType()
-    const isOptional = propSig.hasQuestionToken()
+    let required = !propSig.hasQuestionToken()
     
     // Resolve the property type
-    const resolvedType = resolve(propType, spec, (nonNullableType, isUndefined, spec) => {
-      if (isUndefined) {
+    const resolvedType = resolve(
+      propType, 
+      spec, 
+      (nonNullableType, isUndefined, isNull, spec) => {
+        if (isUndefined) {
+          required = false
+        }
+        if (isNull) {
+          return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
+        }
         return resolve(nonNullableType, spec)
       }
-      return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
-    })
+    )
     
     // Handle JSDoc tags
     const jsDocTags = propSig.getSymbol()?.compilerSymbol.getJsDocTags() ?? []
@@ -483,7 +499,7 @@ function getOwnInterfaceProperties(type: Type, spec: OpenAPIV3.Document): Resolv
     // Add to properties
     if (!('type' in resolvedType && (resolvedType.type as any) === 'undefined')) {
       result.properties[propName] = resolvedType
-      if (!isOptional) {
+      if (required) {
         result.required!.push(propName)
       }
     }

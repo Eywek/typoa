@@ -41,9 +41,11 @@ test('Should generate additionalProperties for types with specific keys and inde
   assert.ok(!metaSchema.required);
 
   // Should have additionalProperties for the index signature
+  // Note: `| undefined` in index signature means values can be omitted (implied by additionalProperties),
+  // not that they can be null - so nullable should NOT be set
   assert.ok(metaSchema.additionalProperties);
   assert.strictEqual(metaSchema.additionalProperties.type, 'string');
-  assert.strictEqual(metaSchema.additionalProperties.nullable, true);
+  assert.strictEqual(metaSchema.additionalProperties.nullable, undefined);
 
   // Verify direct endpoint response
   const directResponse = spec.paths['/record-index-test/direct'].get.responses['200'];
