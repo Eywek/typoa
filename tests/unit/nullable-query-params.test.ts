@@ -39,7 +39,7 @@ describe('Nullable query parameters', () => {
     const optionalPath = spec.paths['/nullable-query-params/optional']?.get
     const optionalParam = optionalPath?.parameters?.[0]
     assert.strictEqual(optionalParam.required, false)
-    
+
     const undefinedPath = spec.paths['/nullable-query-params/undefined']?.get
     const undefinedParam = undefinedPath?.parameters?.[0]
     assert.strictEqual(undefinedParam.required, false)

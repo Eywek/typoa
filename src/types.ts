@@ -21,10 +21,10 @@ export type CodeGenControllers = Record<string, {
   contentType: string
 }[]>
 
-declare module "openapi-types" {
+declare module 'openapi-types' {
   namespace OpenAPIV3 {
     interface BaseSchemaObject {
-      "x-enum-varnames"?: string[]
+      'x-enum-varnames'?: string[]
     }
   }
 }

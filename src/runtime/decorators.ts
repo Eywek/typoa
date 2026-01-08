@@ -113,7 +113,7 @@ export function Deprecated (): Function {
 
 export type MiddlewareFunction = (req: express.Request, res: express.Response, next: express.NextFunction) => void | Promise<void>
 
-export function Middleware(middleware: MiddlewareFunction): Function {
+export function Middleware (middleware: MiddlewareFunction): Function {
   return () => {
     return
   }

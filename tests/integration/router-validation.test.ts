@@ -7,7 +7,6 @@ import { test, describe, before } from 'node:test'
 import { generate } from '../../src'
 import { createErrorHandler } from './shared'
 
-
 // Complete validBody with all required fields for testing
 const validBody = {
   string: 'my-string',
@@ -34,8 +33,8 @@ const validBody = {
 }
 
 let app: express.Application
-let routerFile = path.resolve(__dirname, 'generated-router-validation.ts')
-let openapiFile = path.resolve(__dirname, 'generated-openapi-router-validation.json')
+const routerFile = path.resolve(__dirname, 'generated-router-validation.ts')
+const openapiFile = path.resolve(__dirname, 'generated-openapi-router-validation.json')
 
 before(async () => {
   await generate({

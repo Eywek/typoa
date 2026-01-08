@@ -1,46 +1,46 @@
 import { Controller, Route, Get } from '../../../src'
 
 interface Foo {
-  foo: number;
+  foo: number
 }
 
 interface Bar extends Foo {
-  bar: number;
+  bar: number
 }
 
 interface Baz extends Bar {
-  baz: string;
+  baz: string
 }
 
 // More complex inheritance scenarios
 interface Base {
-  id: string;
-  name: string;
+  id: string
+  name: string
 }
 
 interface Extended extends Base {
-  description: string;
-  active: boolean;
+  description: string
+  active: boolean
 }
 
 interface MultipleInheritance extends Extended {
-  metadata: Record<string, any>;
+  metadata: Record<string, any>
 }
 
 @Route('/inheritance-test')
 export class InterfaceInheritanceTestController extends Controller {
   @Get('/bar')
-  getBar(): Bar {
+  getBar (): Bar {
     return { foo: 1, bar: 2 }
   }
 
   @Get('/baz')
-  getBaz(): Baz {
+  getBaz (): Baz {
     return { foo: 1, bar: 2, baz: 'test' }
   }
 
   @Get('/extended')
-  getExtended(): Extended {
+  getExtended (): Extended {
     return {
       id: '1',
       name: 'Test',
@@ -50,7 +50,7 @@ export class InterfaceInheritanceTestController extends Controller {
   }
 
   @Get('/multiple')
-  getMultiple(): MultipleInheritance {
+  getMultiple (): MultipleInheritance {
     return {
       id: '1',
       name: 'Test',

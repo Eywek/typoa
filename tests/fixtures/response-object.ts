@@ -21,7 +21,7 @@ export class My3ndController {
     return { data: { name: 'foo', example: '' } }
   }
   @Get('/union')
-  public async getUnion (): Promise<SuccessResponse<Entity| Entity2>> {
+  public async getUnion (): Promise<SuccessResponse<Entity | Entity2>> {
     return { data: { name: 'foo' } }
   }
   @Post('/')

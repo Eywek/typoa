@@ -112,14 +112,14 @@ export type OpenAPIConfiguration = {
   }
 }
 
-let configStore: OpenAPIConfiguration | undefined = undefined;
-export function getConfig(): OpenAPIConfiguration | undefined {
-  return configStore;
+let configStore: OpenAPIConfiguration | undefined = undefined
+export function getConfig (): OpenAPIConfiguration | undefined {
+  return configStore
 }
 
 const promiseGlob = promisify(glob)
-export async function generate(config: OpenAPIConfiguration) {
-  configStore = config;
+export async function generate (config: OpenAPIConfiguration) {
+  configStore = config
 
   const root = config.root ?? path.dirname(path.resolve(config.tsconfigFilePath))
   // initialize
@@ -219,7 +219,7 @@ export async function generate(config: OpenAPIConfiguration) {
         return [buildRow(content)]
       })
       .flat(1)
-      .filter(content => typeof content !== 'undefined') as string[][]
+      .filter(content => typeof content !== 'undefined')
     if (typeof errorsConfig.sortColumn === 'string') {
       const columnIndex = tableColumns.findIndex(column => column.name === errorsConfig.sortColumn)
       rows = rows.sort((a, b) => {
@@ -244,23 +244,23 @@ export async function generate(config: OpenAPIConfiguration) {
 
   // Write OpenAPI file(s)
   const jsonContent = JSON.stringify(spec, null, '\t')
-  
+
   // Convert filePath to array for unified processing
-  const filePaths = Array.isArray(config.openapi.filePath) 
-    ? config.openapi.filePath 
-    : [config.openapi.filePath];
-  
+  const filePaths = Array.isArray(config.openapi.filePath)
+    ? config.openapi.filePath
+    : [config.openapi.filePath]
+
   // Process each file path
   for (const filePath of filePaths) {
-    const resolvedPath = path.resolve(root, filePath);
-    
+    const resolvedPath = path.resolve(root, filePath)
+
     // Determine format based on file extension
     if (filePath.toLowerCase().endsWith('.yaml') || filePath.toLowerCase().endsWith('.yml')) {
       const yamlContent = YAML.stringify(JSON.parse(jsonContent), 10) // use json anyway to remove undefined
-      await fs.promises.writeFile(resolvedPath, yamlContent);
+      await fs.promises.writeFile(resolvedPath, yamlContent)
     } else {
       // Default to JSON for any other extension or no extension
-      await fs.promises.writeFile(resolvedPath, jsonContent);
+      await fs.promises.writeFile(resolvedPath, jsonContent)
     }
   }
 

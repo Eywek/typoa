@@ -8,8 +8,8 @@ import { generate } from '../../src'
 import { createErrorHandler } from './shared'
 
 let app: express.Application
-let routerFile = path.resolve(__dirname, 'generated-router-responses.ts')
-let openapiFile = path.resolve(__dirname, 'generated-openapi-router-responses.json')
+const routerFile = path.resolve(__dirname, 'generated-router-responses.ts')
+const openapiFile = path.resolve(__dirname, 'generated-openapi-router-responses.json')
 
 before(async () => {
   await generate({

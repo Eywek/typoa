@@ -1,4 +1,4 @@
-import { Route, Get, Middleware } from "../../src";
+import { Route, Get, Middleware } from '../../src'
 
 export const middlewareFactory = () => (req: any, res: any, next: any) => next()
 
@@ -6,7 +6,7 @@ export const middlewareFactory = () => (req: any, res: any, next: any) => next()
 export class TestFactoryController {
   @Get('/')
   @Middleware(middlewareFactory())
-  public async get() {
+  public async get () {
     return 'OK'
   }
 }

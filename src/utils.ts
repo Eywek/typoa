@@ -104,7 +104,7 @@ export function getRelativeFilePath (absoluteRoot: string, absolutePath: string)
   let filePath = (dirPath || '.') + '/' + path.basename(absolutePath)
 
   filePath = filePath.replace(/\\/g, '/')
-  
+
   if (!filePath.startsWith('/') && !filePath.startsWith('.')) {
     filePath = `./${filePath}`
   }

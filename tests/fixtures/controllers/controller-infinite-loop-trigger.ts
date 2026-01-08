@@ -9,27 +9,27 @@ import { Get, Post, Body, Route } from '../../../src'
 class Foo {
   public foo: string = 'default'
 
-  public toJSON(): Omit<Foo, 'toJSON'> {
-    return { 'foo': 'bar' }
+  public toJSON (): Omit<Foo, 'toJSON'> {
+    return { foo: 'bar' }
   }
 }
 
 @Route('infinite-loop-trigger')
 export class InfiniteLoopTriggerController {
   @Get()
-  public getSerializedFoo(): Omit<Foo, 'toJSON'> {
+  public getSerializedFoo (): Omit<Foo, 'toJSON'> {
     return { foo: 'bar' }
   }
 
   @Post()
-  public createFoo(@Body() data: Omit<Foo, 'toJSON'>): Foo {
+  public createFoo (@Body() data: Omit<Foo, 'toJSON'>): Foo {
     const foo = new Foo()
     foo.foo = data.foo
     return foo
   }
 
   @Get('both')
-  public getBoth(): { serialized: Omit<Foo, 'toJSON'>, foo: Foo } {
+  public getBoth (): { serialized: Omit<Foo, 'toJSON'>, foo: Foo } {
     return {
       serialized: { foo: 'bar' },
       foo: new Foo()

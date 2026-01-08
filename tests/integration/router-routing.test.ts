@@ -7,8 +7,8 @@ import { test, describe, before } from 'node:test'
 import { generate } from '../../src'
 
 let app: express.Application
-let routerFile = path.resolve(__dirname, 'generated-router-routing.ts')
-let openapiFile = path.resolve(__dirname, 'generated-openapi-router-routing.json')
+const routerFile = path.resolve(__dirname, 'generated-router-routing.ts')
+const openapiFile = path.resolve(__dirname, 'generated-openapi-router-routing.json')
 
 before(async () => {
   await generate({

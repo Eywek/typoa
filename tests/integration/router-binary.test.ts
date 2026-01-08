@@ -1,15 +1,15 @@
-import express from 'express';
-import { strict as assert } from 'node:assert';
-import { before, describe, test } from 'node:test';
-import path from 'path';
-import request from 'supertest';
+import express from 'express'
+import { strict as assert } from 'node:assert'
+import { before, describe, test } from 'node:test'
+import path from 'path'
+import request from 'supertest'
 
-import { generate } from '../../src';
+import { generate } from '../../src'
 import { createErrorHandler } from './shared'
 
 let app: express.Application
-let routerFile = path.resolve(__dirname, 'generated-router-binary.ts')
-let openapiFile = path.resolve(__dirname, 'generated-openapi-router-binary.json')
+const routerFile = path.resolve(__dirname, 'generated-router-binary.ts')
+const openapiFile = path.resolve(__dirname, 'generated-openapi-router-binary.json')
 
 before(async () => {
   await generate({
@@ -82,7 +82,7 @@ describe('Binary format and file handling', () => {
 
   test('Should accept PNG upload', async () => {
     const pngBuffer = Buffer.from('fake png data')
-    
+
     await request(app)
       .post('/api/binary/upload-png')
       .set('Content-Type', 'image/png')
@@ -92,7 +92,7 @@ describe('Binary format and file handling', () => {
 
   test('Should accept PDF upload', async () => {
     const pdfBuffer = Buffer.from('fake pdf data')
-    
+
     await request(app)
       .post('/api/binary/upload-pdf')
       .set('Content-Type', 'application/pdf')
@@ -130,7 +130,7 @@ describe('Binary format and file handling', () => {
 
   test('Should handle large text file upload', async () => {
     const largeContent = 'x'.repeat(10000)
-    
+
     await request(app)
       .post('/file')
       .field('file', largeContent)

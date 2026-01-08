@@ -1,4 +1,4 @@
-import * as path from "path";
+import * as path from 'path'
 import { OpenAPIV3 } from 'openapi-types'
 import { ArrayLiteralExpression, ClassDeclaration, LiteralExpression, PropertyAssignment, Node, FunctionDeclaration, VariableDeclaration, Identifier, MethodDeclaration, ParameterDeclaration, CallExpression } from 'ts-morph'
 import { appendToSpec, extractDecoratorValues, extractFunctionArguments, normalizeUrl, getLiteralFromType, getRelativeFilePath } from './utils'
@@ -15,7 +15,7 @@ const MIDDLEWARE_DECORATOR = 'Middleware'
 const RESPONSE_DECORATOR = 'Response'
 const PRODUCES_DECORATOR = 'Produces'
 
-export function addController(
+export function addController (
   controller: ClassDeclaration,
   spec: OpenAPIV3.Document,
   codegenControllers: CodeGenControllers,
@@ -162,7 +162,7 @@ export function addController(
       const node = decorator.getParent() as ParameterDeclaration
       const type = node.getType()
 
-      const isOptional = node.hasQuestionToken() || node.isOptional()      
+      const isOptional = node.hasQuestionToken() || node.isOptional()
       let required = !isOptional
 
       const schema = resolve(type, spec, (nonNullableType, isUndefined, isNull, spec) => {
@@ -311,7 +311,7 @@ export function addController(
         responses: operation.responses,
         validateResponse: config.validateResponse ?? false,
         middlewares: middlewares.length > 0 ? middlewares : undefined,
-        contentType: contentType
+        contentType
       })
     }
   }
@@ -337,12 +337,12 @@ function getSecurities (declaration: ClassDeclaration | MethodDeclaration) {
   return security
 }
 
-function getMiddlewares(declaration: ClassDeclaration | MethodDeclaration): { name: string, path: string }[] {
+function getMiddlewares (declaration: ClassDeclaration | MethodDeclaration): { name: string, path: string }[] {
   const middlewareDecorators = declaration.getDecorators().filter(decorator => decorator.getName() === MIDDLEWARE_DECORATOR)
   return middlewareDecorators.flatMap(decorator => extractFunctionArguments(decorator))
 }
 
-function getResponses(declaration: ClassDeclaration, spec: OpenAPIV3.Document): Record<string, OpenAPIV3.ResponseObject> {
+function getResponses (declaration: ClassDeclaration, spec: OpenAPIV3.Document): Record<string, OpenAPIV3.ResponseObject> {
   const responses: Record<string, OpenAPIV3.ResponseObject> = {}
   const responseDecorators = declaration.getDecorators().filter(decorator => decorator.getName() === RESPONSE_DECORATOR)
   const producesDecorator = declaration.getDecorator(PRODUCES_DECORATOR)
@@ -375,10 +375,10 @@ function findDiscriminatorFunction (node: Identifier): { path: string, name: str
   let discriminatorFunction: FunctionDeclaration | VariableDeclaration | undefined
   const foundFunctions = sourceFiles
     .map(source => source.getFunction(functionName))
-    .filter(val => typeof val !== 'undefined') as FunctionDeclaration[]
+    .filter(val => typeof val !== 'undefined')
   const foundVariables = sourceFiles
     .map(source => source.getVariableDeclaration(functionName))
-    .filter(val => typeof val !== 'undefined') as VariableDeclaration[]
+    .filter(val => typeof val !== 'undefined')
   if (foundFunctions.length + foundVariables.length > 1) {
     throw new Error(`The 2nd argument of @Body() decorator must be the name of a function defined only once`)
   }

@@ -8,8 +8,8 @@ import { generate } from '../../src'
 import { createErrorHandler } from './shared'
 
 let app: express.Application
-let routerFile = path.resolve(__dirname, 'generated-router-inheritance.ts')
-let openapiFile = path.resolve(__dirname, 'generated-openapi-router-inheritance.json')
+const routerFile = path.resolve(__dirname, 'generated-router-inheritance.ts')
+const openapiFile = path.resolve(__dirname, 'generated-openapi-router-inheritance.json')
 
 before(async () => {
   await generate({
@@ -72,11 +72,11 @@ describe('Interface inheritance validation', () => {
 
   test('Should generate correct OpenAPI schema for inherited interfaces', async () => {
     // This test verifies that the OpenAPI generation correctly handles inheritance
-    const spec = (await import(openapiFile)).default;
+    const spec = (await import(openapiFile)).default
 
     // Check that inherited properties are properly included in schemas
     assert.ok(spec.components && spec.components.schemas)
-    
+
     // Verify that complex inheritance schemas exist
     const schemas = spec.components.schemas
     assert.ok(Object.keys(schemas).length > 0)

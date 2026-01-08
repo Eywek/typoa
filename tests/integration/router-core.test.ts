@@ -32,8 +32,8 @@ const validBody = {
 }
 
 let app: express.Application
-let routerFile = path.resolve(__dirname, 'generated-core.ts')
-let openapiFile = path.resolve(__dirname, 'generated-openapi-core.json')
+const routerFile = path.resolve(__dirname, 'generated-core.ts')
+const openapiFile = path.resolve(__dirname, 'generated-openapi-core.json')
 
 before(async () => {
   await generate({
@@ -61,9 +61,9 @@ before(async () => {
   app = express()
   app.use(express.json())
 
-  const { bindToRouter } = await import(routerFile);
+  const { bindToRouter } = await import(routerFile)
   bindToRouter(app)
-  
+
   app.use(createErrorHandler())
 })
 

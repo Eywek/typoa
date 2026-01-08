@@ -1,4 +1,4 @@
-import { SymbolFlags, Type, Node, ts, Symbol as TsSymbol, MethodDeclaration, MethodSignature, EnumDeclaration, ParameterDeclaration, PropertyDeclaration, InterfaceDeclaration } from 'ts-morph'
+import { SymbolFlags, Type, Node, ts, Symbol as TsSymbol, MethodDeclaration, MethodSignature, EnumDeclaration, ParameterDeclaration, PropertyDeclaration } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
 import { getConfig } from '.'
 
@@ -80,7 +80,7 @@ export function resolve (
     const unionTypes = type.getUnionTypes()
     const isUndefined = unionTypes.some(t => t.isUndefined())
     const isNull = unionTypes.some(t => t.isNull())
-    
+
     return resolveNullableTypeFn(type.getNonNullableType(), isUndefined, isNull, spec)
   }
   // Handle types
@@ -129,11 +129,11 @@ export function resolve (
     // tslint:disable-next-line: strict-type-predicates
     if (typeof spec.components!.schemas![enumName] === 'undefined') {
       const values = declaration.getMembers().map(m => m.getValue()!)
-      const names = declaration.getMembers().map(m => m.getName()!)
+      const names = declaration.getMembers().map(m => m.getName())
       spec.components!.schemas![enumName] = {
         type: (typeof values[0]) as 'string' | 'number',
         enum: values,
-        ...(getConfig()?.openapi?.xEnumVarnames ? { "x-enum-varnames": names } : {}),
+        ...(getConfig()?.openapi?.xEnumVarnames ? { 'x-enum-varnames': names } : {})
       }
     }
     return { $ref: buildRef(enumName) }
@@ -234,7 +234,7 @@ export function resolve (
 
 type ResolvePropertiesReturnType = Required<Pick<OpenAPIV3.BaseSchemaObject, 'properties'>> &
   { required?: string[], additionalProperties?: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject }
-  
+
 function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolvePropertiesReturnType {
   const result: ResolvePropertiesReturnType = type.getProperties().reduce((schema, property) => {
     const node = getDeclarationForProperty(type, property)
@@ -291,11 +291,11 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     // OpenAPI don't want the required[] prop if it's empty
     delete result.required
   }
-  
+
   // Check for index signatures regardless of whether explicit properties exist
   const stringIndexType = type.getStringIndexType()
   const numberIndexType = type.getNumberIndexType()
-  
+
   // Handle mapped types and objects with index signatures (ex: { [key: string]: any } or Record<string, any>)
   if (
     (typeof stringIndexType !== 'undefined' && stringIndexType.getText() !== 'never') ||
@@ -307,23 +307,23 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     )
   } else {
     // Edge cases where TypeScript's getStringIndexType() might fail to detect
-    // index signatures in complex type scenarios (e.g., after type transformations) 
-    
+    // index signatures in complex type scenarios (e.g., after type transformations)
+
     // Check if the type represents a Record-like structure that should have additionalProperties
     const typeSymbol = type.getSymbol()
     const typeText = type.getText()
-    
+
     // Handle cases where the type might be a transformed Record type
     if (typeSymbol?.getName() === '__type' || typeText.includes('Record<')) {
-      // For anonymous types that might be transformed Record types, 
+      // For anonymous types that might be transformed Record types,
       // check if the structure suggests it should have additional properties
-      
+
       // Check the type's apparent type for index signatures
       const apparentType = type.getApparentType()
       if (apparentType && apparentType !== type) {
         const apparentStringIndexType = apparentType.getStringIndexType()
         const apparentNumberIndexType = apparentType.getNumberIndexType()
-        
+
         if (
           (typeof apparentStringIndexType !== 'undefined' && apparentStringIndexType.getText() !== 'never') ||
           (typeof apparentNumberIndexType !== 'undefined' && apparentNumberIndexType.getText() !== 'never')
@@ -336,17 +336,17 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
       }
     }
   }
-  
+
   return result
 }
 
 /**
  * Resolves mapped object types when applied to types with toJSON methods.
- * 
+ *
  * When a mapped type is applied to a class/interface that has a toJSON method, we need to
  * apply the transformation to the toJSON return type rather than the original object properties.
  * This is because the toJSON method defines the actual serialized structure.
- * 
+ *
  * @returns The resolved OpenAPI schema with transformations applied
  */
 function resolveMappedObjectType (
@@ -362,7 +362,7 @@ function resolveMappedObjectType (
     const omittedKeys = typeArguments[1].isUnion()
       ? typeArguments[1].getUnionTypes().map(t => String(t.getLiteralValue()))
       : [String(typeArguments[1].getLiteralValue())]
-    
+
     if (helperName === 'Omit' && omittedKeys.includes('toJSON')) {
       // If we're omitting toJSON, don't follow it to avoid infinite loops
       shouldSkipToJSON = true
@@ -371,23 +371,23 @@ function resolveMappedObjectType (
       shouldSkipToJSON = true
     }
   }
-  
+
   // Check if the subject type has a toJSON method
   const toJSONProperty = subjectType.getProperty('toJSON')
   if (toJSONProperty && !shouldSkipToJSON) {
     const node = getDeclarationForProperty(subjectType, toJSONProperty) as MethodDeclaration | MethodSignature
     const toJSONReturnType = resolve(node.getReturnType(), spec)
-    
+
     // Apply mapped type transformation to the toJSON return type
     if ('$ref' in toJSONReturnType) {
       // For reference types, we need to create a new schema with the transformation applied
       // This is more complex, so for now we'll fall back to normal resolution
       return resolveObjectType(type, spec)
     }
-    
+
     if (toJSONReturnType.type === 'object' && toJSONReturnType.properties) {
       const transformedSchema = { ...toJSONReturnType }
-      
+
       switch (helperName) {
         case 'Partial':
           // Make all properties optional by removing them from required array
@@ -397,11 +397,11 @@ function resolveMappedObjectType (
         // the relationship between input properties and toJSON output properties,
         // which cannot be determined generically without analyzing the toJSON implementation
       }
-      
+
       return transformedSchema
     }
   }
-  
+
   // Fall back to normal object resolution if no toJSON or transformation failed
   return resolveObjectType(type, spec)
 }
@@ -409,13 +409,13 @@ function resolveMappedObjectType (
 /**
  * Checks if a type represents an interface that extends other interfaces
  */
-function hasInterfaceInheritance(type: Type): boolean {
+function hasInterfaceInheritance (type: Type): boolean {
   const symbol = type.getSymbol()
   if (!symbol) return false
-  
+
   const declarations = symbol.getDeclarations()
-  
-  return declarations.some(decl => 
+
+  return declarations.some(decl =>
     Node.isInterfaceDeclaration(decl) && decl.getExtends().length > 0
   )
 }
@@ -423,16 +423,16 @@ function hasInterfaceInheritance(type: Type): boolean {
 /**
  * Gets the base interfaces that an interface extends
  */
-function getBaseInterfaces(type: Type, spec: OpenAPIV3.Document): OpenAPIV3.ReferenceObject[] {
+function getBaseInterfaces (type: Type, spec: OpenAPIV3.Document): OpenAPIV3.ReferenceObject[] {
   const symbol = type.getSymbol()
   if (!symbol) return []
-  
+
   const baseRefs: OpenAPIV3.ReferenceObject[] = []
   const declarations = symbol.getDeclarations()
-  
+
   for (const decl of declarations) {
     if (!Node.isInterfaceDeclaration(decl)) continue
-    
+
     const extendsExpressions = decl.getExtends()
     for (const extendsExpr of extendsExpressions) {
       const baseType = extendsExpr.getType()
@@ -442,45 +442,45 @@ function getBaseInterfaces(type: Type, spec: OpenAPIV3.Document): OpenAPIV3.Refe
       }
     }
   }
-  
+
   return baseRefs
 }
 
 /**
  * Gets only the properties declared directly in an interface (not inherited)
  */
-function getOwnInterfaceProperties(type: Type, spec: OpenAPIV3.Document): ResolvePropertiesReturnType {
+function getOwnInterfaceProperties (type: Type, spec: OpenAPIV3.Document): ResolvePropertiesReturnType {
   const symbol = type.getSymbol()
   if (!symbol) {
     // Fallback to normal property resolution
     return resolveProperties(type, spec)
   }
-  
+
   const declarations = symbol.getDeclarations()
-  const interfaceDecl = declarations.find(decl => Node.isInterfaceDeclaration(decl)) as InterfaceDeclaration | undefined
-  
+  const interfaceDecl = declarations.find(decl => Node.isInterfaceDeclaration(decl))
+
   if (!interfaceDecl) {
     // Fallback to normal property resolution
     return resolveProperties(type, spec)
   }
-  
+
   const result: ResolvePropertiesReturnType = {
     properties: {},
     required: []
   }
-  
+
   // Get only the properties declared in this interface
   const propertySignatures = interfaceDecl.getProperties()
-  
+
   for (const propSig of propertySignatures) {
     const propName = propSig.getName()
     const propType = propSig.getType()
     let required = !propSig.hasQuestionToken()
-    
+
     // Resolve the property type
     const resolvedType = resolve(
-      propType, 
-      spec, 
+      propType,
+      spec,
       (nonNullableType, isUndefined, isNull, spec) => {
         if (isUndefined) {
           required = false
@@ -491,11 +491,11 @@ function getOwnInterfaceProperties(type: Type, spec: OpenAPIV3.Document): Resolv
         return resolve(nonNullableType, spec)
       }
     )
-    
+
     // Handle JSDoc tags
     const jsDocTags = propSig.getSymbol()?.compilerSymbol.getJsDocTags() ?? []
     appendJsDocTags(jsDocTags, resolvedType)
-    
+
     // Add to properties
     if (!('type' in resolvedType && (resolvedType.type as any) === 'undefined')) {
       result.properties[propName] = resolvedType
@@ -504,25 +504,25 @@ function getOwnInterfaceProperties(type: Type, spec: OpenAPIV3.Document): Resolv
       }
     }
   }
-  
+
   // Handle method signatures (but ignore them like in resolveProperties)
   // Methods are already filtered out by only looking at property signatures
-  
+
   if (result.required!.length === 0) {
     delete result.required
   }
-  
+
   return result
 }
 
 /**
  * Resolves object types (classes, interfaces, and plain objects) to OpenAPI schemas.
- * 
+ *
  * This function handles the conversion of TypeScript object types to OpenAPI schema objects.
  * It has special handling for classes/interfaces that have a toJSON method - in such cases,
  * it resolves to the return type of the toJSON method instead of the object's properties.
  * For regular objects without toJSON, it resolves all properties using resolveProperties.
- * 
+ *
  * @returns The resolved OpenAPI schema (either a reference or inline schema)
  */
 function resolveObjectType (type: Type, spec: OpenAPIV3.Document): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
@@ -532,7 +532,7 @@ function resolveObjectType (type: Type, spec: OpenAPIV3.Document): OpenAPIV3.Ref
     const node = getDeclarationForProperty(type, toJSONProperty) as MethodDeclaration | MethodSignature
     return resolve(node.getReturnType(), spec)
   }
-  
+
   // Check for interface inheritance
   if (!hasInterfaceInheritance(type)) {
     return {
@@ -540,9 +540,9 @@ function resolveObjectType (type: Type, spec: OpenAPIV3.Document): OpenAPIV3.Ref
       ...resolveProperties(type, spec)
     }
   }
-  
+
   const baseRefs = getBaseInterfaces(type, spec)
-  
+
   // If there are no base interfaces, fall back to normal resolution
   if (baseRefs.length === 0) {
     return {
@@ -550,11 +550,11 @@ function resolveObjectType (type: Type, spec: OpenAPIV3.Document): OpenAPIV3.Ref
       ...resolveProperties(type, spec)
     }
   }
-  
+
   // Shallow copy to avoid mutating the original baseRefs array
   const allOfElements = Array.from<OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>(baseRefs)
   const ownProps = getOwnInterfaceProperties(type, spec)
-  
+
   // Add own properties if any exist
   if (Object.keys(ownProps.properties).length > 0 || ownProps.additionalProperties) {
     allOfElements.push({
@@ -562,7 +562,7 @@ function resolveObjectType (type: Type, spec: OpenAPIV3.Document): OpenAPIV3.Ref
       ...ownProps
     })
   }
-  
+
   return {
     allOf: allOfElements
   }
@@ -606,7 +606,7 @@ export function appendJsDocTags (
     'minItems',
     'maxItems'
   ]
-  
+
   const numericTags = [
     'minimum',
     'maximum',
@@ -615,15 +615,15 @@ export function appendJsDocTags (
     'minItems',
     'maxItems'
   ]
-  
+
   for (const tag of jsDocTags) {
     if (!supportedTags.includes(tag.name) || !tag.text) {
       continue
     }
-    
+
     const textValue = tag.text.map(t => t.text).join('\n')
     const value = numericTags.includes(tag.name) ? parseFloat(textValue) : textValue
-    
+
     appendMetaToResolvedType(resolvedType, {
       [tag.name]: value
     })

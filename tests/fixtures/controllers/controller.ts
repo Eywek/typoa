@@ -136,7 +136,7 @@ class Foo {
 interface Bar {
   id: string
   data: { content: string }
-  toJSON(): { bar: string }
+  toJSON (): { bar: string }
 }
 
 const securities = { company: [] }
@@ -165,10 +165,10 @@ export class MyController extends Controller {
     this.setHeader('x-foo', 'bar')
     return {
       ...body,
-      url: '/my-route?my-query-param&my-default-param=bar', 
-      formatIsDate: body.stringWithFormat instanceof Date, 
-      queryParam: queryParam || '', 
-      defaultParam, 
+      url: '/my-route?my-query-param&my-default-param=bar',
+      formatIsDate: body.stringWithFormat instanceof Date,
+      queryParam: queryParam || '',
+      defaultParam,
       bool,
       class: { foo: 'bar' }
     }
@@ -185,11 +185,11 @@ export class MyController extends Controller {
   ) {
     this.setStatus(201)
     this.setHeader('x-foo', 'bar')
-    return Object.assign({}, body, { 
-      url: '/my-controller/?my-bool', 
-      formatIsDate: body.stringWithFormat instanceof Date, 
-      queryParam: queryParam || '', 
-      defaultParam, 
+    return Object.assign({}, body, {
+      url: '/my-controller/?my-bool',
+      formatIsDate: body.stringWithFormat instanceof Date,
+      queryParam: queryParam || '',
+      defaultParam,
       bool,
       class: { foo: 'bar' }
     })
@@ -202,7 +202,7 @@ export class MyController extends Controller {
   ): { fooPost: string, barPost: { barFooPost: string } } {
     return {} as any
   }
-  
+
   @Patch('/{id}')
   @Response<{ error_code: 910, payload: { number: number } }>(400, 'Description for my response')
   patch (
@@ -298,7 +298,7 @@ export class MyController extends Controller {
   ) {
     return
   }
-  
+
   @Get('/undefined')
   @Deprecated()
   undefined () {

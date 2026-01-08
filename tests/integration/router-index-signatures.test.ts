@@ -8,8 +8,8 @@ import { generate } from '../../src'
 import { createErrorHandler } from './shared'
 
 let app: express.Application
-let routerFile = path.resolve(__dirname, 'generated-router-index-signatures.ts')
-let openapiFile = path.resolve(__dirname, 'generated-openapi-router-index-signatures.json') 
+const routerFile = path.resolve(__dirname, 'generated-router-index-signatures.ts')
+const openapiFile = path.resolve(__dirname, 'generated-openapi-router-index-signatures.json')
 
 before(async () => {
   await generate({
@@ -36,7 +36,7 @@ before(async () => {
   app = express()
   app.use(express.json())
 
-  const { bindToRouter } = await import(routerFile);
+  const { bindToRouter } = await import(routerFile)
   bindToRouter(app)
 
   app.use(createErrorHandler())
@@ -72,20 +72,20 @@ describe('Record and index signature validation', () => {
 
   test('Should generate correct OpenAPI schema for index signatures', async () => {
     // Verify OpenAPI generation handles index signatures correctly
-    const spec = (await import(openapiFile)).default;
+    const spec = (await import(openapiFile)).default
 
     assert.ok(spec.components && spec.components.schemas)
-    
+
     // Check for additionalProperties in schemas for index signatures
     const schemas = spec.components.schemas
     assert.ok(Object.keys(schemas).length > 0)
-    
+
     // Meta type should have additionalProperties: { type: 'string' }
-    const metaSchema = Object.values(schemas).find((schema: any) => 
-      schema.additionalProperties && 
+    const metaSchema = Object.values(schemas).find((schema: any) =>
+      schema.additionalProperties &&
       schema.additionalProperties.type === 'string'
     )
-    
+
     // Should find at least one schema with string index signature
     assert.ok(metaSchema || true) // Allow for different schema generation approaches
   })
