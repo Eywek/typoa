@@ -66,7 +66,15 @@ export async function validateAndParse (
       args.push(undefined)
       continue
     }
-    args.push(validateAndParseValueAgainstSchema(param.name, value, param.schema!, schemas))
+
+    const ValidationResponse = validateAndParseValueAgainstSchema(param.name, value, param.schema!, schemas)
+    if (!ValidationResponse.succeed) {
+      throw new ValidateError({
+        [param.name]: { message: ValidationResponse.errorMessage, value }
+      }, 'Missing parameter')
+    }
+
+    args.push(ValidationResponse.value)
   }
   return args
 }
@@ -89,7 +97,12 @@ export function validateAndParseResponse (
       log(`Schema is not found for '${contentType}', throwing error`)
       throw new ValidateError({}, 'This content-type is not allowed')
     }
-    return validateAndParseValueAgainstSchema('response', data, expectedSchema, schemas)
+
+    const ValidationResponse = validateAndParseValueAgainstSchema('response', data, expectedSchema, schemas)
+    if (!ValidationResponse.succeed) {
+      throw new ValidateError({ response: { message: ValidationResponse.errorMessage } }, 'Invalid response')
+    }
+    return ValidationResponse.value
   } catch (e) {
     if (e instanceof ValidateError) {
       // validation error on the result is a server, not client error
@@ -104,7 +117,7 @@ async function validateBody (
   rule: OpenAPIV3.RequestBodyObject,
   discriminatorFn: BodyDiscriminatorFunction | undefined,
   schemas: OpenAPIV3.ComponentsObject['schemas']
-): Promise<any> {
+): Promise<unknown> {
   const body = req.body
   const contentType = (req.headers['content-type'] ?? 'application/json').split(';')[0]
   const expectedSchema = rule.content[contentType]?.schema
@@ -116,11 +129,40 @@ async function validateBody (
     log(`! Warning: Body has not be parsed, body validation skipped !`)
     return body
   }
+
   if (discriminatorFn) {
     const schemaName = await discriminatorFn(req)
-    return validateAndParseValueAgainstSchema('body', body, { $ref: buildRef(schemaName) }, schemas)
+    const validationResult = validateAndParseValueAgainstSchema('body', body, { $ref: buildRef(schemaName) }, schemas)
+    if (validationResult.succeed) {
+      return validationResult.value
+    }
+    // Extract the failing value from the body based on the field path
+    const fieldPath = validationResult.fieldName || 'body'
+    const failingValue = fieldPath === 'body' ? body : getNestedValue(body, fieldPath.replace('body.', ''))
+    const errorField: { message: string; value?: any } = { message: validationResult.errorMessage }
+    if (failingValue !== null && failingValue !== undefined) {
+      errorField.value = failingValue
+    }
+    throw new ValidateError({
+      [fieldPath]: errorField
+    }, validationResult.errorMessage)
   }
-  return validateAndParseValueAgainstSchema('body', body, expectedSchema, schemas)
+
+  const validationResult = validateAndParseValueAgainstSchema('body', body, expectedSchema, schemas)
+  if (validationResult.succeed) {
+    return validationResult.value
+  }
+
+
+  const fieldPath = validationResult.fieldName || 'body'
+  const failingValue = fieldPath === 'body' ? body : getNestedValue(body, fieldPath.replace('body.', ''))
+  const errorField: { message: string; value?: any } = { message: validationResult.errorMessage }
+  if (failingValue !== null && failingValue !== undefined) {
+    errorField.value = failingValue
+  }
+  throw new ValidateError({
+    [fieldPath]: errorField
+  }, validationResult.errorMessage)
 }
 
 function getFromRef (
@@ -138,59 +180,75 @@ function getFromRef (
   return schema
 }
 
+function getNestedValue (obj: any, path: string): any {
+  const parts = path.split('.')
+  let current = obj
+  for (const part of parts) {
+    if (current == null || typeof current !== 'object') {
+      return undefined
+    }
+    // Handle array indices
+    if (/^\d+$/.test(part)) {
+      current = current[parseInt(part, 10)]
+    } else {
+      current = current[part]
+    }
+  }
+  return current
+}
+
+type SafeValidatedValue =
+  | { succeed: false, value?: undefined, errorMessage: string, fieldName: string }
+  | { succeed: true, value: unknown }
 function validateAndParseValueAgainstSchema (
   name: string,
   value: unknown,
   schema: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject,
   schemas: OpenAPIV3.ComponentsObject['schemas']
-): unknown {
+): SafeValidatedValue {
   const currentSchema = getFromRef(schema, schemas)
   // Nullable
   if (value === null) {
     if (currentSchema.nullable) {
-      return currentSchema.default ?? null
+      return { succeed: true, value: currentSchema.default }
     }
-    throw new ValidateError({
-      [name]: { message: 'This property is not nullable' }
-    }, 'Invalid parameter')
+    return { succeed: false, errorMessage: `This property is not nullable`, fieldName: name }
   }
   // Strings
   if (currentSchema.type === 'string') {
     // Special case for date format
     if (value instanceof Date && currentSchema.format === 'date-time') {
-      return value
+      return { succeed: true, value }
     }
     // Special case for binary format
     if (currentSchema.format === 'binary' && Buffer.isBuffer(value)) {
-      return value
+      return { succeed: true, value }
     }
     if (typeof value !== 'string') {
-      throw new ValidateError({
-        [name]: { message: 'This property must be a string', value }
-      }, 'Invalid parameter')
+      return { succeed: false, errorMessage: `This property must be a string`, fieldName: name }
     }
     if (typeof currentSchema.minLength !== 'undefined' && value.length < currentSchema.minLength) {
-      throw new ValidateError({
-        [name]: { message: `This property must have ${currentSchema.minLength} characters minimum`, value }
-      }, 'Invalid parameter')
+      return { succeed: false, errorMessage: `This property must have ${currentSchema.minLength} characters minimum`, fieldName: name }
     }
     if (typeof currentSchema.maxLength !== 'undefined' && value.length > currentSchema.maxLength) {
-      throw new ValidateError({
-        [name]: { message: `This property can have ${currentSchema.maxLength} characters maximum`, value }
-      }, 'Invalid parameter')
+      return { succeed: false, errorMessage: `This property can have ${currentSchema.maxLength} characters maximum`, fieldName: name }
     }
     if (currentSchema.enum && currentSchema.enum.includes(value) === false) {
-      throw new ValidateError({
-        [name]: { message: `This property must be one of ${currentSchema.enum}`, value }
-      }, 'Invalid parameter')
+      return { succeed: false, errorMessage: `This property must be one of ${currentSchema.enum}`, fieldName: name }
     }
     if (currentSchema.pattern) {
-      validateAndParsePattern(name, value, currentSchema.pattern)
+      const patternResult = validateAndParsePattern(name, value, currentSchema.pattern)
+      if (!patternResult.succeed) {
+        return {succeed: false, errorMessage: patternResult.errorMessage, fieldName: name}
+      }
     }
     if (currentSchema.format) {
-      return validateAndParseFormat(name, value, currentSchema.format)
+      const formatResult = validateAndParseFormat(name, value, currentSchema.format)
+      if (!formatResult.succeed) {
+        return {succeed: false, errorMessage: formatResult.errorMessage, fieldName: name}
+      }
     }
-    return value
+    return { succeed: true, value }
   }
   // Numbers
   if (currentSchema.type === 'number') {
@@ -200,193 +258,184 @@ function validateAndParseValueAgainstSchema (
     const isInBody = name === 'body' || name.startsWith('body.')
     const parsedValue = isInBody ? value as number : parseFloat(String(value))
     if (isNaN(parsedValue)) {
-      throw new ValidateError({
-        [name]: { message: 'This property must be a number', value }
-      }, 'Invalid parameter')
+      return { succeed: false, errorMessage: 'This property must be a number', fieldName: name }
     }
     if (typeof currentSchema.minimum !== 'undefined') {
       if (parsedValue < currentSchema.minimum) {
-        throw new ValidateError({
-          [name]: { message: `This property must be >= ${currentSchema.minimum}`, value }
-        }, 'Invalid parameter')
+        return { succeed: false, errorMessage: `This property must be >= ${currentSchema.minimum}`, fieldName: name }
       }
     }
     if (typeof currentSchema.maximum !== 'undefined') {
       if (parsedValue > currentSchema.maximum) {
-        throw new ValidateError({
-          [name]: { message: `This property must be <= ${currentSchema.maximum}`, value }
-        }, 'Invalid parameter')
+        return { succeed: false, errorMessage: `This property must be <= ${currentSchema.maximum}`, fieldName: name }
       }
     }
     if (currentSchema.enum && currentSchema.enum.includes(parsedValue) === false) {
-      throw new ValidateError({
-        [name]: { message: `This property must be one of ${currentSchema.enum}`, value }
-      }, 'Invalid parameter')
+      return { succeed: false, errorMessage: `This property must be one of ${currentSchema.enum}`, fieldName: name }
     }
-    return parsedValue
+    return { succeed: true, value: parsedValue }
   }
   // Boolean
   if (currentSchema.type === 'boolean') {
     const parsedValue = String(value)
     if (['0', '1', 'false', 'true'].includes(parsedValue) === false) {
-      throw new ValidateError({
-        [name]: { message: 'This property must be a boolean', value }
-      }, 'Invalid parameter')
+      return { succeed: false, errorMessage: 'This property must be a boolean', fieldName: name }
     }
-    return parsedValue === '1' || parsedValue === 'true'
+    return { succeed: true, value: parsedValue === '1' || parsedValue === 'true' }
   }
   // Array
   if (currentSchema.type === 'array') {
     if (!Array.isArray(value)) {
-      throw new ValidateError({
-        [name]: { message: 'This property must be an array', value }
-      }, 'Invalid parameter')
+      return { succeed: false, errorMessage: 'This property must be an array', fieldName: name }
     }
     if (typeof currentSchema.minItems !== 'undefined' && value.length < currentSchema.minItems) {
-      throw new ValidateError({
-        [name]: { message: `This property must have ${currentSchema.minItems} items minimum`, value }
-      }, 'Invalid parameter')
+      return { succeed: false, errorMessage: `This property must have ${currentSchema.minItems} items minimum`, fieldName: name }
     }
     if (typeof currentSchema.maxItems !== 'undefined' && value.length > currentSchema.maxItems) {
-      throw new ValidateError({
-        [name]: { message: `This property can have ${currentSchema.maxItems} items maximum`, value }
-      }, 'Invalid parameter')
+      return { succeed: false, errorMessage: `This property can have ${currentSchema.maxItems} items maximum`, fieldName: name }
     }
-    return value.map((item, i) => {
-      return validateAndParseValueAgainstSchema(`${name}.${i}`, item, currentSchema.items, schemas)
-    })
+
+    const values = value.map((item, i) => validateAndParseValueAgainstSchema(`${name}.${i}`, item, currentSchema.items, schemas))
+    const everyItemIsGood = values.every(value => value.succeed)
+    const firstFailure = values.find(value => value.succeed === false)
+    return everyItemIsGood ? { succeed: true, value: values.map(({ value }) => value) } : { succeed: false, errorMessage: firstFailure?.errorMessage ?? '', fieldName: firstFailure?.fieldName ?? name }
   }
   // Object
   if (currentSchema.type === 'object') {
     if (typeof value !== 'object' || Array.isArray(value) === true) {
-      throw new ValidateError({
-        [name]: { message: 'This property must be an object', value }
-      }, 'Invalid parameter')
+      return { succeed: false, errorMessage: 'This property must be an object', fieldName: name }
     }
-    const filteredProperties = Object.keys(currentSchema.properties || {})
+    const filteredProperties: Record<string, unknown> = {}
+    const propertyNames = Object.keys(currentSchema.properties || {})
       .filter((propName) => { // Ignore readOnly properties
         const val = currentSchema.properties![propName]
         return !('readOnly' in val) || val.readOnly !== true
       })
-      .reduce((props, propName) => {
-        const propValue = (value as Record<string, unknown>)[propName]
-        const isNotDefined = typeof propValue === 'undefined'
-        const propSchema = currentSchema.properties![propName]
-        const isAnyValue = '$ref' in propSchema && propSchema.$ref === '#/components/schemas/AnyValue'
-        if (currentSchema.required?.includes(propName) && (isNotDefined === true && isAnyValue === false)) {
-          throw new ValidateError({
-            [`${name}.${propName}`]: { message: 'This property is required' }
-          }, 'Invalid parameter')
+
+    for (const propName of propertyNames) {
+      const propValue = (value as Record<string, unknown>)[propName]
+      const isNotDefined = typeof propValue === 'undefined'
+      const propSchema = currentSchema.properties![propName]
+      const isAnyValue = '$ref' in propSchema && propSchema.$ref === '#/components/schemas/AnyValue'
+      if (currentSchema.required?.includes(propName) && (isNotDefined === true && isAnyValue === false)) {
+        return { succeed: false, errorMessage: `Property ${propName} is required`, fieldName: `${name}.${propName}` }
+      }
+      if (isNotDefined === false) {
+        const validationResult = validateAndParseValueAgainstSchema(
+          `${name}.${propName}`,
+          propValue,
+          currentSchema.properties![propName],
+          schemas
+        )
+        if (!validationResult.succeed) {
+          return validationResult
         }
-        if (isNotDefined === false) {
-          props[propName] = validateAndParseValueAgainstSchema(
-            `${name}.${propName}`,
-            propValue,
-            currentSchema.properties![propName],
-            schemas
-          )
-        } else {
-          const propertySchema = getFromRef(currentSchema.properties![propName], schemas)
-          if (propertySchema.default) {
-            props[propName] = propertySchema.default
-          }
+        filteredProperties[propName] = validationResult.value
+      } else {
+        const propertySchema = getFromRef(currentSchema.properties![propName], schemas)
+        if (propertySchema.default) {
+          filteredProperties[propName] = propertySchema.default
         }
-        return props
-      }, {} as Record<string, unknown>)
+      }
+    }
     // Validate remaining keys with additionalProperties if present
     if (currentSchema.additionalProperties && typeof currentSchema.additionalProperties !== 'boolean') {
       const filteredKeys = Object.keys(filteredProperties)
-      const keys = Object.keys(value!).filter(key => filteredKeys.includes(key) === false)
-      return Object.assign(filteredProperties, keys.reduce((props, propName) => {
+      const keys = Object.keys(value).filter(key => filteredKeys.includes(key) === false)
+
+      for (const propName of keys) {
         const propValue = (value as Record<string, unknown>)[propName]
         if (typeof propValue !== 'undefined') {
-          props[propName] = validateAndParseValueAgainstSchema(
+          const validationResult = validateAndParseValueAgainstSchema(
             `${name}.${propName}`,
             propValue,
             currentSchema.additionalProperties as any,
             schemas
           )
+          if (!validationResult.succeed) {
+            return validationResult
+          }
+          filteredProperties[propName] = validationResult.value
         }
-        return props
-      }, {} as Record<string, unknown>))
+      }
+
+      return { succeed: true, value: filteredProperties }
     }
-    return filteredProperties
+    return { succeed: true, value: filteredProperties }
   }
   // AllOf
   if (currentSchema.allOf) {
     // try to validate every allOf and merge their results
-    const schemasValues = currentSchema.allOf.map((schema, i) => {
-      return validateAndParseValueAgainstSchema(
+    const schemasValues = currentSchema.allOf.map((schema, i) => validateAndParseValueAgainstSchema(
         `${name}.${i}`,
         value,
         schema,
         schemas
-      )
-    })
+      ))
+
     if (schemasValues.length === 1) {
-      return schemasValues[0]
+      return { succeed: true, value: schemasValues[0].value }
     }
-    return Object.assign({}, ...schemasValues)
+    // Check for any failures first
+    const firstFailure = schemasValues.find(v => !v.succeed)
+    if (firstFailure) {
+      return firstFailure
+    }
+    // All succeeded, merge values
+    const mergedValue = Object.assign({}, ...schemasValues.map(v => v.value as Record<string, unknown>))
+    return { succeed: true, value: mergedValue }
   }
   // OneOf
   if (currentSchema.oneOf) {
     let matchingValue: unknown | undefined
     currentSchema.oneOf.forEach((schema, i) => {
-      try {
-        const parsedValue = validateAndParseValueAgainstSchema(
+      const { succeed, value: parsedValue } = validateAndParseValueAgainstSchema(
           `${name}.${i}`,
           value,
           schema,
           schemas
         )
+      if (succeed) {
         // set as matching value if we haven't found one
-        if (typeof matchingValue === 'undefined') {
+          if (typeof matchingValue === 'undefined') {
           matchingValue = parsedValue
           return
         }
         // replace matched value if the new one have more keys
-        if (
+          if (
           typeof matchingValue === 'object' && matchingValue !== null &&
           typeof parsedValue === 'object' && parsedValue !== null &&
           Object.keys(parsedValue).length > Object.keys(matchingValue).length
         ) {
           matchingValue = parsedValue
         }
-      } catch {
-        // noop, try another schema
-      }
+        }
     })
     if (typeof matchingValue === 'undefined') {
-      throw new ValidateError({
-        [name]: { message: 'Found no matching schema for provided value', value }
-      }, 'Invalid parameter')
+      return { succeed: false, errorMessage: 'Found no matching schema for provided value', fieldName: name }
     }
-    return matchingValue
+    return { succeed: true, value: matchingValue }
   }
   log(`Schema of ${name} is not yet supported, skipping value validation`)
-  return value
+  return { succeed: true, value }
 }
 
-function validateAndParseFormat (name: string, value: string, format: string) {
+function validateAndParseFormat (name: string, value: string, format: string): SafeValidatedValue {
   if (format === 'date' || format === 'date-time') {
     const date = new Date(value)
     if (String(date) === 'Invalid Date') {
-      throw new ValidateError({
-        [name]: { message: 'This property must be a valid date', value }
-      }, 'Invalid parameter')
+      return { succeed: false, errorMessage: 'This property must be a valid date', fieldName: name }
     }
-    return date
+    return { succeed: true, value: date }
   }
   log(`Format '${format}' is not yet supported, value is returned without additionnal parsing`)
-  return value
+  return { succeed: true, value }
 }
 
-function validateAndParsePattern (name: string, value: string, pattern: string) {
+function validateAndParsePattern (name: string, value: string, pattern: string): SafeValidatedValue {
   const regex = new RegExp(pattern)
   if (!regex.test(value)) {
-    throw new ValidateError({
-      [name]: { message: `This property must match the pattern: ${regex}`, value }
-    }, 'Invalid parameter')
+    return { succeed: false, errorMessage: `This property must match the pattern: ${regex}`, fieldName: name }
   }
-  return value
+  return { succeed: true, value }
 }
