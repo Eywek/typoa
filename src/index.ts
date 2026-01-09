@@ -6,7 +6,6 @@ import {
   InterfaceDeclaration,
   ExportedDeclarations
 } from 'ts-morph'
-// @ts-expect-error glob probably needs to be upgraded
 import { glob } from 'glob'
 import { promisify } from 'util'
 import path from 'path'
@@ -161,7 +160,6 @@ export async function generate(config: OpenAPIConfiguration) {
     config.controllers.map(async controller => {
       const files = await promiseGlob(controller)
       await Promise.all(
-        // @ts-expect-error need to upgrade glob lib
         files.map(async file => {
           const filePath = path.resolve(root, file)
           const sourceFile = project.getSourceFileOrThrow(filePath)
