@@ -70,4 +70,4 @@ jobs:
               run: bun install
 
             - name: lint
-              run: bun run lint:check
+              run: bun run lint

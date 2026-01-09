@@ -15,7 +15,6 @@
     "postbuild": "mkdir build/template/ && cp src/template/express.ts.hbs build/template/express.ts.hbs",
     "test": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov",
     "lint": "eslint --fix .",
-    "lint:check": "eslint --project .",
     "prettier": "prettier --write ."
   },
   "engines": {
