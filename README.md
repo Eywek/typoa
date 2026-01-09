@@ -3,9 +3,9 @@
   <h1>typoa</h1>
   <h2> <b>Typ</b>escript <b>O</b>pen<b>A</b>PI Generator</h2>
 
-  This tools is inspired from [tsoa](https://github.com/lukeautry/tsoa), the purpose is to be able to generate openapi definitions and express routes definitions via Typescript typings.
+This tools is inspired from [tsoa](https://github.com/lukeautry/tsoa), the purpose is to be able to generate openapi definitions and express routes definitions via Typescript typings.
 
-  We're using [ts-morph](https://github.com/dsherret/ts-morph) under the hood.
+We're using [ts-morph](https://github.com/dsherret/ts-morph) under the hood.
 
 </div>
 
@@ -41,7 +41,7 @@ import { Route, Get } from 'typoa'
 @Route()
 class MyController {
   @Get()
-  public get () {}
+  public get() {}
 }
 ```
 
@@ -55,7 +55,7 @@ import { Route, Get, Controller } from 'typoa'
 @Route('/controller-path')
 class MyController extends Controller {
   @Get('/method-path')
-  public get () {
+  public get() {
     this.setStatus(201)
     return 'Created'
   }
@@ -75,9 +75,7 @@ import { Route, Get, Controller } from 'typoa'
 @Route('/controller-path')
 class MyController extends Controller {
   @Post('/method-path')
-  public post (
-    @Body() body: { name: string }
-  ) {
+  public post(@Body() body: { name: string }) {
     this.setStatus(201)
     return 'Created'
   }
@@ -103,16 +101,18 @@ type TypeA = { name: string }
 type TypeB = { name: number }
 
 // The function need to return the name of the type you want to validate against
-export const discriminatorFunction: BodyDiscriminatorFunction = async (req) => 'TypeA'
+export const discriminatorFunction: BodyDiscriminatorFunction = async req =>
+  'TypeA'
 
 @Route('/controller-path')
 class MyController extends Controller {
   @Post('/method-path')
-  public post (
+  public post(
     @Body(
       'application/json', // body content-type
       discriminatorFunction // name of the function you want to use
-    ) body: TypeA | TypeB
+    )
+    body: TypeA | TypeB
   ) {
     this.setStatus(201)
     return 'Created'
@@ -132,11 +132,13 @@ await generate({
     // Where do you want to generate your openapi file (or array of file paths)
     // The file extension (.json, .yaml, or .yml) determines the output format
     filePath: '/tmp/openapi.json',
-    service: { // Used in the openapi definitions
+    service: {
+      // Used in the openapi definitions
       name: 'my-service',
       version: '1.0.0'
     },
-    securitySchemes: { // Openapi securitySchemes definitions
+    securitySchemes: {
+      // Openapi securitySchemes definitions
       company: {
         type: 'apiKey',
         name: 'x-company-id',

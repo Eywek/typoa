@@ -1,11 +1,28 @@
-import { Route, Get, Post, Put, Response, Controller, Security } from '../../../src'
+import {
+  Route,
+  Get,
+  Post,
+  Put,
+  Response,
+  Controller,
+  Security
+} from '../../../src'
 
 // Define some common error types
-type ErrorNotFound = { code: 'NOT_FOUND', message: string }
-type ErrorBadRequest = { code: 'BAD_REQUEST', message: string }
-type ErrorForbidden = { code: 'FORBIDDEN', message: string }
-type ErrorUnauthorized = { code: 'UNAUTHORIZED', message: string }
-type ErrorQuotaExceeded = { code: 'QUOTA_EXCEEDED', message: string }
+type ErrorNotFound = { code: 'NOT_FOUND'; message: string }
+type ErrorBadRequest = {
+  code: 'BAD_REQUEST'
+  message: string
+}
+type ErrorForbidden = { code: 'FORBIDDEN'; message: string }
+type ErrorUnauthorized = {
+  code: 'UNAUTHORIZED'
+  message: string
+}
+type ErrorQuotaExceeded = {
+  code: 'QUOTA_EXCEEDED'
+  message: string
+}
 
 type User = {
   id: string
@@ -37,7 +54,9 @@ export class UserController extends Controller {
 
   @Put('/{id}')
   // This adds a specific error response not defined on controller
-  @Response<{ error: { code: 'CONFLICT', message: string } }>(409, 'User already exists')
+  @Response<{
+    error: { code: 'CONFLICT'; message: string }
+  }>(409, 'User already exists')
   public async updateUser(): Promise<User> {
     return { id: '1', name: 'User 1' }
   }
@@ -49,13 +68,17 @@ export class ProductController extends Controller {
   @Get()
   // This method has its own response
   @Response<ErrorNotFound>(404, 'Product not found')
-  public async listProducts(): Promise<{ products: string[] }> {
+  public async listProducts(): Promise<{
+    products: string[]
+  }> {
     return { products: ['Product 1'] }
   }
 
   @Post()
   // This method doesn't specify responses
-  public async createProduct(): Promise<{ created: boolean }> {
+  public async createProduct(): Promise<{
+    created: boolean
+  }> {
     return { created: true }
   }
 }
@@ -74,7 +97,9 @@ export class AdminController extends Controller {
   @Post()
   @Security({ admin: ['write'] })
   @Response<ErrorQuotaExceeded>(429, 'Too many requests')
-  public async createAdminResource(): Promise<{ created: boolean }> {
+  public async createAdminResource(): Promise<{
+    created: boolean
+  }> {
     return { created: true }
   }
 }

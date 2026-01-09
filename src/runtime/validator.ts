@@ -10,22 +10,25 @@ export class ValidateError extends Error {
   public status = 400
   public name = 'ValidateError'
 
-  constructor (public fields: Record<string, { message: string; value?: any }>, public message: string) {
+  constructor(
+    public fields: Record<string, { message: string; value?: any }>,
+    public message: string
+  ) {
     super(message)
   }
 }
 
-export async function validateAndParse (
+export async function validateAndParse(
   req: express.Request,
   schemas: OpenAPIV3.ComponentsObject['schemas'],
   rules: {
     params: OpenAPIV3.ParameterObject[]
-    body?: OpenAPIV3.RequestBodyObject,
+    body?: OpenAPIV3.RequestBodyObject
     bodyDiscriminatorFn?: BodyDiscriminatorFunction
   }
 ): Promise<any[]> {
   const args: any[] = []
-  for (const param of (rules.params || [])) {
+  for (const param of rules.params || []) {
     // Handling @Request()
     if (param.in === 'request') {
       args.push(req)
@@ -33,7 +36,9 @@ export async function validateAndParse (
     }
     // Handling body
     if (param.in === 'body') {
-      args.push(await validateBody(req, rules.body!, rules.bodyDiscriminatorFn, schemas))
+      args.push(
+        await validateBody(req, rules.body!, rules.bodyDiscriminatorFn, schemas)
+      )
       continue
     }
     // Handling other params: header, query and path
@@ -44,11 +49,20 @@ export async function validateAndParse (
         break
       case 'query':
         value = req.query[param.name] as string | undefined | string[]
+        // eslint-disable-next-line no-case-declarations
         const schema = param.schema!
-        if ('type' in schema && schema.type === 'boolean' && value?.length === 0) {
+        if (
+          'type' in schema &&
+          schema.type === 'boolean' &&
+          value?.length === 0
+        ) {
           value = 'true' // allow empty values for param boolean
         }
-        if ('type' in schema && schema.type === 'array' && typeof value === 'string') {
+        if (
+          'type' in schema &&
+          schema.type === 'array' &&
+          typeof value === 'string'
+        ) {
           value = [value]
         }
         break
@@ -58,11 +72,19 @@ export async function validateAndParse (
     }
     const isUndefined = typeof value === 'undefined'
     if (param.required === true && isUndefined) {
-      throw new ValidateError({
-        [param.name]: { message: 'Param is required', value }
-      }, 'Missing parameter')
+      throw new ValidateError(
+        {
+          [param.name]: {
+            message: 'Param is required',
+            value
+          }
+        },
+        'Missing parameter'
+      )
     }
-    if (isUndefined) { // Don't validate
+
+    // Don't validate
+    if (isUndefined) {
       args.push(undefined)
       continue
     }
@@ -79,7 +101,7 @@ export async function validateAndParse (
   return args
 }
 
-export function validateAndParseResponse (
+export function validateAndParseResponse(
   data: unknown,
   schemas: OpenAPIV3.ComponentsObject['schemas'],
   rules: Record<string, OpenAPIV3.ResponseObject>,
@@ -88,7 +110,15 @@ export function validateAndParseResponse (
 ): unknown {
   try {
     const rule = rules[statusCode] ?? rules.default
-    if (!rule) throw new ValidateError({ response: { message: `Missing response schema for status code ${statusCode}` } }, 'Invalid status code')
+    if (!rule)
+      throw new ValidateError(
+        {
+          response: {
+            message: `Missing response schema for status code ${statusCode}`
+          }
+        },
+        'Invalid status code'
+      )
     const expectedSchema = rule.content?.[contentType]?.schema
     if (typeof expectedSchema === 'undefined') {
       if (typeof data === 'undefined' || data === null) {
@@ -112,14 +142,16 @@ export function validateAndParseResponse (
   }
 }
 
-async function validateBody (
+async function validateBody(
   req: express.Request,
   rule: OpenAPIV3.RequestBodyObject,
   discriminatorFn: BodyDiscriminatorFunction | undefined,
   schemas: OpenAPIV3.ComponentsObject['schemas']
 ): Promise<unknown> {
   const body = req.body
-  const contentType = (req.headers['content-type'] ?? 'application/json').split(';')[0]
+  const contentType = (req.headers['content-type'] ?? 'application/json').split(
+    ';'
+  )[0]
   const expectedSchema = rule.content[contentType]?.schema
   if (typeof expectedSchema === 'undefined') {
     log(`Schema is not found for '${contentType}', throwing error`)
@@ -165,12 +197,16 @@ async function validateBody (
   }, validationResult.errorMessage)
 }
 
-function getFromRef (
-  schema: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject,
+function getFromRef(
+  schema:
+    | OpenAPIV3.ReferenceObject
+    | OpenAPIV3.ArraySchemaObject
+    | OpenAPIV3.NonArraySchemaObject,
   schemas: OpenAPIV3.ComponentsObject['schemas']
 ): OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject {
   if ('$ref' in schema) {
-    const schemaName = schemas![schema.$ref.substr('#/components/schemas/'.length)]
+    const schemaName =
+      schemas![schema.$ref.substr('#/components/schemas/'.length)]
     // tslint:disable-next-line: strict-type-predicates
     if (typeof schemaName === 'undefined') {
       throw new Error(`Schema '${schema.$ref}' not found`)
@@ -203,7 +239,10 @@ type SafeValidatedValue =
 function validateAndParseValueAgainstSchema (
   name: string,
   value: unknown,
-  schema: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject,
+  schema:
+    | OpenAPIV3.ReferenceObject
+    | OpenAPIV3.ArraySchemaObject
+    | OpenAPIV3.NonArraySchemaObject,
   schemas: OpenAPIV3.ComponentsObject['schemas']
 ): SafeValidatedValue {
   const currentSchema = getFromRef(schema, schemas)
@@ -256,7 +295,7 @@ function validateAndParseValueAgainstSchema (
     // already be parsed. And we don't want to transform a field with type string | number
     // into a number if it's a string in the body
     const isInBody = name === 'body' || name.startsWith('body.')
-    const parsedValue = isInBody ? value as number : parseFloat(String(value))
+    const parsedValue = isInBody ? (value as number) : parseFloat(String(value))
     if (isNaN(parsedValue)) {
       return { succeed: false, errorMessage: 'This property must be a number', fieldName: name }
     }
@@ -339,7 +378,10 @@ function validateAndParseValueAgainstSchema (
       }
     }
     // Validate remaining keys with additionalProperties if present
-    if (currentSchema.additionalProperties && typeof currentSchema.additionalProperties !== 'boolean') {
+    if (
+      currentSchema.additionalProperties &&
+      typeof currentSchema.additionalProperties !== 'boolean'
+    ) {
       const filteredKeys = Object.keys(filteredProperties)
       const keys = Object.keys(value).filter(key => filteredKeys.includes(key) === false)
 

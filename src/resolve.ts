@@ -1,36 +1,55 @@
-import { SymbolFlags, Type, Node, ts, Symbol as TsSymbol, MethodDeclaration, MethodSignature, EnumDeclaration, ParameterDeclaration, PropertyDeclaration, InterfaceDeclaration } from 'ts-morph'
+import {
+  SymbolFlags,
+  Type,
+  Node,
+  ts,
+  Symbol as TsSymbol,
+  MethodDeclaration,
+  MethodSignature,
+  EnumDeclaration,
+  ParameterDeclaration,
+  PropertyDeclaration
+} from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
 import { getConfig } from '.'
 
-export function buildRef (name: string): string {
+export function buildRef(name: string): string {
   return `#/components/schemas/${name}`
 }
 
-function capitalizeFirstLetter (str: string): string {
+function capitalizeFirstLetter(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
-function resolveNullableType (
+function resolveNullableType(
   nonNullableType: Type,
   isUndefined: boolean,
   isNull: boolean,
   spec: OpenAPIV3.Document
 ): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
   if (isNull) {
-    return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
+    return appendMetaToResolvedType(resolve(nonNullableType, spec), {
+      nullable: true
+    })
   }
   return resolve(nonNullableType, spec)
 }
 
-function retrieveTypeName (type: Type): string {
+function retrieveTypeName(type: Type): string {
   if (type.isArray()) {
     return `Array_${retrieveTypeName(type.getArrayElementType()!)}`
   }
   if (type.isIntersection()) {
-    return `Intersection_${type.getIntersectionTypes().map(type => retrieveTypeName(type)).join('_')}`
+    return `Intersection_${type
+      .getIntersectionTypes()
+      .map(type => retrieveTypeName(type))
+      .join('_')}`
   }
   if (type.isUnion()) {
-    return `Union_${type.getUnionTypes().map(type => retrieveTypeName(type)).join('_')}`
+    return `Union_${type
+      .getUnionTypes()
+      .map(type => retrieveTypeName(type))
+      .join('_')}`
   }
   const typeName = type.getSymbol()?.getName()
   if (typeof typeName === 'undefined') {
@@ -50,7 +69,13 @@ function retrieveTypeName (type: Type): string {
     }
     // handle literal record
     if (type.isObject()) {
-      return type.getProperties().map(prop => (`${prop.getName()}_${retrieveTypeName(prop.getTypeAtLocation(getDeclarationForProperty(type, prop)))}`)).join('_')
+      return type
+        .getProperties()
+        .map(
+          prop =>
+            `${prop.getName()}_${retrieveTypeName(prop.getTypeAtLocation(getDeclarationForProperty(type, prop)))}`
+        )
+        .join('_')
     }
   }
   return typeName
@@ -59,12 +84,17 @@ function retrieveTypeName (type: Type): string {
 /**
  * Returns true if the type could be identified
  */
-function isTypeIdentifier (type: Type): boolean {
+function isTypeIdentifier(type: Type): boolean {
   const kindName = type.getSymbol()?.getDeclarations()?.[0]?.getKindName()
-  return typeof kindName !== 'undefined' && kindName !== 'MappedType' && (type.isAnonymous() === false || typeof type.getAliasSymbol() !== 'undefined')
+  return (
+    typeof kindName !== 'undefined' &&
+    kindName !== 'MappedType' &&
+    (type.isAnonymous() === false ||
+      typeof type.getAliasSymbol() !== 'undefined')
+  )
 }
 
-export function resolve (
+export function resolve(
   type: Type,
   spec: OpenAPIV3.Document,
   resolveNullableTypeFn = resolveNullableType
@@ -80,8 +110,13 @@ export function resolve (
     const unionTypes = type.getUnionTypes()
     const isUndefined = unionTypes.some(t => t.isUndefined())
     const isNull = unionTypes.some(t => t.isNull())
-    
-    return resolveNullableTypeFn(type.getNonNullableType(), isUndefined, isNull, spec)
+
+    return resolveNullableTypeFn(
+      type.getNonNullableType(),
+      isUndefined,
+      isNull,
+      spec
+    )
   }
   // Handle types
   if (type.isArray()) {
@@ -102,8 +137,11 @@ export function resolve (
     return { type: 'boolean' }
   }
   if (type.isBooleanLiteral()) {
-    // @ts-expect-error https://github.com/microsoft/TypeScript/issues/26075
-    return { type: 'boolean', enum: [type.compilerType.intrinsicName] }
+    return {
+      type: 'boolean',
+      // @ts-expect-error https://github.com/microsoft/TypeScript/issues/26075
+      enum: [type.compilerType.intrinsicName]
+    }
   }
   if (type.isUnknown() || type.isAny()) {
     spec.components!.schemas!.AnyValue = {
@@ -112,7 +150,8 @@ export function resolve (
     }
     return { $ref: buildRef('AnyValue') }
   }
-  if (type.isTuple()) { // OpenAPI doesn't support it, so we take it as an union of array
+  if (type.isTuple()) {
+    // OpenAPI doesn't support it, so we take it as an union of array
     // tslint:disable-next-line: no-console
     return {
       type: 'array',
@@ -129,11 +168,13 @@ export function resolve (
     // tslint:disable-next-line: strict-type-predicates
     if (typeof spec.components!.schemas![enumName] === 'undefined') {
       const values = declaration.getMembers().map(m => m.getValue()!)
-      const names = declaration.getMembers().map(m => m.getName()!)
+      const names = declaration.getMembers().map(m => m.getName())
       spec.components!.schemas![enumName] = {
-        type: (typeof values[0]) as 'string' | 'number',
+        type: typeof values[0] as 'string' | 'number',
         enum: values,
-        ...(getConfig()?.openapi?.xEnumVarnames ? { "x-enum-varnames": names } : {}),
+        ...(getConfig()?.openapi?.xEnumVarnames
+          ? { 'x-enum-varnames': names }
+          : {})
       }
     }
     return { $ref: buildRef(enumName) }
@@ -150,18 +191,40 @@ export function resolve (
     }
     // Handle mapped types
     const helperName = type.getAliasSymbol()?.getEscapedName()
-    if (helperName === 'Partial' || helperName === 'Omit' || helperName === 'Pick' || helperName === 'Promise') {
+    if (
+      helperName === 'Partial' ||
+      helperName === 'Omit' ||
+      helperName === 'Pick' ||
+      helperName === 'Promise'
+    ) {
       const typeArguments = type.getAliasTypeArguments()
       const subjectType = typeArguments[0]
       if (isTypeIdentifier(subjectType) === false) {
-        return resolveMappedObjectType(type, spec, helperName, subjectType, typeArguments)
+        return resolveMappedObjectType(
+          type,
+          spec,
+          helperName,
+          subjectType,
+          typeArguments
+        )
       }
       switch (helperName) {
         case 'Omit':
         case 'Pick':
+          // eslint-disable-next-line no-case-declarations
           const args = typeArguments[1].isUnion()
-            ? typeArguments[1].getUnionTypes().map(t => capitalizeFirstLetter(String(t.getAliasSymbol()?.getName() ?? t.getLiteralValue())))
-            : [capitalizeFirstLetter(String(typeArguments[1].getLiteralValue()))]
+            ? typeArguments[1]
+                .getUnionTypes()
+                .map(t =>
+                  capitalizeFirstLetter(
+                    String(t.getAliasSymbol()?.getName() ?? t.getLiteralValue())
+                  )
+                )
+            : [
+                capitalizeFirstLetter(
+                  String(typeArguments[1].getLiteralValue())
+                )
+              ]
           typeName = `${retrieveTypeName(subjectType)}_With${helperName === 'Omit' ? 'out' : ''}_${args.join('_')}`
           break
         case 'Partial':
@@ -171,33 +234,94 @@ export function resolve (
           typeName = retrieveTypeName(subjectType)
           break
       }
-    } else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1) && isTypeIdentifier(type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0])) { // i.e. Serialized<Datasource> -> Serialized_Datasource
-      const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
-      const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
+    } else if (
+      (type.getAliasTypeArguments().length === 1 ||
+        type.getTypeArguments().length === 1) &&
+      isTypeIdentifier(
+        type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
+      )
+    ) {
+      // i.e. Serialized<Datasource> -> Serialized_Datasource
+      const subjectType =
+        type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
+      const name =
+        type.getSymbol()?.getEscapedName() !== '__type'
+          ? type.getSymbol()?.getEscapedName()
+          : helperName
       typeName = `${name}_${retrieveTypeName(subjectType)}`
-    }  else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1) && (type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0])?.isAnonymous() === true) { // i.e. Serialized<{ datasource: Datasource }> -> Serialized_datasource
-      const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
-      const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
+    } else if (
+      (type.getAliasTypeArguments().length === 1 ||
+        type.getTypeArguments().length === 1) &&
+      (
+        type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
+      )?.isAnonymous() === true
+    ) {
+      // i.e. Serialized<{ datasource: Datasource }> -> Serialized_datasource
+      const subjectType =
+        type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
+      const name =
+        type.getSymbol()?.getEscapedName() !== '__type'
+          ? type.getSymbol()?.getEscapedName()
+          : helperName
       typeName = `${name}_${retrieveTypeName(subjectType)}`
-    } else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1) && (type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0])?.isUnion() === true) { // i.e. Serialized<WorkerDatasource | ProxyDatasource> -> Serialized_Union_WorkerDatasource_ProxyDatasource
-      const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
-      const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
-      typeName = `${name}_Union_${subjectType.getUnionTypes().map(t => retrieveTypeName(t)).join('_')}`
-    } else if ((type.getAliasTypeArguments().length === 1 || type.getTypeArguments().length === 1) && (type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0])?.isIntersection() === true) { // i.e. Serialized<WorkerDatasource & ProxyDatasource> -> Serialized_Intersection_WorkerDatasource_ProxyDatasource
-      const subjectType = type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
-      const name = type.getSymbol()?.getEscapedName() !== '__type' ? type.getSymbol()?.getEscapedName() : helperName
-      typeName = `${name}_Intersection_${subjectType.getIntersectionTypes().map(t => retrieveTypeName(t)).join('_')}`
-    } else if (isTypeIdentifier(type) === false) { // For other and anonymous types, don't use ref
+    } else if (
+      (type.getAliasTypeArguments().length === 1 ||
+        type.getTypeArguments().length === 1) &&
+      (
+        type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
+      )?.isUnion() === true
+    ) {
+      // i.e. Serialized<WorkerDatasource | ProxyDatasource> -> Serialized_Union_WorkerDatasource_ProxyDatasource
+      const subjectType =
+        type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
+      const name =
+        type.getSymbol()?.getEscapedName() !== '__type'
+          ? type.getSymbol()?.getEscapedName()
+          : helperName
+      typeName = `${name}_Union_${subjectType
+        .getUnionTypes()
+        .map(t => retrieveTypeName(t))
+        .join('_')}`
+    } else if (
+      (type.getAliasTypeArguments().length === 1 ||
+        type.getTypeArguments().length === 1) &&
+      (
+        type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
+      )?.isIntersection() === true
+    ) {
+      // i.e. Serialized<WorkerDatasource & ProxyDatasource> -> Serialized_Intersection_WorkerDatasource_ProxyDatasource
+      const subjectType =
+        type.getTypeArguments()[0] ?? type.getAliasTypeArguments()[0]
+      const name =
+        type.getSymbol()?.getEscapedName() !== '__type'
+          ? type.getSymbol()?.getEscapedName()
+          : helperName
+      typeName = `${name}_Intersection_${subjectType
+        .getIntersectionTypes()
+        .map(t => retrieveTypeName(t))
+        .join('_')}`
+    } else if (isTypeIdentifier(type) === false) {
+      // For other and anonymous types, don't use ref
       return resolveObjectType(type, spec)
     }
 
     // Add to spec components if not already resolved
     // tslint:disable-next-line: strict-type-predicates
     if (typeof spec.components!.schemas![typeName] === 'undefined') {
-      if (helperName === 'Partial' || helperName === 'Omit' || helperName === 'Pick') {
+      if (
+        helperName === 'Partial' ||
+        helperName === 'Omit' ||
+        helperName === 'Pick'
+      ) {
         const typeArguments = type.getAliasTypeArguments()
         const subjectType = typeArguments[0]
-        spec.components!.schemas![typeName] = resolveMappedObjectType(type, spec, helperName, subjectType, typeArguments)
+        spec.components!.schemas![typeName] = resolveMappedObjectType(
+          type,
+          spec,
+          helperName,
+          subjectType,
+          typeArguments
+        )
       } else {
         spec.components!.schemas![typeName] = resolveObjectType(type, spec)
       }
@@ -216,7 +340,10 @@ export function resolve (
       oneOf: values
     }
   }
-  if ((type.isEnumLiteral() || type.isLiteral()) && type.compilerType.isLiteral()) {
+  if (
+    (type.isEnumLiteral() || type.isLiteral()) &&
+    type.compilerType.isLiteral()
+  ) {
     return {
       type: type.isNumberLiteral() ? 'number' : 'string',
       enum: [type.compilerType.value]
@@ -232,74 +359,109 @@ export function resolve (
   }
 }
 
-type ResolvePropertiesReturnType = Required<Pick<OpenAPIV3.BaseSchemaObject, 'properties'>> &
-  { required?: string[], additionalProperties?: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject }
-  
-function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolvePropertiesReturnType {
-  const result: ResolvePropertiesReturnType = type.getProperties().reduce((schema, property) => {
-    const node = getDeclarationForProperty(type, property)
-    const propertyType = property.getTypeAtLocation(node)
-    if (Node.isMethodDeclaration(node) || Node.isMethodSignature(node) || propertyType.getCallSignatures().length > 0) {
-      return schema// ignore functions
-    }
-    const jsDocTags = property.compilerSymbol.getJsDocTags()
-    // Handle readonly / getters props / @readonly tag
-    const modifierFlags = property.getValueDeclaration()?.getCombinedModifierFlags() ?? node.getCombinedModifierFlags()
-    const hasFlags = (flag: SymbolFlags) => property.hasFlags(flag) || node.getSymbol()?.hasFlags(flag)
-    const isReadonly = modifierFlags === ts.ModifierFlags.Readonly || (
-      hasFlags(SymbolFlags.GetAccessor) === true &&
-      hasFlags(SymbolFlags.SetAccessor) === false
-    ) || jsDocTags.some(tag => tag.name === 'readonly')
-    // Required by default
-    let required = hasFlags(SymbolFlags.Optional) ? false : true
-    // We resolve the property, overriding the behavior for nullable values
-    // if the value is optional (isUndefined = true) we don't push in the required array
-    const resolvedType = resolve(propertyType, spec, (nonNullableType, isUndefined, isNull, spec) => {
-      if (isUndefined) {
-        required = false
+type ResolvePropertiesReturnType = Required<
+  Pick<OpenAPIV3.BaseSchemaObject, 'properties'>
+> & {
+  required?: string[]
+  additionalProperties?: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
+}
+
+function resolveProperties(
+  type: Type,
+  spec: OpenAPIV3.Document
+): ResolvePropertiesReturnType {
+  const result: ResolvePropertiesReturnType = type.getProperties().reduce(
+    (schema, property) => {
+      const node = getDeclarationForProperty(type, property)
+      const propertyType = property.getTypeAtLocation(node)
+      if (
+        Node.isMethodDeclaration(node) ||
+        Node.isMethodSignature(node) ||
+        propertyType.getCallSignatures().length > 0
+      ) {
+        return schema // ignore functions
       }
-      if (isNull) {
-        return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
+      const jsDocTags = property.compilerSymbol.getJsDocTags()
+      // Handle readonly / getters props / @readonly tag
+      const modifierFlags =
+        property.getValueDeclaration()?.getCombinedModifierFlags() ??
+        node.getCombinedModifierFlags()
+      const hasFlags = (flag: SymbolFlags) =>
+        property.hasFlags(flag) || node.getSymbol()?.hasFlags(flag)
+      const isReadonly =
+        modifierFlags === ts.ModifierFlags.Readonly ||
+        (hasFlags(SymbolFlags.GetAccessor) === true &&
+          hasFlags(SymbolFlags.SetAccessor) === false) ||
+        jsDocTags.some(tag => tag.name === 'readonly')
+      // Required by default
+      let required = hasFlags(SymbolFlags.Optional) ? false : true
+      // We resolve the property, overriding the behavior for nullable values
+      // if the value is optional (isUndefined = true) we don't push in the required array
+      const resolvedType = resolve(
+        propertyType,
+        spec,
+        (nonNullableType, isUndefined, isNull, spec) => {
+          if (isUndefined) {
+            required = false
+          }
+          if (isNull) {
+            return appendMetaToResolvedType(resolve(nonNullableType, spec), {
+              nullable: true
+            })
+          }
+          return resolve(nonNullableType, spec)
+        }
+      )
+      if (isReadonly) {
+        appendMetaToResolvedType(resolvedType, {
+          readOnly: true
+        })
       }
-      return resolve(nonNullableType, spec)
-    })
-    if (isReadonly) {
-      appendMetaToResolvedType(resolvedType, { readOnly: true })
-    }
-    if (jsDocTags.some(tag => tag.name === 'writeonly')) {
-      appendMetaToResolvedType(resolvedType, { writeOnly: true })
-    }
-    // JSDoc tags
-    appendJsDocTags(jsDocTags, resolvedType)
-    // initializer
-    if (Node.isPropertyDeclaration(node)) {
-      if (appendInitializer(node, resolvedType)) {
-        required = false
+      if (jsDocTags.some(tag => tag.name === 'writeonly')) {
+        appendMetaToResolvedType(resolvedType, {
+          writeOnly: true
+        })
       }
-    }
-    // Add to spec
-    if ('type' in resolvedType && (resolvedType.type as any) === 'undefined') {
+      // JSDoc tags
+      appendJsDocTags(jsDocTags, resolvedType)
+      // initializer
+      if (Node.isPropertyDeclaration(node)) {
+        if (appendInitializer(node, resolvedType)) {
+          required = false
+        }
+      }
+      // Add to spec
+      if (
+        'type' in resolvedType &&
+        (resolvedType.type as any) === 'undefined'
+      ) {
+        return schema
+      }
+      schema.properties[property.getName()] = resolvedType
+      if (required) {
+        schema.required.push(property.getName())
+      }
       return schema
-    }
-    schema.properties[property.getName()] = resolvedType
-    if (required) {
-      schema.required.push(property.getName())
-    }
-    return schema
-  }, { properties: {}, required: [] } as Required<Omit<ResolvePropertiesReturnType, 'additionalProperties'>>)
+    },
+    { properties: {}, required: [] } as Required<
+      Omit<ResolvePropertiesReturnType, 'additionalProperties'>
+    >
+  )
   if (result.required?.length === 0) {
     // OpenAPI don't want the required[] prop if it's empty
     delete result.required
   }
-  
+
   // Check for index signatures regardless of whether explicit properties exist
   const stringIndexType = type.getStringIndexType()
   const numberIndexType = type.getNumberIndexType()
-  
+
   // Handle mapped types and objects with index signatures (ex: { [key: string]: any } or Record<string, any>)
   if (
-    (typeof stringIndexType !== 'undefined' && stringIndexType.getText() !== 'never') ||
-    (typeof numberIndexType !== 'undefined' && numberIndexType.getText() !== 'never')
+    (typeof stringIndexType !== 'undefined' &&
+      stringIndexType.getText() !== 'never') ||
+    (typeof numberIndexType !== 'undefined' &&
+      numberIndexType.getText() !== 'never')
   ) {
     result.additionalProperties = resolve(
       stringIndexType ?? numberIndexType!,
@@ -307,26 +469,28 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
     )
   } else {
     // Edge cases where TypeScript's getStringIndexType() might fail to detect
-    // index signatures in complex type scenarios (e.g., after type transformations) 
-    
+    // index signatures in complex type scenarios (e.g., after type transformations)
+
     // Check if the type represents a Record-like structure that should have additionalProperties
     const typeSymbol = type.getSymbol()
     const typeText = type.getText()
-    
+
     // Handle cases where the type might be a transformed Record type
     if (typeSymbol?.getName() === '__type' || typeText.includes('Record<')) {
-      // For anonymous types that might be transformed Record types, 
+      // For anonymous types that might be transformed Record types,
       // check if the structure suggests it should have additional properties
-      
+
       // Check the type's apparent type for index signatures
       const apparentType = type.getApparentType()
       if (apparentType && apparentType !== type) {
         const apparentStringIndexType = apparentType.getStringIndexType()
         const apparentNumberIndexType = apparentType.getNumberIndexType()
-        
+
         if (
-          (typeof apparentStringIndexType !== 'undefined' && apparentStringIndexType.getText() !== 'never') ||
-          (typeof apparentNumberIndexType !== 'undefined' && apparentNumberIndexType.getText() !== 'never')
+          (typeof apparentStringIndexType !== 'undefined' &&
+            apparentStringIndexType.getText() !== 'never') ||
+          (typeof apparentNumberIndexType !== 'undefined' &&
+            apparentNumberIndexType.getText() !== 'never')
         ) {
           result.additionalProperties = resolve(
             apparentStringIndexType ?? apparentNumberIndexType!,
@@ -336,20 +500,20 @@ function resolveProperties (type: Type, spec: OpenAPIV3.Document): ResolveProper
       }
     }
   }
-  
+
   return result
 }
 
 /**
  * Resolves mapped object types when applied to types with toJSON methods.
- * 
+ *
  * When a mapped type is applied to a class/interface that has a toJSON method, we need to
  * apply the transformation to the toJSON return type rather than the original object properties.
  * This is because the toJSON method defines the actual serialized structure.
- * 
+ *
  * @returns The resolved OpenAPI schema with transformations applied
  */
-function resolveMappedObjectType (
+function resolveMappedObjectType(
   type: Type,
   spec: OpenAPIV3.Document,
   helperName: string,
@@ -358,11 +522,15 @@ function resolveMappedObjectType (
 ): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
   // Check if we're omitting or picking the toJSON property
   let shouldSkipToJSON = false
-  if ((helperName === 'Omit' || helperName === 'Pick') && typeArguments && typeArguments.length > 1) {
+  if (
+    (helperName === 'Omit' || helperName === 'Pick') &&
+    typeArguments &&
+    typeArguments.length > 1
+  ) {
     const omittedKeys = typeArguments[1].isUnion()
       ? typeArguments[1].getUnionTypes().map(t => String(t.getLiteralValue()))
       : [String(typeArguments[1].getLiteralValue())]
-    
+
     if (helperName === 'Omit' && omittedKeys.includes('toJSON')) {
       // If we're omitting toJSON, don't follow it to avoid infinite loops
       shouldSkipToJSON = true
@@ -371,23 +539,25 @@ function resolveMappedObjectType (
       shouldSkipToJSON = true
     }
   }
-  
+
   // Check if the subject type has a toJSON method
   const toJSONProperty = subjectType.getProperty('toJSON')
   if (toJSONProperty && !shouldSkipToJSON) {
-    const node = getDeclarationForProperty(subjectType, toJSONProperty) as MethodDeclaration | MethodSignature
+    const node = getDeclarationForProperty(subjectType, toJSONProperty) as
+      | MethodDeclaration
+      | MethodSignature
     const toJSONReturnType = resolve(node.getReturnType(), spec)
-    
+
     // Apply mapped type transformation to the toJSON return type
     if ('$ref' in toJSONReturnType) {
       // For reference types, we need to create a new schema with the transformation applied
       // This is more complex, so for now we'll fall back to normal resolution
       return resolveObjectType(type, spec)
     }
-    
+
     if (toJSONReturnType.type === 'object' && toJSONReturnType.properties) {
       const transformedSchema = { ...toJSONReturnType }
-      
+
       switch (helperName) {
         case 'Partial':
           // Make all properties optional by removing them from required array
@@ -397,11 +567,11 @@ function resolveMappedObjectType (
         // the relationship between input properties and toJSON output properties,
         // which cannot be determined generically without analyzing the toJSON implementation
       }
-      
+
       return transformedSchema
     }
   }
-  
+
   // Fall back to normal object resolution if no toJSON or transformation failed
   return resolveObjectType(type, spec)
 }
@@ -412,27 +582,30 @@ function resolveMappedObjectType (
 function hasInterfaceInheritance(type: Type): boolean {
   const symbol = type.getSymbol()
   if (!symbol) return false
-  
+
   const declarations = symbol.getDeclarations()
-  
-  return declarations.some(decl => 
-    Node.isInterfaceDeclaration(decl) && decl.getExtends().length > 0
+
+  return declarations.some(
+    decl => Node.isInterfaceDeclaration(decl) && decl.getExtends().length > 0
   )
 }
 
 /**
  * Gets the base interfaces that an interface extends
  */
-function getBaseInterfaces(type: Type, spec: OpenAPIV3.Document): OpenAPIV3.ReferenceObject[] {
+function getBaseInterfaces(
+  type: Type,
+  spec: OpenAPIV3.Document
+): OpenAPIV3.ReferenceObject[] {
   const symbol = type.getSymbol()
   if (!symbol) return []
-  
+
   const baseRefs: OpenAPIV3.ReferenceObject[] = []
   const declarations = symbol.getDeclarations()
-  
+
   for (const decl of declarations) {
     if (!Node.isInterfaceDeclaration(decl)) continue
-    
+
     const extendsExpressions = decl.getExtends()
     for (const extendsExpr of extendsExpressions) {
       const baseType = extendsExpr.getType()
@@ -442,97 +615,111 @@ function getBaseInterfaces(type: Type, spec: OpenAPIV3.Document): OpenAPIV3.Refe
       }
     }
   }
-  
+
   return baseRefs
 }
 
 /**
  * Gets only the properties declared directly in an interface (not inherited)
  */
-function getOwnInterfaceProperties(type: Type, spec: OpenAPIV3.Document): ResolvePropertiesReturnType {
+function getOwnInterfaceProperties(
+  type: Type,
+  spec: OpenAPIV3.Document
+): ResolvePropertiesReturnType {
   const symbol = type.getSymbol()
   if (!symbol) {
     // Fallback to normal property resolution
     return resolveProperties(type, spec)
   }
-  
+
   const declarations = symbol.getDeclarations()
-  const interfaceDecl = declarations.find(decl => Node.isInterfaceDeclaration(decl)) as InterfaceDeclaration | undefined
-  
+  const interfaceDecl = declarations.find(decl =>
+    Node.isInterfaceDeclaration(decl)
+  )
+
   if (!interfaceDecl) {
     // Fallback to normal property resolution
     return resolveProperties(type, spec)
   }
-  
+
   const result: ResolvePropertiesReturnType = {
     properties: {},
     required: []
   }
-  
+
   // Get only the properties declared in this interface
   const propertySignatures = interfaceDecl.getProperties()
-  
+
   for (const propSig of propertySignatures) {
     const propName = propSig.getName()
     const propType = propSig.getType()
     let required = !propSig.hasQuestionToken()
-    
+
     // Resolve the property type
     const resolvedType = resolve(
-      propType, 
-      spec, 
+      propType,
+      spec,
       (nonNullableType, isUndefined, isNull, spec) => {
         if (isUndefined) {
           required = false
         }
         if (isNull) {
-          return appendMetaToResolvedType(resolve(nonNullableType, spec), { nullable: true })
+          return appendMetaToResolvedType(resolve(nonNullableType, spec), {
+            nullable: true
+          })
         }
         return resolve(nonNullableType, spec)
       }
     )
-    
+
     // Handle JSDoc tags
     const jsDocTags = propSig.getSymbol()?.compilerSymbol.getJsDocTags() ?? []
     appendJsDocTags(jsDocTags, resolvedType)
-    
+
     // Add to properties
-    if (!('type' in resolvedType && (resolvedType.type as any) === 'undefined')) {
+    if (
+      !('type' in resolvedType && (resolvedType.type as any) === 'undefined')
+    ) {
       result.properties[propName] = resolvedType
       if (required) {
         result.required!.push(propName)
       }
     }
   }
-  
+
   // Handle method signatures (but ignore them like in resolveProperties)
   // Methods are already filtered out by only looking at property signatures
-  
+
   if (result.required!.length === 0) {
     delete result.required
   }
-  
+
   return result
 }
 
 /**
  * Resolves object types (classes, interfaces, and plain objects) to OpenAPI schemas.
- * 
+ *
  * This function handles the conversion of TypeScript object types to OpenAPI schema objects.
  * It has special handling for classes/interfaces that have a toJSON method - in such cases,
  * it resolves to the return type of the toJSON method instead of the object's properties.
  * For regular objects without toJSON, it resolves all properties using resolveProperties.
- * 
+ *
  * @returns The resolved OpenAPI schema (either a reference or inline schema)
  */
-function resolveObjectType (type: Type, spec: OpenAPIV3.Document): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
+function resolveObjectType(
+  type: Type,
+  spec: OpenAPIV3.Document
+): OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject {
   // toJSON methods
   const toJSONProperty = type.getProperty('toJSON')
   if (toJSONProperty) {
-    const node = getDeclarationForProperty(type, toJSONProperty) as MethodDeclaration | MethodSignature
+    const node = getDeclarationForProperty(type, toJSONProperty) as
+      | MethodDeclaration
+      | MethodSignature
     return resolve(node.getReturnType(), spec)
   }
-  
+
   // Check for interface inheritance
   if (!hasInterfaceInheritance(type)) {
     return {
@@ -540,9 +727,9 @@ function resolveObjectType (type: Type, spec: OpenAPIV3.Document): OpenAPIV3.Ref
       ...resolveProperties(type, spec)
     }
   }
-  
+
   const baseRefs = getBaseInterfaces(type, spec)
-  
+
   // If there are no base interfaces, fall back to normal resolution
   if (baseRefs.length === 0) {
     return {
@@ -550,38 +737,51 @@ function resolveObjectType (type: Type, spec: OpenAPIV3.Document): OpenAPIV3.Ref
       ...resolveProperties(type, spec)
     }
   }
-  
+
   // Shallow copy to avoid mutating the original baseRefs array
-  const allOfElements = Array.from<OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject>(baseRefs)
+  const allOfElements = Array.from<
+    OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
+  >(baseRefs)
   const ownProps = getOwnInterfaceProperties(type, spec)
-  
+
   // Add own properties if any exist
-  if (Object.keys(ownProps.properties).length > 0 || ownProps.additionalProperties) {
+  if (
+    Object.keys(ownProps.properties).length > 0 ||
+    ownProps.additionalProperties
+  ) {
     allOfElements.push({
       type: 'object',
       ...ownProps
     })
   }
-  
+
   return {
     allOf: allOfElements
   }
 }
 
-function getDeclarationForProperty (rootType: Type, property: TsSymbol): Node {
+function getDeclarationForProperty(rootType: Type, property: TsSymbol): Node {
   const firstDeclaration = property.getDeclarations()[0] as Node | undefined // Can be undefined with Record<'foo', string>.foo
   return firstDeclaration ?? rootType.getSymbolOrThrow().getDeclarations()[0]
 }
 
-export function appendMetaToResolvedType (
-  type: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject,
+export function appendMetaToResolvedType(
+  type:
+    | OpenAPIV3.ReferenceObject
+    | OpenAPIV3.ArraySchemaObject
+    | OpenAPIV3.NonArraySchemaObject,
   metas: Partial<OpenAPIV3.NonArraySchemaObject>
-): OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject {
-  if ('$ref' in type) { // siblings aren't allowed with ref (ex: for readonly) see https://stackoverflow.com/a/51402417
+):
+  | OpenAPIV3.ReferenceObject
+  | OpenAPIV3.ArraySchemaObject
+  | OpenAPIV3.NonArraySchemaObject {
+  if ('$ref' in type) {
+    // siblings aren't allowed with ref (ex: for readonly) see https://stackoverflow.com/a/51402417
     const ref = type.$ref
     // @ts-expect-error $ref isn't optional but we need to delete it to mutate the type
     delete type.$ref
-    return Object.assign(type, { // Mutate type deleting $ref
+    return Object.assign(type, {
+      // Mutate type deleting $ref
       allOf: [{ $ref: ref }],
       ...metas
     })
@@ -589,9 +789,12 @@ export function appendMetaToResolvedType (
   return Object.assign(type, metas)
 }
 
-export function appendJsDocTags (
+export function appendJsDocTags(
   jsDocTags: ts.JSDocTagInfo[],
-  resolvedType: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject
+  resolvedType:
+    | OpenAPIV3.ReferenceObject
+    | OpenAPIV3.ArraySchemaObject
+    | OpenAPIV3.NonArraySchemaObject
 ) {
   const supportedTags = [
     'format',
@@ -606,7 +809,7 @@ export function appendJsDocTags (
     'minItems',
     'maxItems'
   ]
-  
+
   const numericTags = [
     'minimum',
     'maximum',
@@ -615,31 +818,41 @@ export function appendJsDocTags (
     'minItems',
     'maxItems'
   ]
-  
+
   for (const tag of jsDocTags) {
     if (!supportedTags.includes(tag.name) || !tag.text) {
       continue
     }
-    
+
     const textValue = tag.text.map(t => t.text).join('\n')
-    const value = numericTags.includes(tag.name) ? parseFloat(textValue) : textValue
-    
+    const value = numericTags.includes(tag.name)
+      ? parseFloat(textValue)
+      : textValue
+
     appendMetaToResolvedType(resolvedType, {
       [tag.name]: value
     })
   }
 }
 
-export function appendInitializer (
+export function appendInitializer(
   node: ParameterDeclaration | PropertyDeclaration,
-  schema: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject
+  schema:
+    | OpenAPIV3.ReferenceObject
+    | OpenAPIV3.ArraySchemaObject
+    | OpenAPIV3.NonArraySchemaObject
 ): boolean {
   // Default value
   const initializer = node.getInitializer()
   const initializerType = initializer?.getType()
 
   if (initializerType?.isLiteral()) {
-    const initializerLiteralType = initializerType.compilerType as ts.StringLiteralType | ts.NumberLiteralType | ts.TrueLiteral | ts.FalseLiteral | ts.NullLiteral
+    const initializerLiteralType = initializerType.compilerType as
+      | ts.StringLiteralType
+      | ts.NumberLiteralType
+      | ts.TrueLiteral
+      | ts.FalseLiteral
+      | ts.NullLiteral
     let value: boolean | string | number | null
     if ('value' in initializerLiteralType) {
       value = initializerLiteralType.value

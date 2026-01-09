@@ -1,4 +1,10 @@
-import { Route, Get, Post, Produces, Body } from '../../../src/runtime/decorators'
+import {
+  Route,
+  Get,
+  Post,
+  Produces,
+  Body
+} from '../../../src/runtime/decorators'
 import { Controller } from '../../../src/runtime/interfaces'
 
 interface User {
@@ -52,6 +58,7 @@ export class BinaryFormatController extends Controller {
 
   @Post('/upload-png')
   public async uploadPng(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Body('image/png') data: Buffer
   ): Promise<{ success: boolean }> {
     return { success: true }
@@ -59,6 +66,7 @@ export class BinaryFormatController extends Controller {
 
   @Post('/upload-pdf')
   public async uploadPdf(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Body('application/pdf') data: Buffer
   ): Promise<{ success: boolean }> {
     return { success: true }

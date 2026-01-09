@@ -31,7 +31,7 @@ export function bindToRouter (router: express.Router) {
       const data = await controller.{{name}}.apply(
         controller,
         await Validator.validateAndParse(
-          req, 
+          req,
           schemas as any,
           {
             params: {{json params}},
@@ -42,7 +42,7 @@ export function bindToRouter (router: express.Router) {
       )
       {{#if validateResponse}}
       const validatedData = Validator.validateAndParseResponse(
-        data, 
+        data,
         schemas as any,
         {{json responses}},
         ('getStatus' in controller ? (controller as any).getStatus()?.toString() : undefined) ?? (typeof data !== 'undefined' && data !== null ? '200' : '204'),

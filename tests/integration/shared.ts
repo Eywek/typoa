@@ -5,7 +5,13 @@ import type express from 'express'
  * and other errors in a consistent way for test assertions.
  */
 export function createErrorHandler(): express.ErrorRequestHandler {
-  return function errorHandler(err: any, req: express.Request, res: express.Response, next: express.NextFunction): void {
+  return function errorHandler(
+    err: any,
+    req: express.Request,
+    res: express.Response,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    next: express.NextFunction
+  ): void {
     if (err.name === 'ValidateError') {
       if (err.fields && Object.keys(err.fields).length > 0) {
         res.status(err.status || 400).json({ fields: err.fields })

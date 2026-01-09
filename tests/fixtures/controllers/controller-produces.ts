@@ -1,4 +1,12 @@
-import { Route, Get, Post, Produces, Controller, Body, Query } from '../../../src'
+import {
+  Route,
+  Get,
+  Post,
+  Produces,
+  Controller,
+  Body,
+  Query
+} from '../../../src'
 
 type User = {
   id: string
@@ -34,9 +42,7 @@ export class ProducesController extends Controller {
 
   @Post('/csv')
   @Produces('text/csv')
-  public async postCsv(
-    @Body() data: { users: User[] }
-  ): Promise<string> {
+  public async postCsv(@Body() data: { users: User[] }): Promise<string> {
     const header = 'id,name\n'
     const rows = data.users.map(user => `${user.id},${user.name}`).join('\n')
     return header + rows
@@ -59,9 +65,7 @@ export class TextController extends Controller {
   }
 
   @Get('/details')
-  public async getDetails(
-    @Query('format') format?: string
-  ): Promise<string> {
+  public async getDetails(@Query('format') format?: string): Promise<string> {
     return `Details in ${format || 'default'} format`
   }
 

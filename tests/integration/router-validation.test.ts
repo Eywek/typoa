@@ -7,7 +7,6 @@ import { test, describe, before } from 'node:test'
 import { generate } from '../../src'
 import { createErrorHandler } from './shared'
 
-
 // Complete validBody with all required fields for testing
 const validBody = {
   string: 'my-string',
@@ -34,8 +33,11 @@ const validBody = {
 }
 
 let app: express.Application
-let routerFile = path.resolve(__dirname, 'generated-router-validation.ts')
-let openapiFile = path.resolve(__dirname, 'generated-openapi-router-validation.json')
+const routerFile = path.resolve(__dirname, 'generated-router-validation.ts')
+const openapiFile = path.resolve(
+  __dirname,
+  'generated-openapi-router-validation.json'
+)
 
 before(async () => {
   await generate({
@@ -52,7 +54,10 @@ before(async () => {
     },
     router: {
       filePath: routerFile,
-      securityMiddlewarePath: path.resolve(__dirname, '../fixtures/security-middleware.ts'),
+      securityMiddlewarePath: path.resolve(
+        __dirname,
+        '../fixtures/security-middleware.ts'
+      ),
       validateResponse: false,
       runtimeImport: '../../src'
     }
@@ -88,7 +93,10 @@ describe('Basic type validation', () => {
       .expect(400)
 
     assert.deepStrictEqual(res.body.fields, {
-      'body.number': { message: 'This property must be a number', value: 'not a number' }
+      'body.number': {
+        message: 'This property must be a number',
+        value: 'not a number'
+      }
     })
   })
 
@@ -100,7 +108,10 @@ describe('Basic type validation', () => {
       .expect(400)
 
     assert.deepStrictEqual(res.body.fields, {
-      'body.boolean': { message: 'This property must be a boolean', value: 10 }
+      'body.boolean': {
+        message: 'This property must be a boolean',
+        value: 10
+      }
     })
   })
 
@@ -122,7 +133,10 @@ describe('Basic type validation', () => {
       .expect(400)
 
     assert.deepStrictEqual(res.body.fields, {
-      'body.array': { message: 'This property must be an array', value: {} }
+      'body.array': {
+        message: 'This property must be an array',
+        value: {}
+      }
     })
   })
 
@@ -134,7 +148,10 @@ describe('Basic type validation', () => {
       .expect(400)
 
     assert.deepStrictEqual(res.body.fields, {
-      'body.tuple.0': { message: 'Found no matching schema for provided value', value: {} }
+      'body.tuple.0': {
+        message: 'Found no matching schema for provided value',
+        value: {}
+      }
     })
   })
 
@@ -146,7 +163,9 @@ describe('Basic type validation', () => {
       .expect(400)
 
     assert.deepStrictEqual(res.body.fields, {
-      'body.intersection': { message: 'This property is not nullable' }
+      'body.intersection': {
+        message: 'This property is not nullable'
+      }
     })
   })
 
@@ -168,7 +187,10 @@ describe('Format and constraint validation', () => {
       .expect(400)
 
     assert.deepStrictEqual(res.body.fields, {
-      'body.stringWithPattern': { message: 'This property must match the pattern: /[A-Z]+/', value: '1' }
+      'body.stringWithPattern': {
+        message: 'This property must match the pattern: /[A-Z]+/',
+        value: '1'
+      }
     })
   })
 
@@ -176,11 +198,17 @@ describe('Format and constraint validation', () => {
     const res = await request(app)
       .post('/my-controller/')
       .set('x-custom-header', 'my-header')
-      .send({ ...validBody, stringWithFormat: 'invalid-date' })
+      .send({
+        ...validBody,
+        stringWithFormat: 'invalid-date'
+      })
       .expect(400)
 
     assert.deepStrictEqual(res.body.fields, {
-      'body.stringWithFormat': { message: 'This property must be a valid date', value: 'invalid-date' }
+      'body.stringWithFormat': {
+        message: 'This property must be a valid date',
+        value: 'invalid-date'
+      }
     })
   })
 
@@ -192,7 +220,10 @@ describe('Format and constraint validation', () => {
       .expect(400)
 
     assert.deepStrictEqual(res.body.fields, {
-      'body.stringEnum': { message: 'This property must be one of foo,bar', value: 'not in enum' }
+      'body.stringEnum': {
+        message: 'This property must be one of foo,bar',
+        value: 'not in enum'
+      }
     })
   })
 
@@ -204,7 +235,10 @@ describe('Format and constraint validation', () => {
       .expect(400)
 
     assert.deepStrictEqual(res.body.fields, {
-      'body.numberEnum': { message: 'This property must be one of 4,6', value: 300 }
+      'body.numberEnum': {
+        message: 'This property must be one of 4,6',
+        value: 300
+      }
     })
   })
 
@@ -216,7 +250,10 @@ describe('Format and constraint validation', () => {
       .expect(400)
 
     assert.deepStrictEqual(res.body.fields, {
-      'body.numberWithMinAndMax': { message: 'This property must be >= 4', value: 3 }
+      'body.numberWithMinAndMax': {
+        message: 'This property must be >= 4',
+        value: 3
+      }
     })
   })
 
@@ -228,7 +265,10 @@ describe('Format and constraint validation', () => {
       .expect(400)
 
     assert.deepStrictEqual(res.body.fields, {
-      'body.numberWithMinAndMax': { message: 'This property must be <= 10', value: 11 }
+      'body.numberWithMinAndMax': {
+        message: 'This property must be <= 10',
+        value: 11
+      }
     })
   })
 
@@ -244,7 +284,11 @@ describe('Format and constraint validation', () => {
     await request(app)
       .post('/my-controller/')
       .set('x-custom-header', 'my-header')
-      .send({ ...validBody, stringEnum: 'bar', numberEnum: 6 })
+      .send({
+        ...validBody,
+        stringEnum: 'bar',
+        numberEnum: 6
+      })
       .expect(201)
   })
 

@@ -1,9 +1,25 @@
-// tslint:disable: max-classes-per-file
-import { Route, Get, Post, Query, Body, Tags, Patch, Path, Response, Delete, Security, OperationId, Deprecated, Hidden, Header, Controller } from '../../../src'
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import {
+  Route,
+  Get,
+  Post,
+  Query,
+  Body,
+  Tags,
+  Patch,
+  Path,
+  Response,
+  Delete,
+  Security,
+  OperationId,
+  Deprecated,
+  Hidden,
+  Header,
+  Controller
+} from '../../../src'
 
-type Serialize<T extends any> = {
-    [key in keyof T]: T[key] extends 'foo' ? 'bare' :
-                      T[key]
+type Serialize<T> = {
+  [key in keyof T]: T[key] extends 'foo' ? 'bare' : T[key]
 } & { id: number }
 
 const bar = ['hi', 'hello'] as const
@@ -19,43 +35,45 @@ export enum EnumNumber {
 }
 
 type ValidationTestBody = {
-  string: string,
+  string: string
   /**
    * @pattern [A-Z]+
    */
-  stringWithPattern: string,
+  stringWithPattern: string
   /**
    * @format date-time
    */
-  stringWithFormat: Date,
-  stringEnum: EnumString,
-  nullable: string | null,
-  number: number,
+  stringWithFormat: Date
+  stringEnum: EnumString
+  nullable: string | null
+  number: number
   /**
    * @minimum 4
    * @maximum 10
    */
-  numberWithMinAndMax: number,
-  numberEnum: EnumNumber,
-  boolean: boolean,
-  tuple: [string, number],
-  array: string[],
-  object: {},
-  record: Record<string, string>,
-  mappedType: { [key: string]: number },
+  numberWithMinAndMax: number
+  numberEnum: EnumNumber
+  boolean: boolean
+  tuple: [string, number]
+  array: string[]
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  object: {}
+  record: Record<string, string>
+  mappedType: { [key: string]: number }
   objectWithProps: {
-    string: string,
+    string: string
     number?: number
-  },
-  union: { foo: 'bar' } | { bar: 'foo' },
-  intersection: { foo: 'bar' } & { bar: 'foo' },
+  }
+  union: { foo: 'bar' } | { bar: 'foo' }
+  intersection: { foo: 'bar' } & { bar: 'foo' }
   /**
    * @readonly
    */
-  readonlyProp: string,
-  class: {},
-  anyOnly: any,
-  unionAdditionalProps: { foo: string } | { foo: string, bar: string }
+  readonlyProp: string
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  class: {}
+  anyOnly: any
+  unionAdditionalProps: { foo: string } | { foo: string; bar: string }
 }
 
 enum MyEnum {
@@ -70,7 +88,7 @@ export type C = A | B
 class DatasourceVersion {
   type!: string
 }
-type Serialized<T extends any> = T & { id: string }
+type Serialized<T> = T & { id: string }
 class Datasource {
   /**
    * @pattern ^([A-Z]+)
@@ -106,7 +124,7 @@ export enum CustomExportedEnum {
 }
 
 class GettersClass {
-  get fooGet () {
+  get fooGet() {
     return ''
   }
   readonly fooReadonly!: string // test again because we use Partial<GettersClass>
@@ -115,20 +133,20 @@ class GettersClass {
    * @description my comment
    */
   fooReadonlyComment!: TestRefReadonlyAndTags // test again because we use Partial<GettersClass>
-  get barGetAndSet () {
+  get barGetAndSet() {
     return ''
   }
-  set barGetAndSet (val: string) {
+  set barGetAndSet(val: string) {
     return
   }
-  public ignoredMethod () {
+  public ignoredMethod() {
     return 'foo'
   }
 }
 
 class Foo {
   public name!: { value: string }
-  public toJSON (): { foo: string } {
+  public toJSON(): { foo: string } {
     return { foo: this.name.value }
   }
 }
@@ -148,13 +166,17 @@ export class MyController extends Controller {
    * @description My OpenAPI description
    */
   @Get('my-route')
-  get (): Serialize<{ bar: 'foo', foo: string }> & { h: (typeof bar)[number], true: true, false: false } {
+  get(): Serialize<{ bar: 'foo'; foo: string }> & {
+    h: (typeof bar)[number]
+    true: true
+    false: false
+  } {
     return {} as any
   }
   @Post(routes.post)
   @Tags('my-post-tag')
   @Response(201)
-  post (
+  post(
     @Header('x-custom-header') header: string,
     @Body() body: any,
     @Query('my-query-param') queryParam?: string,
@@ -165,10 +187,10 @@ export class MyController extends Controller {
     this.setHeader('x-foo', 'bar')
     return {
       ...body,
-      url: '/my-route?my-query-param&my-default-param=bar', 
-      formatIsDate: body.stringWithFormat instanceof Date, 
-      queryParam: queryParam || '', 
-      defaultParam, 
+      url: '/my-route?my-query-param&my-default-param=bar',
+      formatIsDate: body.stringWithFormat instanceof Date,
+      queryParam: queryParam || '',
+      defaultParam,
       bool,
       class: { foo: 'bar' }
     }
@@ -176,7 +198,7 @@ export class MyController extends Controller {
 
   @Post('my-controller/')
   @Response(201)
-  postController (
+  postController(
     @Header('x-custom-header') header: string,
     @Body() body: ValidationTestBody,
     @Query('my-query-param') queryParam?: string,
@@ -185,64 +207,93 @@ export class MyController extends Controller {
   ) {
     this.setStatus(201)
     this.setHeader('x-foo', 'bar')
-    return Object.assign({}, body, { 
-      url: '/my-controller/?my-bool', 
-      formatIsDate: body.stringWithFormat instanceof Date, 
-      queryParam: queryParam || '', 
-      defaultParam, 
+    return Object.assign({}, body, {
+      url: '/my-controller/?my-bool',
+      formatIsDate: body.stringWithFormat instanceof Date,
+      queryParam: queryParam || '',
+      defaultParam,
       bool,
       class: { foo: 'bar' }
     })
   }
 
   @Post('my-2nd-route')
-  @Response<typeof Errors['NotFound'] & { foo: 'bar' }>(Errors.NotFound.status_code)
-  postRaw (
-    @Body() body: Omit<Datasource, 'version' | 'versions'> & DatasourceVersion
-  ): { fooPost: string, barPost: { barFooPost: string } } {
+  @Response<(typeof Errors)['NotFound'] & { foo: 'bar' }>(
+    Errors.NotFound.status_code
+  )
+  postRaw(
+    @Body()
+    body: Omit<Datasource, 'version' | 'versions'> & DatasourceVersion
+  ): {
+    fooPost: string
+    barPost: { barFooPost: string }
+  } {
     return {} as any
   }
-  
+
   @Patch('/{id}')
-  @Response<{ error_code: 910, payload: { number: number } }>(400, 'Description for my response')
-  patch (
-    @Path('id') id: string
-  ): Promise<{ enum: MyEnum, date?: Date, recordString: Record<string, string>, record: Record<'foo', string>, mappedType: { [key: number]: number }, emptyObject: Record<string, never> }> {
+  @Response<{
+    error_code: 910
+    payload: { number: number }
+  }>(400, 'Description for my response')
+  patch(@Path('id') id: string): Promise<{
+    enum: MyEnum
+    date?: Date
+    recordString: Record<string, string>
+    record: Record<'foo', string>
+    mappedType: { [key: number]: number }
+    emptyObject: Record<string, never>
+  }> {
     return {} as any
   }
 
   @Delete('')
   @Response(400)
-  delete (): SuccessResponse<Datasource> {
+  delete(): SuccessResponse<Datasource> {
     return {} as any
   }
 
   @Get('/list', Tags('list-tag'), OperationId('list-operation'))
-  list (): Partial<Serialized<Datasource>> {
+  list(): Partial<Serialized<Datasource>> {
     return {} as any
   }
 
-  ignoredMethod () {
+  ignoredMethod() {
     return 'ignored'
   }
 
   @Post('/missing')
-  @Response<{ error_code: 910, payload: { number: number } }>(400, 'Description for my response')
-  missing (): { tuple: [string, ...number[]], bool: boolean, nullable: string | null, optional?: number, enumLiteral: MyEnum.FOO } {
+  @Response<{
+    error_code: 910
+    payload: { number: number }
+  }>(400, 'Description for my response')
+  missing(): {
+    tuple: [string, ...number[]]
+    bool: boolean
+    nullable: string | null
+    optional?: number
+    enumLiteral: MyEnum.FOO
+  } {
     return {} as any
   }
 
   @Get('/no-required/{id([A-Z]+)}')
-  noRequired (
-    @Path('id') id: string
-  ): { foo?: string, readonly barReadonly?: number, unknown: unknown, void: void, ignored: () => string, ignoredSignature (): string } {
+  noRequired(@Path('id') id: string): {
+    foo?: string
+    readonly barReadonly?: number
+    unknown: unknown
+    void: void
+    ignored: () => string
+    ignoredSignature(): string
+  } {
     return {} as any
   }
 
   @Security({ company: ['my-scope'] })
   @Post('/file')
-  file (
-    @Body('multipart/form-data') body: {
+  file(
+    @Body('multipart/form-data')
+    body: {
       /**
        * @format binary
        */
@@ -252,61 +303,56 @@ export class MyController extends Controller {
        */
       readonlyComment: string
     }
-  ): {} {
+  ): // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  {} {
     return {} as any
   }
   @Patch('/getters')
   @Security(securities)
-  getters (
+  getters(
     @Body() body: Partial<GettersClass>,
     /**
      * @minimum 1
      */
+
     @Query('limit') limit = 20
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   ): {} {
     return {} as any
   }
 
   @Post('/foo')
   @OperationId('foo-get')
-  foo (
-    @Body() body: Foo
-  ) {
+  foo(@Body() body: Foo) {
     return
   }
 
   @Patch('/partial-foo')
   @OperationId('partial-foo')
-  partialFoo (
-    @Body() body: Partial<Foo>
-  ) {
+  partialFoo(@Body() body: Partial<Foo>) {
     return
   }
 
   @Post('/bar')
   @OperationId('bar-get')
-  bar (
-    @Body() body: Bar
-  ) {
+  bar(@Body() body: Bar) {
     return
   }
 
   @Patch('/partial-bar')
   @OperationId('partial-bar')
-  partialBar (
-    @Body() body: Partial<Bar>
-  ) {
+  partialBar(@Body() body: Partial<Bar>) {
     return
   }
-  
+
   @Get('/undefined')
   @Deprecated()
-  undefined () {
+  undefined() {
     return undefined
   }
   @Get('/hidden-route')
   @Hidden()
-  hidden () {
+  hidden() {
     return undefined
   }
 }
@@ -315,7 +361,7 @@ export class MyController extends Controller {
 @Hidden()
 export class MyHiddenController {
   @Get('my-route')
-  get (): string {
+  get(): string {
     return {} as any
   }
 }

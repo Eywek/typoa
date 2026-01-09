@@ -8,8 +8,11 @@ import { generate } from '../../src'
 import { createErrorHandler } from './shared'
 
 let app: express.Application
-let routerFile = path.resolve(__dirname, 'generated-router-xenum-varnames.ts')
-let openapiFile = path.resolve(__dirname, 'generated-openapi-router-xenum-varnames.json')
+const routerFile = path.resolve(__dirname, 'generated-router-xenum-varnames.ts')
+const openapiFile = path.resolve(
+  __dirname,
+  'generated-openapi-router-xenum-varnames.json'
+)
 
 before(async () => {
   await generate({
@@ -23,11 +26,14 @@ before(async () => {
         name: 'my-service',
         version: '1.0.0'
       },
-      xEnumVarnames: true,
+      xEnumVarnames: true
     },
     router: {
       filePath: routerFile,
-      securityMiddlewarePath: path.resolve(__dirname, '../fixtures/security-middleware.ts'),
+      securityMiddlewarePath: path.resolve(
+        __dirname,
+        '../fixtures/security-middleware.ts'
+      ),
       validateResponse: true,
       runtimeImport: '../../src'
     }

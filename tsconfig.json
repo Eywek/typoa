@@ -1,35 +1,31 @@
 {
-    "compilerOptions": {
-      "rootDirs": [ "./src" ],
-      "outDir": "./build",
-      "experimentalDecorators": true,
-      "allowUnreachableCode": false,
-      "allowUnusedLabels": false,
-      "forceConsistentCasingInFileNames": true,
-      "module": "commonjs",
-      "declaration": true,
-      "importHelpers": false,
-      "noEmitOnError": true,
-      "noFallthroughCasesInSwitch": true,
-      "noImplicitReturns": true,
-      "noUnusedLocals": true,
-      "pretty": true,
-      "inlineSourceMap": true,
-      "noImplicitThis": true,
-      "noImplicitAny": true,
-      "strict": true,
-      "strictNullChecks": true,
-      "skipLibCheck": true,
-      "target": "es2022",
-      "esModuleInterop": true,
-      "emitDecoratorMetadata": true,
-      "resolveJsonModule": true,
-      "lib": [
-        "es2022"
-      ]
-    },
-    "exclude": [
-      "node_modules",
-      "build"
-    ]
+  "compilerOptions": {
+    "rootDirs": ["./src"],
+    "outDir": "./build",
+    "experimentalDecorators": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "forceConsistentCasingInFileNames": true,
+    "module": "commonjs",
+    "declaration": true,
+    "importHelpers": false,
+    "noEmitOnError": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "pretty": true,
+    "inlineSourceMap": true,
+    "noImplicitThis": true,
+    "noImplicitAny": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "skipLibCheck": true,
+    "target": "es2022",
+    "esModuleInterop": true,
+    "emitDecoratorMetadata": true,
+    "resolveJsonModule": true,
+    "lib": ["es2022"],
+    "types": []
+  },
+  "exclude": ["node_modules", "build"]
 }

@@ -12,15 +12,15 @@ enum Weight {
 }
 
 enum Country {
-  GERMANY = "de_DE",
-  FRANCE = "fr_FR",
-  ITALY = "it_IT"
+  GERMANY = 'de_DE',
+  FRANCE = 'fr_FR',
+  ITALY = 'it_IT'
 }
 
 interface Container {
-  country: Country;
-  weight: Weight;
-  currentStatus: Status;
+  country: Country
+  weight: Weight
+  currentStatus: Status
 }
 
 const containers: Container[] = [
@@ -29,7 +29,7 @@ const containers: Container[] = [
     weight: Weight.LOW,
     currentStatus: Status.OFFLINE
   },
-    {
+  {
     country: Country.ITALY,
     weight: Weight.MEDIUM,
     currentStatus: Status.ONLINE
@@ -44,8 +44,7 @@ const containers: Container[] = [
 @Route('/xenum-var-names-test')
 export class XEnumVarnamesTestController extends Controller {
   @Get('/container')
-  getContainer(@Query("country") country: Country): Container | undefined {
-    return containers.find(c => c.country === country);
+  getContainer(@Query('country') country: Country): Container | undefined {
+    return containers.find(c => c.country === country)
   }
-  
 }

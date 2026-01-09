@@ -10,7 +10,7 @@ class Foo {
   public foo: string = 'default'
 
   public toJSON(): Omit<Foo, 'toJSON'> {
-    return { 'foo': 'bar' }
+    return { foo: 'bar' }
   }
 }
 
@@ -29,7 +29,10 @@ export class InfiniteLoopTriggerController {
   }
 
   @Get('both')
-  public getBoth(): { serialized: Omit<Foo, 'toJSON'>, foo: Foo } {
+  public getBoth(): {
+    serialized: Omit<Foo, 'toJSON'>
+    foo: Foo
+  } {
     return {
       serialized: { foo: 'bar' },
       foo: new Foo()

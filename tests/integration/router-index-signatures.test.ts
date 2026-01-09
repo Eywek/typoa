@@ -8,14 +8,23 @@ import { generate } from '../../src'
 import { createErrorHandler } from './shared'
 
 let app: express.Application
-let routerFile = path.resolve(__dirname, 'generated-router-index-signatures.ts')
-let openapiFile = path.resolve(__dirname, 'generated-openapi-router-index-signatures.json') 
+const routerFile = path.resolve(
+  __dirname,
+  'generated-router-index-signatures.ts'
+)
+const openapiFile = path.resolve(
+  __dirname,
+  'generated-openapi-router-index-signatures.json'
+)
 
 before(async () => {
   await generate({
     tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
     controllers: [
-      path.resolve(__dirname, '../fixtures/validation/record-index-signature-test.ts')
+      path.resolve(
+        __dirname,
+        '../fixtures/validation/record-index-signature-test.ts'
+      )
     ],
     openapi: {
       filePath: openapiFile,
@@ -26,7 +35,10 @@ before(async () => {
     },
     router: {
       filePath: routerFile,
-      securityMiddlewarePath: path.resolve(__dirname, '../fixtures/security-middleware.ts'),
+      securityMiddlewarePath: path.resolve(
+        __dirname,
+        '../fixtures/security-middleware.ts'
+      ),
       validateResponse: true,
       runtimeImport: '../../src'
     }
@@ -36,7 +48,7 @@ before(async () => {
   app = express()
   app.use(express.json())
 
-  const { bindToRouter } = await import(routerFile);
+  const { bindToRouter } = await import(routerFile)
   bindToRouter(app)
 
   app.use(createErrorHandler())
@@ -44,9 +56,7 @@ before(async () => {
 
 describe('Record and index signature validation', () => {
   test('Should handle direct Meta type with index signature', async () => {
-    const res = await request(app)
-      .get('/record-index-test/direct')
-      .expect(200)
+    const res = await request(app).get('/record-index-test/direct').expect(200)
 
     // Should accept Meta type with string index signature
     assert.ok(typeof res.body === 'object')
@@ -72,29 +82,28 @@ describe('Record and index signature validation', () => {
 
   test('Should generate correct OpenAPI schema for index signatures', async () => {
     // Verify OpenAPI generation handles index signatures correctly
-    const spec = (await import(openapiFile)).default;
+    const spec = (await import(openapiFile)).default
 
     assert.ok(spec.components && spec.components.schemas)
-    
+
     // Check for additionalProperties in schemas for index signatures
     const schemas = spec.components.schemas
     assert.ok(Object.keys(schemas).length > 0)
-    
+
     // Meta type should have additionalProperties: { type: 'string' }
-    const metaSchema = Object.values(schemas).find((schema: any) => 
-      schema.additionalProperties && 
-      schema.additionalProperties.type === 'string'
+    const metaSchema = Object.values(schemas).find(
+      (schema: any) =>
+        schema.additionalProperties &&
+        schema.additionalProperties.type === 'string'
     )
-    
+
     // Should find at least one schema with string index signature
     assert.ok(metaSchema || true) // Allow for different schema generation approaches
   })
 
   test('Should validate record types with specific and dynamic keys', async () => {
     // Test that both specific keys and dynamic keys are handled
-    const res = await request(app)
-      .get('/record-index-test/direct')
-      .expect(200)
+    const res = await request(app).get('/record-index-test/direct').expect(200)
 
     assert.ok(typeof res.body === 'object')
   })

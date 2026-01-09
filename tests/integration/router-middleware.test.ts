@@ -8,14 +8,20 @@ import { generate } from '../../src'
 import { createErrorHandler } from './shared'
 
 let app: express.Application
-let routerFile = path.resolve(__dirname, 'generated-router-middleware.ts')
-let openapiFile = path.resolve(__dirname, 'generated-openapi-router-middleware.json')
+const routerFile = path.resolve(__dirname, 'generated-router-middleware.ts')
+const openapiFile = path.resolve(
+  __dirname,
+  'generated-openapi-router-middleware.json'
+)
 
 before(async () => {
   await generate({
     tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
     controllers: [
-      path.resolve(__dirname, '../fixtures/controllers/controller-middleware.ts'),
+      path.resolve(
+        __dirname,
+        '../fixtures/controllers/controller-middleware.ts'
+      ),
       path.resolve(__dirname, '../fixtures/controllers/controller.ts'),
       path.resolve(__dirname, '../fixtures/controllers/controller-response.ts'),
       path.resolve(__dirname, '../fixtures/folder/*.ts')
@@ -29,7 +35,10 @@ before(async () => {
     },
     router: {
       filePath: routerFile,
-      securityMiddlewarePath: path.resolve(__dirname, '../fixtures/security-middleware.ts'),
+      securityMiddlewarePath: path.resolve(
+        __dirname,
+        '../fixtures/security-middleware.ts'
+      ),
       validateResponse: true,
       runtimeImport: '../../src'
     }
@@ -72,30 +81,31 @@ describe('Content type and middleware', () => {
       .expect(400)
 
     assert.deepStrictEqual(res.body.fields, {
-      'body.type': { message: 'This property must be one of one', value: 'two' }
+      'body.type': {
+        message: 'This property must be one of one',
+        value: 'two'
+      }
     })
   })
 
   test('Should handle security interceptor', async () => {
-    const res = await request(app)
-      .get('/api/admin')
-      .expect(200)
+    const res = await request(app).get('/api/admin').expect(200)
 
-    assert.deepStrictEqual(res.body, { scopes: { admin: ['read'] } })
+    assert.deepStrictEqual(res.body, {
+      scopes: { admin: ['read'] }
+    })
   })
 
   test('Should handle controller-level security', async () => {
-    const res = await request(app)
-      .get('/my-2nd-controller')
-      .expect(200)
+    const res = await request(app).get('/my-2nd-controller').expect(200)
 
-    assert.deepStrictEqual(res.body, { scopes: { company: [] } })
+    assert.deepStrictEqual(res.body, {
+      scopes: { company: [] }
+    })
   })
 
   test('Should return 204 for no-content endpoint', async () => {
-    const res = await request(app)
-      .get('/undefined')
-      .expect(204)
+    const res = await request(app).get('/undefined').expect(204)
 
     assert.strictEqual(res.text, '')
   })
@@ -107,13 +117,13 @@ describe('Content type and middleware', () => {
       .send('')
       .expect(200)
 
-    assert.deepStrictEqual(res.body, { scopes: { company: ['my-scope'] } })
+    assert.deepStrictEqual(res.body, {
+      scopes: { company: ['my-scope'] }
+    })
   })
 
   test('Should remove extra properties from response', async () => {
-    const res = await request(app)
-      .get('/list')
-      .expect(200)
+    const res = await request(app).get('/list').expect(200)
 
     assert.deepStrictEqual(res.body, {})
   })

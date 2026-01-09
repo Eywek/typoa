@@ -32,8 +32,8 @@ const validBody = {
 }
 
 let app: express.Application
-let routerFile = path.resolve(__dirname, 'generated-core.ts')
-let openapiFile = path.resolve(__dirname, 'generated-openapi-core.json')
+const routerFile = path.resolve(__dirname, 'generated-core.ts')
+const openapiFile = path.resolve(__dirname, 'generated-openapi-core.json')
 
 before(async () => {
   await generate({
@@ -51,7 +51,10 @@ before(async () => {
     },
     router: {
       filePath: routerFile,
-      securityMiddlewarePath: path.resolve(__dirname, '../fixtures/security-middleware.ts'),
+      securityMiddlewarePath: path.resolve(
+        __dirname,
+        '../fixtures/security-middleware.ts'
+      ),
       validateResponse: false,
       runtimeImport: '../../src'
     }
@@ -61,16 +64,14 @@ before(async () => {
   app = express()
   app.use(express.json())
 
-  const { bindToRouter } = await import(routerFile);
+  const { bindToRouter } = await import(routerFile)
   bindToRouter(app)
-  
+
   app.use(createErrorHandler())
 })
 
 test('Should throw error on GET /', async () => {
-  const res = await request(app)
-    .get('/my-route')
-    .expect(500)
+  const res = await request(app).get('/my-route').expect(500)
 
   assert.strictEqual(res.body.message, 'My get error')
 })
@@ -84,15 +85,18 @@ test('Should accept valid request body', async () => {
 
   assert.strictEqual(res.headers['x-foo'], 'bar')
 
-  assert.deepStrictEqual(res.body, Object.assign({}, validBody, {
-    stringWithFormat: validBody.stringWithFormat.toISOString(),
-    url: '/my-route?my-query-param&my-default-param=bar',
-    formatIsDate: false, // Date is serialized to string over HTTP, so instanceof Date is false
-    queryParam: '',
-    class: { foo: 'bar' },
-    defaultParam: 'bar',
-    bool: false
-  }))
+  assert.deepStrictEqual(
+    res.body,
+    Object.assign({}, validBody, {
+      stringWithFormat: validBody.stringWithFormat.toISOString(),
+      url: '/my-route?my-query-param&my-default-param=bar',
+      formatIsDate: false, // Date is serialized to string over HTTP, so instanceof Date is false
+      queryParam: '',
+      class: { foo: 'bar' },
+      defaultParam: 'bar',
+      bool: false
+    })
+  )
 })
 
 test('Should parse bool param without value as true', async () => {

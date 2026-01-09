@@ -1,30 +1,30 @@
 import { Controller, Route, Get } from '../../../src'
 
 interface Foo {
-  foo: number;
+  foo: number
 }
 
 interface Bar extends Foo {
-  bar: number;
+  bar: number
 }
 
 interface Baz extends Bar {
-  baz: string;
+  baz: string
 }
 
 // More complex inheritance scenarios
 interface Base {
-  id: string;
-  name: string;
+  id: string
+  name: string
 }
 
 interface Extended extends Base {
-  description: string;
-  active: boolean;
+  description: string
+  active: boolean
 }
 
 interface MultipleInheritance extends Extended {
-  metadata: Record<string, any>;
+  metadata: Record<string, any>
 }
 
 @Route('/inheritance-test')

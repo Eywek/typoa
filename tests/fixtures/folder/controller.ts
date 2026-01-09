@@ -4,7 +4,7 @@ import { Route, Get, Security } from '../../../src'
 @Security({ company: [] })
 export class My2ndController {
   @Get('/')
-  public get () {
+  public get() {
     return 'foo'
   }
 }
