@@ -1,8 +1,5 @@
 {
-  "extends": [
-    "tslint:recommended",
-    "tslint-config-standard"
-  ],
+  "extends": ["tslint:recommended", "tslint-config-standard"],
   "rules": {
     "file-name-casing": [true, "kebab-case"],
     "ordered-imports": false,

@@ -9,7 +9,10 @@ import { createErrorHandler } from './shared'
 
 let app: express.Application
 const routerFile = path.resolve(__dirname, 'generated-router-produces.ts')
-const openapiFile = path.resolve(__dirname, 'generated-openapi-router-produces.json')
+const openapiFile = path.resolve(
+  __dirname,
+  'generated-openapi-router-produces.json'
+)
 
 before(async () => {
   await generate({
@@ -26,7 +29,10 @@ before(async () => {
     },
     router: {
       filePath: routerFile,
-      securityMiddlewarePath: path.resolve(__dirname, '../fixtures/security-middleware.ts'),
+      securityMiddlewarePath: path.resolve(
+        __dirname,
+        '../fixtures/security-middleware.ts'
+      ),
       validateResponse: true,
       runtimeImport: '../../src'
     }
@@ -49,7 +55,10 @@ describe('Produces controller', () => {
       .expect(200)
       .expect('Content-Type', 'application/json; charset=utf-8')
 
-    assert.deepStrictEqual(res.body, { id: '1', name: 'John Doe' })
+    assert.deepStrictEqual(res.body, {
+      id: '1',
+      name: 'John Doe'
+    })
   })
 
   test('Should return text with correct content type', async () => {
@@ -82,7 +91,12 @@ describe('Produces controller', () => {
   test('Should return CSV with correct content type', async () => {
     const res = await request(app)
       .post('/api/produces/csv')
-      .send({ users: [{ id: '1', name: 'John' }, { id: '2', name: 'Jane' }] })
+      .send({
+        users: [
+          { id: '1', name: 'John' },
+          { id: '2', name: 'Jane' }
+        ]
+      })
       .expect(200)
       .expect('Content-Type', 'text/csv; charset=utf-8')
 
@@ -95,7 +109,10 @@ describe('Produces controller', () => {
       .expect(200)
       .expect('Content-Type', 'application/json; charset=utf-8')
 
-    assert.deepStrictEqual(res.body, { id: '2', name: 'Jane Doe' })
+    assert.deepStrictEqual(res.body, {
+      id: '2',
+      name: 'Jane Doe'
+    })
   })
 
   test('Should return text from text controller', async () => {
@@ -122,6 +139,9 @@ describe('Produces controller', () => {
       .expect(200)
       .expect('Content-Type', 'application/json; charset=utf-8')
 
-    assert.deepStrictEqual(res.body, { id: '3', name: 'Override User' })
+    assert.deepStrictEqual(res.body, {
+      id: '3',
+      name: 'Override User'
+    })
   })
 })

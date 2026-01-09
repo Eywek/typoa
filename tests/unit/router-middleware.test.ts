@@ -4,8 +4,14 @@ import { test } from 'node:test'
 
 import { generate } from '../../src'
 
-const openapiFile = path.resolve(__dirname, 'generated-openapi-router-middleware-unit.json')
-const routerFile = path.resolve(__dirname, 'generated-router-middleware-unit.ts')
+const openapiFile = path.resolve(
+  __dirname,
+  'generated-openapi-router-middleware-unit.json'
+)
+const routerFile = path.resolve(
+  __dirname,
+  'generated-router-middleware-unit.ts'
+)
 
 const config = {
   tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
@@ -22,25 +28,61 @@ const config = {
 }
 
 test('Should generate router with method middleware', async () => {
-  await assert.doesNotReject(() => generate(Object.assign({}, config, {
-    controllers: [path.resolve(__dirname, '../fixtures/middleware/router-controller-middleware-method.ts')]
-  })))
+  await assert.doesNotReject(() =>
+    generate(
+      Object.assign({}, config, {
+        controllers: [
+          path.resolve(
+            __dirname,
+            '../fixtures/middleware/router-controller-middleware-method.ts'
+          )
+        ]
+      })
+    )
+  )
 })
 
 test('Should generate router with controller middleware', async () => {
-  await assert.doesNotReject(() => generate(Object.assign({}, config, {
-    controllers: [path.resolve(__dirname, '../fixtures/middleware/router-controller-middleware-controller.ts')]
-  })))
+  await assert.doesNotReject(() =>
+    generate(
+      Object.assign({}, config, {
+        controllers: [
+          path.resolve(
+            __dirname,
+            '../fixtures/middleware/router-controller-middleware-controller.ts'
+          )
+        ]
+      })
+    )
+  )
 })
 
 test('Should generate router with both controller and method middleware', async () => {
-  await assert.doesNotReject(() => generate(Object.assign({}, config, {
-    controllers: [path.resolve(__dirname, '../fixtures/middleware/router-controller-middleware-both.ts')]
-  })))
+  await assert.doesNotReject(() =>
+    generate(
+      Object.assign({}, config, {
+        controllers: [
+          path.resolve(
+            __dirname,
+            '../fixtures/middleware/router-controller-middleware-both.ts'
+          )
+        ]
+      })
+    )
+  )
 })
 
 test('Should generate router with factory middleware', async () => {
-  await assert.doesNotReject(() => generate(Object.assign({}, config, {
-    controllers: [path.resolve(__dirname, '../fixtures/middleware/router-controller-middleware-factory.ts')]
-  })))
+  await assert.doesNotReject(() =>
+    generate(
+      Object.assign({}, config, {
+        controllers: [
+          path.resolve(
+            __dirname,
+            '../fixtures/middleware/router-controller-middleware-factory.ts'
+          )
+        ]
+      })
+    )
+  )
 })

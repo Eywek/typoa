@@ -8,14 +8,23 @@ import { generate } from '../../src'
 import { createErrorHandler } from './shared'
 
 let app: express.Application
-const routerFile = path.resolve(__dirname, 'generated-router-index-signatures.ts')
-const openapiFile = path.resolve(__dirname, 'generated-openapi-router-index-signatures.json')
+const routerFile = path.resolve(
+  __dirname,
+  'generated-router-index-signatures.ts'
+)
+const openapiFile = path.resolve(
+  __dirname,
+  'generated-openapi-router-index-signatures.json'
+)
 
 before(async () => {
   await generate({
     tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
     controllers: [
-      path.resolve(__dirname, '../fixtures/validation/record-index-signature-test.ts')
+      path.resolve(
+        __dirname,
+        '../fixtures/validation/record-index-signature-test.ts'
+      )
     ],
     openapi: {
       filePath: openapiFile,
@@ -26,7 +35,10 @@ before(async () => {
     },
     router: {
       filePath: routerFile,
-      securityMiddlewarePath: path.resolve(__dirname, '../fixtures/security-middleware.ts'),
+      securityMiddlewarePath: path.resolve(
+        __dirname,
+        '../fixtures/security-middleware.ts'
+      ),
       validateResponse: true,
       runtimeImport: '../../src'
     }
@@ -44,9 +56,7 @@ before(async () => {
 
 describe('Record and index signature validation', () => {
   test('Should handle direct Meta type with index signature', async () => {
-    const res = await request(app)
-      .get('/record-index-test/direct')
-      .expect(200)
+    const res = await request(app).get('/record-index-test/direct').expect(200)
 
     // Should accept Meta type with string index signature
     assert.ok(typeof res.body === 'object')
@@ -81,9 +91,10 @@ describe('Record and index signature validation', () => {
     assert.ok(Object.keys(schemas).length > 0)
 
     // Meta type should have additionalProperties: { type: 'string' }
-    const metaSchema = Object.values(schemas).find((schema: any) =>
-      schema.additionalProperties &&
-      schema.additionalProperties.type === 'string'
+    const metaSchema = Object.values(schemas).find(
+      (schema: any) =>
+        schema.additionalProperties &&
+        schema.additionalProperties.type === 'string'
     )
 
     // Should find at least one schema with string index signature
@@ -92,9 +103,7 @@ describe('Record and index signature validation', () => {
 
   test('Should validate record types with specific and dynamic keys', async () => {
     // Test that both specific keys and dynamic keys are handled
-    const res = await request(app)
-      .get('/record-index-test/direct')
-      .expect(200)
+    const res = await request(app).get('/record-index-test/direct').expect(200)
 
     assert.ok(typeof res.body === 'object')
   })

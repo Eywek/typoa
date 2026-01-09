@@ -9,7 +9,10 @@ import { createErrorHandler } from './shared'
 
 let app: express.Application
 const routerFile = path.resolve(__dirname, 'generated-router-xenum-varnames.ts')
-const openapiFile = path.resolve(__dirname, 'generated-openapi-router-xenum-varnames.json')
+const openapiFile = path.resolve(
+  __dirname,
+  'generated-openapi-router-xenum-varnames.json'
+)
 
 before(async () => {
   await generate({
@@ -27,7 +30,10 @@ before(async () => {
     },
     router: {
       filePath: routerFile,
-      securityMiddlewarePath: path.resolve(__dirname, '../fixtures/security-middleware.ts'),
+      securityMiddlewarePath: path.resolve(
+        __dirname,
+        '../fixtures/security-middleware.ts'
+      ),
       validateResponse: true,
       runtimeImport: '../../src'
     }

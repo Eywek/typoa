@@ -2,27 +2,32 @@ import { Decorator, Type, Node } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
 import path from 'path'
 
-export function getLiteralFromType (type: Type): string {
+export function getLiteralFromType(type: Type): string {
   if (type.isLiteral() && type.compilerType.isLiteral()) {
     return String(type.compilerType.value)
   }
   throw new Error('Not a literal value found')
 }
 
-export function extractDecoratorValues (decorator?: Decorator): string[] {
+export function extractDecoratorValues(decorator?: Decorator): string[] {
   if (decorator === undefined) return []
-  return decorator.getArguments().map((arg) => {
+  return decorator.getArguments().map(arg => {
     return getLiteralFromType(arg.getType())
   })
 }
 
-export function extractFunctionArguments (decorator?: Decorator): { name: string, path: string, args?: any[] }[] {
+export function extractFunctionArguments(
+  decorator?: Decorator
+): { name: string; path: string; args?: any[] }[] {
   if (!decorator) return []
   const arg = decorator.getArguments()[0]
   return [findFunctionDefinition(arg.getType(), arg)]
 }
 
-function findFunctionDefinition (type: Type, node?: Node): { name: string, path: string, args?: any[] } {
+function findFunctionDefinition(
+  type: Type,
+  node?: Node
+): { name: string; path: string; args?: any[] } {
   const symbol = type.getSymbol()
   if (!symbol) {
     throw new Error('Not a function reference found')
@@ -66,7 +71,10 @@ function findFunctionDefinition (type: Type, node?: Node): { name: string, path:
     if (Node.isFunctionDeclaration(decl) && !decl.isExported()) {
       throw new Error(`Middleware function '${name}' must be exported`)
     }
-    if (Node.isVariableDeclaration(decl) && !decl.getVariableStatement()?.isExported()) {
+    if (
+      Node.isVariableDeclaration(decl) &&
+      !decl.getVariableStatement()?.isExported()
+    ) {
       throw new Error(`Middleware function '${name}' must be exported`)
     }
     filePath = decl.getSourceFile().getFilePath()
@@ -75,7 +83,7 @@ function findFunctionDefinition (type: Type, node?: Node): { name: string, path:
   return { name, path: filePath, args }
 }
 
-export function appendToSpec (
+export function appendToSpec(
   spec: OpenAPIV3.Document,
   path: string,
   verb: 'get' | 'patch' | 'put' | 'delete' | 'post',
@@ -88,18 +96,22 @@ export function appendToSpec (
   spec.paths[path][verb] = operation
 }
 
-export function normalizeUrl (str: string): string {
-  return '/' + str.split('/')
-    .filter(s => s.length > 0) // remove useless slashes
-    .join('/')
+export function normalizeUrl(str: string): string {
+  return (
+    '/' +
+    str
+      .split('/')
+      .filter(s => s.length > 0) // remove useless slashes
+      .join('/')
+  )
 }
 
-export function getRelativeFilePath (absoluteRoot: string, absolutePath: string): string {
+export function getRelativeFilePath(
+  absoluteRoot: string,
+  absolutePath: string
+): string {
   // Get relative path, without taking filename in account
-  const dirPath = path.relative(
-    absoluteRoot,
-    path.dirname(absolutePath)
-  )
+  const dirPath = path.relative(absoluteRoot, path.dirname(absolutePath))
   // Add `./` if it's in the same directory and relative resolve an empty string + add filename
   let filePath = (dirPath || '.') + '/' + path.basename(absolutePath)
 
@@ -112,17 +124,24 @@ export function getRelativeFilePath (absoluteRoot: string, absolutePath: string)
   return filePath.substr(0, filePath.length - path.extname(filePath).length)
 }
 
-export function resolveProperty (
-  schema: OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject,
+export function resolveProperty(
+  schema:
+    | OpenAPIV3.ReferenceObject
+    | OpenAPIV3.ArraySchemaObject
+    | OpenAPIV3.NonArraySchemaObject,
   components: OpenAPIV3.ComponentsObject,
   path: string[]
-): { value: unknown, meta: { isObject: boolean } } {
+): { value: unknown; meta: { isObject: boolean } } {
   if ('$ref' in schema) {
-    return resolveProperty(components.schemas![schema.$ref.substr('#/components/schemas/'.length)], components, path)
+    return resolveProperty(
+      components.schemas![schema.$ref.substr('#/components/schemas/'.length)],
+      components,
+      path
+    )
   }
   if (typeof schema.allOf !== 'undefined') {
     const resolved = schema.allOf
-      .map((schema) => resolveProperty(schema, components, path))
+      .map(schema => resolveProperty(schema, components, path))
       .reverse() // find the last element (override) in the allOf
       .find(({ value }) => typeof value !== 'string' || value.length > 0)
     return {
@@ -135,17 +154,23 @@ export function resolveProperty (
   }
   if (path.length === 0) {
     if (typeof schema.enum !== 'undefined') {
-      return { value: schema.enum, meta: { isObject: false } }
+      return {
+        value: schema.enum,
+        meta: { isObject: false }
+      }
     }
     if (schema.type === 'object') {
       return {
         value: JSON.stringify(
-          Object.entries(schema.properties ?? {})
-            .reduce<Record<string, unknown>>((obj, [key, value]) => {
-              const resolved = resolveProperty(value, components, [])
-              obj[key] = resolved.meta.isObject ? JSON.parse(resolved.value as string) : resolved.value
-              return obj
-            }, {})
+          Object.entries(schema.properties ?? {}).reduce<
+            Record<string, unknown>
+          >((obj, [key, value]) => {
+            const resolved = resolveProperty(value, components, [])
+            obj[key] = resolved.meta.isObject
+              ? JSON.parse(resolved.value as string)
+              : resolved.value
+            return obj
+          }, {})
         ),
         meta: { isObject: true }
       }
@@ -155,7 +180,11 @@ export function resolveProperty (
   if (typeof schema.properties === 'undefined') {
     return { value: '', meta: { isObject: false } }
   }
-  const property = schema.properties[path[0]] as OpenAPIV3.ReferenceObject | OpenAPIV3.ArraySchemaObject | OpenAPIV3.NonArraySchemaObject | undefined
+  const property = schema.properties[path[0]] as
+    | OpenAPIV3.ReferenceObject
+    | OpenAPIV3.ArraySchemaObject
+    | OpenAPIV3.NonArraySchemaObject
+    | undefined
   if (typeof property === 'undefined') {
     return { value: '', meta: { isObject: false } }
   }

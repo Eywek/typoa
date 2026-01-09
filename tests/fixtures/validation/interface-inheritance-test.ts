@@ -30,17 +30,17 @@ interface MultipleInheritance extends Extended {
 @Route('/inheritance-test')
 export class InterfaceInheritanceTestController extends Controller {
   @Get('/bar')
-  getBar (): Bar {
+  getBar(): Bar {
     return { foo: 1, bar: 2 }
   }
 
   @Get('/baz')
-  getBaz (): Baz {
+  getBaz(): Baz {
     return { foo: 1, bar: 2, baz: 'test' }
   }
 
   @Get('/extended')
-  getExtended (): Extended {
+  getExtended(): Extended {
     return {
       id: '1',
       name: 'Test',
@@ -50,7 +50,7 @@ export class InterfaceInheritanceTestController extends Controller {
   }
 
   @Get('/multiple')
-  getMultiple (): MultipleInheritance {
+  getMultiple(): MultipleInheritance {
     return {
       id: '1',
       name: 'Test',

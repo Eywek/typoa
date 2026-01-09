@@ -5,12 +5,23 @@ import { test } from 'node:test'
 import { generate } from '../../src'
 
 test('Should apply binary format for specified content types', async () => {
-  const openapiFile = path.resolve(__dirname, 'generated-openapi-binary-format-test.json')
-  const routerFile = path.resolve(__dirname, 'generated-router-binary-format.ts')
+  const openapiFile = path.resolve(
+    __dirname,
+    'generated-openapi-binary-format-test.json'
+  )
+  const routerFile = path.resolve(
+    __dirname,
+    'generated-router-binary-format.ts'
+  )
 
   await generate({
     tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
-    controllers: [path.resolve(__dirname, '../fixtures/controllers/controller-binary-format.ts')],
+    controllers: [
+      path.resolve(
+        __dirname,
+        '../fixtures/controllers/controller-binary-format.ts'
+      )
+    ],
     openapi: {
       filePath: openapiFile,
       service: {
@@ -27,11 +38,20 @@ test('Should apply binary format for specified content types', async () => {
 
   // Test binary content types should have format: binary
   const binaryEndpoints = [
-    { path: '/api/binary/octet-stream', contentType: 'application/octet-stream' },
+    {
+      path: '/api/binary/octet-stream',
+      contentType: 'application/octet-stream'
+    },
     { path: '/api/binary/png', contentType: 'image/png' },
     { path: '/api/binary/jpeg', contentType: 'image/jpeg' },
-    { path: '/api/binary/pdf', contentType: 'application/pdf' },
-    { path: '/api/binary/zip', contentType: 'application/zip' },
+    {
+      path: '/api/binary/pdf',
+      contentType: 'application/pdf'
+    },
+    {
+      path: '/api/binary/zip',
+      contentType: 'application/zip'
+    },
     { path: '/api/binary/mp3', contentType: 'audio/mpeg' },
     { path: '/api/binary/mp4', contentType: 'video/mp4' }
   ]
@@ -39,16 +59,32 @@ test('Should apply binary format for specified content types', async () => {
   for (const endpoint of binaryEndpoints) {
     const response = spec.paths[endpoint.path].get.responses['200']
     const schema = response.content[endpoint.contentType].schema
-    assert.strictEqual(schema.format, 'binary', `${endpoint.path} should have format: binary`)
-    assert.strictEqual(schema.type, 'string', `${endpoint.path} should have type: string`)
+    assert.strictEqual(
+      schema.format,
+      'binary',
+      `${endpoint.path} should have format: binary`
+    )
+    assert.strictEqual(
+      schema.type,
+      'string',
+      `${endpoint.path} should have type: string`
+    )
   }
 
   // Test request body with binary content types
-  const uploadPngResponse = spec.paths['/api/binary/upload-png'].post.requestBody
-  const uploadPdfResponse = spec.paths['/api/binary/upload-pdf'].post.requestBody
+  const uploadPngResponse =
+    spec.paths['/api/binary/upload-png'].post.requestBody
+  const uploadPdfResponse =
+    spec.paths['/api/binary/upload-pdf'].post.requestBody
 
-  assert.strictEqual(uploadPngResponse.content['image/png'].schema.format, 'binary')
-  assert.strictEqual(uploadPdfResponse.content['application/pdf'].schema.format, 'binary')
+  assert.strictEqual(
+    uploadPngResponse.content['image/png'].schema.format,
+    'binary'
+  )
+  assert.strictEqual(
+    uploadPdfResponse.content['application/pdf'].schema.format,
+    'binary'
+  )
 
   // Test regular JSON endpoint should NOT have binary format
   const jsonResponse = spec.paths['/api/binary/json'].get.responses['200']

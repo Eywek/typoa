@@ -9,7 +9,10 @@ import { createErrorHandler } from './shared'
 
 let app: express.Application
 const routerFile = path.resolve(__dirname, 'generated-router-responses.ts')
-const openapiFile = path.resolve(__dirname, 'generated-openapi-router-responses.json')
+const openapiFile = path.resolve(
+  __dirname,
+  'generated-openapi-router-responses.json'
+)
 
 before(async () => {
   await generate({
@@ -26,7 +29,10 @@ before(async () => {
     },
     router: {
       filePath: routerFile,
-      securityMiddlewarePath: path.resolve(__dirname, '../fixtures/security-middleware.ts'),
+      securityMiddlewarePath: path.resolve(
+        __dirname,
+        '../fixtures/security-middleware.ts'
+      ),
       validateResponse: true,
       runtimeImport: '../../src'
     }
@@ -44,66 +50,65 @@ before(async () => {
 
 describe('Response controller', () => {
   test('Should list users successfully', async () => {
-    const res = await request(app)
-      .get('/api/users')
-      .expect(200)
+    const res = await request(app).get('/api/users').expect(200)
 
     assert.deepStrictEqual(res.body, [{ id: '1', name: 'User 1' }])
   })
 
   test('Should get user by id', async () => {
-    const res = await request(app)
-      .get('/api/users/1')
-      .expect(200)
+    const res = await request(app).get('/api/users/1').expect(200)
 
-    assert.deepStrictEqual(res.body, { id: '1', name: 'User 1' })
+    assert.deepStrictEqual(res.body, {
+      id: '1',
+      name: 'User 1'
+    })
   })
 
   test('Should create user', async () => {
-    const res = await request(app)
-      .post('/api/users')
-      .expect(200)
+    const res = await request(app).post('/api/users').expect(200)
 
-    assert.deepStrictEqual(res.body, { id: '1', name: 'User 1' })
+    assert.deepStrictEqual(res.body, {
+      id: '1',
+      name: 'User 1'
+    })
   })
 
   test('Should update user', async () => {
-    const res = await request(app)
-      .put('/api/users/1')
-      .expect(200)
+    const res = await request(app).put('/api/users/1').expect(200)
 
-    assert.deepStrictEqual(res.body, { id: '1', name: 'User 1' })
+    assert.deepStrictEqual(res.body, {
+      id: '1',
+      name: 'User 1'
+    })
   })
 
   test('Should list products', async () => {
-    const res = await request(app)
-      .get('/api/products')
-      .expect(200)
+    const res = await request(app).get('/api/products').expect(200)
 
-    assert.deepStrictEqual(res.body, { products: ['Product 1'] })
+    assert.deepStrictEqual(res.body, {
+      products: ['Product 1']
+    })
   })
 
   test('Should create product', async () => {
-    const res = await request(app)
-      .post('/api/products')
-      .expect(200)
+    const res = await request(app).post('/api/products').expect(200)
 
     assert.deepStrictEqual(res.body, { created: true })
   })
 
   test('Should get admin info', async () => {
-    const res = await request(app)
-      .get('/api/admin')
-      .expect(200)
+    const res = await request(app).get('/api/admin').expect(200)
 
-    assert.deepStrictEqual(res.body, { scopes: { admin: ['read'] } })
+    assert.deepStrictEqual(res.body, {
+      scopes: { admin: ['read'] }
+    })
   })
 
   test('Should create admin resource', async () => {
-    const res = await request(app)
-      .post('/api/admin')
-      .expect(200)
+    const res = await request(app).post('/api/admin').expect(200)
 
-    assert.deepStrictEqual(res.body, { scopes: { admin: ['read'] } })
+    assert.deepStrictEqual(res.body, {
+      scopes: { admin: ['read'] }
+    })
   })
 })

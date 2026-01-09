@@ -3,12 +3,13 @@ import express from 'express'
 import { Readable } from 'stream'
 
 const isStream = (data: any): data is Readable =>
-  typeof data === 'object' && data !== null &&
+  typeof data === 'object' &&
+  data !== null &&
   typeof data.pipe === 'function' &&
   data.readable === true &&
   typeof data._read === 'function'
 
-export function send (
+export function send(
   controller: Controller | InstanceType<new () => any>,
   data: unknown,
   res: express.Response,
@@ -20,7 +21,10 @@ export function send (
   let status: number | undefined
   let headers: Record<string, string | undefined> | undefined
   // Get defined headers / status
-  if ((controller instanceof Controller) || 'getHeaders' in controller && 'getStatus' in controller) {
+  if (
+    controller instanceof Controller ||
+    ('getHeaders' in controller && 'getStatus' in controller)
+  ) {
     status = controller.getStatus()
     headers = controller.getHeaders()
   }
@@ -35,7 +39,10 @@ export function send (
     if (contentType === 'application/json') {
       res.status(status ?? 200).json(data)
     } else {
-      res.status(status ?? 200).type(contentType).send(data)
+      res
+        .status(status ?? 200)
+        .type(contentType)
+        .send(data)
     }
   } else {
     res.status(status ?? 204).end()

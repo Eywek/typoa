@@ -5,12 +5,20 @@ import { test } from 'node:test'
 import { generate } from '../../src'
 
 test('Should handle Partial<> on classes with toJSON correctly', async () => {
-  const openapiFile = path.resolve(__dirname, 'generated-openapi-partial-tojson-test.json')
-  const routerFile = path.resolve(__dirname, 'generated-router-partial-tojson.ts')
+  const openapiFile = path.resolve(
+    __dirname,
+    'generated-openapi-partial-tojson-test.json'
+  )
+  const routerFile = path.resolve(
+    __dirname,
+    'generated-router-partial-tojson.ts'
+  )
 
   await generate({
     tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
-    controllers: [path.resolve(__dirname, '../fixtures/controllers/controller.*')],
+    controllers: [
+      path.resolve(__dirname, '../fixtures/controllers/controller.*')
+    ],
     openapi: {
       filePath: openapiFile,
       service: {

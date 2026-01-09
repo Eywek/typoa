@@ -9,13 +9,19 @@ import { createErrorHandler } from './shared'
 
 let app: express.Application
 const routerFile = path.resolve(__dirname, 'generated-router-binary.ts')
-const openapiFile = path.resolve(__dirname, 'generated-openapi-router-binary.json')
+const openapiFile = path.resolve(
+  __dirname,
+  'generated-openapi-router-binary.json'
+)
 
 before(async () => {
   await generate({
     tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
     controllers: [
-      path.resolve(__dirname, '../fixtures/controllers/controller-binary-format.ts'),
+      path.resolve(
+        __dirname,
+        '../fixtures/controllers/controller-binary-format.ts'
+      ),
       path.resolve(__dirname, '../fixtures/controllers/controller.ts')
     ],
     openapi: {
@@ -27,7 +33,10 @@ before(async () => {
     },
     router: {
       filePath: routerFile,
-      securityMiddlewarePath: path.resolve(__dirname, '../fixtures/security-middleware.ts'),
+      securityMiddlewarePath: path.resolve(
+        __dirname,
+        '../fixtures/security-middleware.ts'
+      ),
       validateResponse: true,
       runtimeImport: '../../src'
     }
@@ -77,7 +86,10 @@ describe('Binary format and file handling', () => {
       .expect(200)
       .expect('Content-Type', 'application/json; charset=utf-8')
 
-    assert.deepStrictEqual(res.body, { id: '1', name: 'John Doe' })
+    assert.deepStrictEqual(res.body, {
+      id: '1',
+      name: 'John Doe'
+    })
   })
 
   test('Should accept PNG upload', async () => {
@@ -107,7 +119,9 @@ describe('Binary format and file handling', () => {
       .expect(200)
 
     // Security middleware returns scope object
-    assert.deepStrictEqual(res.body, { scopes: { company: ['my-scope'] } })
+    assert.deepStrictEqual(res.body, {
+      scopes: { company: ['my-scope'] }
+    })
   })
 
   test('Should not validate body for file uploads', async () => {
@@ -118,22 +132,18 @@ describe('Binary format and file handling', () => {
       .expect(200)
 
     // Security middleware returns scope object
-    assert.deepStrictEqual(res.body, { scopes: { company: ['my-scope'] } })
+    assert.deepStrictEqual(res.body, {
+      scopes: { company: ['my-scope'] }
+    })
   })
 
   test('Should handle empty file upload gracefully', async () => {
-    await request(app)
-      .post('/file')
-      .field('file', '')
-      .expect(200)
+    await request(app).post('/file').field('file', '').expect(200)
   })
 
   test('Should handle large text file upload', async () => {
     const largeContent = 'x'.repeat(10000)
 
-    await request(app)
-      .post('/file')
-      .field('file', largeContent)
-      .expect(200)
+    await request(app).post('/file').field('file', largeContent).expect(200)
   })
 })

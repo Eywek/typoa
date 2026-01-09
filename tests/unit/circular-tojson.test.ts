@@ -5,12 +5,23 @@ import { test } from 'node:test'
 import { generate } from '../../src'
 
 test('Should handle Omit<Class, "toJSON"> with circular toJSON correctly', async () => {
-  const openapiFile = path.resolve(__dirname, 'generated-openapi-circular-tojson-test.json')
-  const routerFile = path.resolve(__dirname, 'generated-router-circular-tojson.ts')
+  const openapiFile = path.resolve(
+    __dirname,
+    'generated-openapi-circular-tojson-test.json'
+  )
+  const routerFile = path.resolve(
+    __dirname,
+    'generated-router-circular-tojson.ts'
+  )
 
   await generate({
     tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
-    controllers: [path.resolve(__dirname, '../fixtures/controllers/controller-infinite-loop-trigger.ts')],
+    controllers: [
+      path.resolve(
+        __dirname,
+        '../fixtures/controllers/controller-infinite-loop-trigger.ts'
+      )
+    ],
     openapi: {
       filePath: openapiFile,
       service: {
@@ -55,5 +66,8 @@ test('Should handle Omit<Class, "toJSON"> with circular toJSON correctly', async
   assert.ok(getResponse.content)
   assert.ok(getResponse.content['application/json'])
   assert.ok(getResponse.content['application/json'].schema)
-  assert.strictEqual(getResponse.content['application/json'].schema.$ref, '#/components/schemas/Foo_Without_ToJSON')
+  assert.strictEqual(
+    getResponse.content['application/json'].schema.$ref,
+    '#/components/schemas/Foo_Without_ToJSON'
+  )
 })

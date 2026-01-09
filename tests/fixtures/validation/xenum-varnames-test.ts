@@ -44,8 +44,7 @@ const containers: Container[] = [
 @Route('/xenum-var-names-test')
 export class XEnumVarnamesTestController extends Controller {
   @Get('/container')
-  getContainer (@Query('country') country: Country): Container | undefined {
+  getContainer(@Query('country') country: Country): Container | undefined {
     return containers.find(c => c.country === country)
   }
-
 }

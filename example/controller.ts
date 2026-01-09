@@ -1,12 +1,28 @@
-import { Route, Get, Query, Body, Tags, Patch, Path, Response, Security, BodyDiscriminatorFunction, Header, Controller, Produces, Post } from '../src'
+import {
+  Route,
+  Get,
+  Query,
+  Body,
+  Tags,
+  Patch,
+  Path,
+  Response,
+  Security,
+  BodyDiscriminatorFunction,
+  Header,
+  Controller,
+  Produces,
+  Post
+} from '../src'
 
-export const discriminatorFn: BodyDiscriminatorFunction = (req) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const discriminatorFn: BodyDiscriminatorFunction = req => {
   return 'MyModelTwo'
 }
 
 // tslint:disable-next-line: max-classes-per-file
 class MyModel {
-  get id () {
+  get id() {
     return 'my-id'
   }
   /**
@@ -29,10 +45,8 @@ const securities = { company: [] }
 export class MyController extends Controller {
   @Get('{id}')
   @Response<{ errorCode: 1 }>(400)
-  public get (
-    @Path('id') id: string,
-    @Query('my-query-param') param?: number
-  ) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public get(@Path('id') id: string, @Query('my-query-param') param?: number) {
     this.setStatus(201)
     this.setHeader('x-my-header', 'my-value')
     return 'get'
@@ -40,29 +54,35 @@ export class MyController extends Controller {
 
   @Patch()
   @Security(securities)
-  public patch (
+  public patch(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Header('x-foo') foo: string,
-    @Body('application/json', discriminatorFn) body: MyModelTwo | MyModel
+    @Body('application/json', discriminatorFn) // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    body: MyModelTwo | MyModel
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   ): {} {
     return new MyModelTwo()
   }
 
   @Get('text')
   @Produces('text/plain')
-  public getText (): string {
+  public getText(): string {
     return 'This is plain text response'
   }
 
   @Get('xml')
   @Produces('application/xml')
-  public getXml (): string {
+  public getXml(): string {
     return '<response><message>Hello XML</message></response>'
   }
 
   @Post('csv')
   @Produces('text/csv')
-  public postCsv (
-    @Body() data: { items: Array<{ id: string, name: string }> }
+  public postCsv(
+    @Body()
+    data: {
+      items: Array<{ id: string; name: string }>
+    }
   ): string {
     const header = 'id,name\n'
     const rows = data.items.map(item => `${item.id},${item.name}`).join('\n')
@@ -76,13 +96,15 @@ export class MyController extends Controller {
 @Tags('text-controller')
 export class TextController extends Controller {
   @Get('info')
-  public getInfo (): string {
+  public getInfo(): string {
     return 'All endpoints in this controller return plain text by default'
   }
 
   @Get('json-override')
   @Produces('application/json')
-  public getJsonOverride (): { message: string } {
-    return { message: 'This endpoint overrides the controller-level content type' }
+  public getJsonOverride(): { message: string } {
+    return {
+      message: 'This endpoint overrides the controller-level content type'
+    }
   }
 }

@@ -7,6 +7,7 @@ export enum UniqueAdditionalType {
 }
 
 // Not exported for testing purposes
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 enum NotExported {
   FOO,
   BAR

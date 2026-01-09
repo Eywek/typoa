@@ -6,7 +6,7 @@ export const testMiddleware = (req: any, res: any, next: any) => next()
 @Middleware(testMiddleware)
 export class TestController {
   @Get('/')
-  public async get () {
+  public async get() {
     return 'OK'
   }
 }

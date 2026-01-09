@@ -8,7 +8,7 @@ export const methodMiddleware = (req: any, res: any, next: any) => next()
 export class TestController {
   @Get('/')
   @Middleware(methodMiddleware)
-  public async get () {
+  public async get() {
     return 'OK'
   }
 }

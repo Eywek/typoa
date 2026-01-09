@@ -5,12 +5,23 @@ import { test } from 'node:test'
 import { generate } from '../../src'
 
 test('Should generate allOf schemas for interface inheritance', async () => {
-  const openapiFile = path.resolve(__dirname, 'generated-openapi-interface-inheritance-test.json')
-  const routerFile = path.resolve(__dirname, 'generated-router-interface-inheritance.ts')
+  const openapiFile = path.resolve(
+    __dirname,
+    'generated-openapi-interface-inheritance-test.json'
+  )
+  const routerFile = path.resolve(
+    __dirname,
+    'generated-router-interface-inheritance.ts'
+  )
 
   await generate({
     tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
-    controllers: [path.resolve(__dirname, '../fixtures/validation/interface-inheritance-test.ts')],
+    controllers: [
+      path.resolve(
+        __dirname,
+        '../fixtures/validation/interface-inheritance-test.ts'
+      )
+    ],
     openapi: {
       filePath: openapiFile,
       service: {

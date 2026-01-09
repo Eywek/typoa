@@ -8,7 +8,10 @@ import { generate } from '../../src'
 
 let app: express.Application
 const routerFile = path.resolve(__dirname, 'generated-router-routing.ts')
-const openapiFile = path.resolve(__dirname, 'generated-openapi-router-routing.json')
+const openapiFile = path.resolve(
+  __dirname,
+  'generated-openapi-router-routing.json'
+)
 
 before(async () => {
   await generate({
@@ -25,7 +28,10 @@ before(async () => {
     },
     router: {
       filePath: routerFile,
-      securityMiddlewarePath: path.resolve(__dirname, '../fixtures/security-middleware.ts'),
+      securityMiddlewarePath: path.resolve(
+        __dirname,
+        '../fixtures/security-middleware.ts'
+      ),
       validateResponse: false,
       runtimeImport: '../../src'
     }
@@ -41,30 +47,22 @@ before(async () => {
 
 describe('Routing and path handling', () => {
   test('Should parse path parameters correctly', async () => {
-    const res = await request(app)
-      .delete('/')
-      .expect(200)
+    const res = await request(app).delete('/').expect(200)
 
     // The delete method returns {} as any, so expect empty object
     assert.deepStrictEqual(res.body, {})
   })
 
   test('Should accept string as string array for query params', async () => {
-    await request(app)
-      .delete('/')
-      .expect(200)
+    await request(app).delete('/').expect(200)
   })
 
   test('Should return 404 for invalid path regex', async () => {
-    await request(app)
-      .delete('/invalid-path')
-      .expect(404)
+    await request(app).delete('/invalid-path').expect(404)
   })
 
   test('Should return extra data correctly', async () => {
-    const res = await request(app)
-      .get('/my-route')
-      .expect(200)
+    const res = await request(app).get('/my-route').expect(200)
 
     // The get method returns {} as any, so expect empty object
     assert.deepStrictEqual(res.body, {})
