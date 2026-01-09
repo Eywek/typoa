@@ -82,8 +82,9 @@ export async function validateAndParse(
         'Missing parameter'
       )
     }
+
+    // Don't validate
     if (isUndefined) {
-      // Don't validate
       args.push(undefined)
       continue
     }
