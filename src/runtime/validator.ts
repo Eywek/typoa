@@ -416,7 +416,12 @@ function validateAndParseValueAgainstSchema (
       ))
 
     if (schemasValues.length === 1) {
-      return { succeed: true, value: schemasValues[0].value }
+      return schemasValues[0].succeed ? schemasValues[0] : {
+        ...schemasValues[0],
+        // When the body is { field: myKey }, it returns { fieldName: field.0.myKey }.
+        // In this case, we clean it
+        fieldName: schemasValues[0].fieldName.replace('.0.', '.')
+      }
     }
     // Check for any failures first
     const firstFailure = schemasValues.find(v => !v.succeed)
