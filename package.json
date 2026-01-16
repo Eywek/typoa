@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "debug": "4.4.3",
-    "glob": "7.1.6",
+    "glob": "13.0.0",
     "handlebars": "4.7.8",
     "ts-morph": "23.0.0",
     "yamljs": "0.3.0"
