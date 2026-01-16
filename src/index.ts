@@ -238,7 +238,7 @@ export async function generate(config: OpenAPIConfiguration) {
     ] as const
     const responses = Object.values(spec.paths)
       .map(path => {
-        return methods.map(method => path[method]?.responses ?? {})
+        return methods.map(method => path?.[method]?.responses ?? {})
       })
       .flat()
       .reduce<
