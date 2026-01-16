@@ -3,6 +3,7 @@ import { OpenAPIV3 } from 'openapi-types'
 import debug from 'debug'
 import { buildRef } from '../resolve'
 import { BodyDiscriminatorFunction } from './decorators'
+import { InternalFeatures } from '..'
 
 const log = debug('typoa:validator')
 
@@ -25,7 +26,8 @@ export async function validateAndParse(
     params: OpenAPIV3.ParameterObject[]
     body?: OpenAPIV3.RequestBodyObject
     bodyDiscriminatorFn?: BodyDiscriminatorFunction
-  }
+  },
+  features: InternalFeatures
 ): Promise<any[]> {
   const args: any[] = []
   for (const param of rules.params || []) {
@@ -37,7 +39,7 @@ export async function validateAndParse(
     // Handling body
     if (param.in === 'body') {
       args.push(
-        await validateBody(req, rules.body!, rules.bodyDiscriminatorFn, schemas)
+        await validateBody(req, rules.body!, rules.bodyDiscriminatorFn, schemas, features)
       )
       continue
     }
@@ -89,7 +91,7 @@ export async function validateAndParse(
       continue
     }
 
-    const ValidationResponse = validateAndParseValueAgainstSchema(param.name, value, param.schema!, schemas)
+    const ValidationResponse = validateAndParseValueAgainstSchema(param.name, value, param.schema!, schemas, features)
     if (!ValidationResponse.succeed) {
       throw new ValidateError({
         [param.name]: { message: ValidationResponse.errorMessage, value }
@@ -106,7 +108,8 @@ export function validateAndParseResponse(
   schemas: OpenAPIV3.ComponentsObject['schemas'],
   rules: Record<string, OpenAPIV3.ResponseObject>,
   statusCode: string,
-  contentType: string
+  contentType: string,
+  features: InternalFeatures
 ): unknown {
   try {
     const rule = rules[statusCode] ?? rules.default
@@ -128,7 +131,7 @@ export function validateAndParseResponse(
       throw new ValidateError({}, 'This content-type is not allowed')
     }
 
-    const ValidationResponse = validateAndParseValueAgainstSchema('response', data, expectedSchema, schemas)
+    const ValidationResponse = validateAndParseValueAgainstSchema('response', data, expectedSchema, schemas, features)
     if (!ValidationResponse.succeed) {
       throw new ValidateError({ response: { message: ValidationResponse.errorMessage } }, 'Invalid response')
     }
@@ -146,7 +149,8 @@ async function validateBody(
   req: express.Request,
   rule: OpenAPIV3.RequestBodyObject,
   discriminatorFn: BodyDiscriminatorFunction | undefined,
-  schemas: OpenAPIV3.ComponentsObject['schemas']
+  schemas: OpenAPIV3.ComponentsObject['schemas'],
+  features: InternalFeatures
 ): Promise<unknown> {
   const body = req.body
   const contentType = (req.headers['content-type'] ?? 'application/json').split(
@@ -164,7 +168,7 @@ async function validateBody(
 
   if (discriminatorFn) {
     const schemaName = await discriminatorFn(req)
-    const validationResult = validateAndParseValueAgainstSchema('body', body, { $ref: buildRef(schemaName) }, schemas)
+    const validationResult = validateAndParseValueAgainstSchema('body', body, { $ref: buildRef(schemaName) }, schemas, features)
     if (validationResult.succeed) {
       return validationResult.value
     }
@@ -180,7 +184,7 @@ async function validateBody(
     }, validationResult.errorMessage)
   }
 
-  const validationResult = validateAndParseValueAgainstSchema('body', body, expectedSchema, schemas)
+  const validationResult = validateAndParseValueAgainstSchema('body', body, expectedSchema, schemas, features)
   if (validationResult.succeed) {
     return validationResult.value
   }
@@ -243,7 +247,8 @@ function validateAndParseValueAgainstSchema (
     | OpenAPIV3.ReferenceObject
     | OpenAPIV3.ArraySchemaObject
     | OpenAPIV3.NonArraySchemaObject,
-  schemas: OpenAPIV3.ComponentsObject['schemas']
+  schemas: OpenAPIV3.ComponentsObject['schemas'],
+  features: InternalFeatures
 ): SafeValidatedValue {
   const currentSchema = getFromRef(schema, schemas)
   // Nullable
@@ -334,7 +339,7 @@ function validateAndParseValueAgainstSchema (
       return { succeed: false, errorMessage: `This property can have ${currentSchema.maxItems} items maximum`, fieldName: name }
     }
 
-    const values = value.map((item, i) => validateAndParseValueAgainstSchema(`${name}.${i}`, item, currentSchema.items, schemas))
+    const values = value.map((item, i) => validateAndParseValueAgainstSchema(`${name}.${i}`, item, currentSchema.items, schemas, features))
     const everyItemIsGood = values.every(value => value.succeed)
     const firstFailure = values.find(value => value.succeed === false)
     return everyItemIsGood ? { succeed: true, value: values.map(({ value }) => value) } : { succeed: false, errorMessage: firstFailure?.errorMessage ?? '', fieldName: firstFailure?.fieldName ?? name }
@@ -364,7 +369,8 @@ function validateAndParseValueAgainstSchema (
           `${name}.${propName}`,
           propValue,
           currentSchema.properties![propName],
-          schemas
+          schemas,
+          features
         )
         if (!validationResult.succeed) {
           return validationResult
@@ -377,22 +383,42 @@ function validateAndParseValueAgainstSchema (
         }
       }
     }
-    // Validate remaining keys with additionalProperties if present
-    if (
+
+    // Check for additional properties
+    // Compare against schema property names (excluding readOnly) to identify additional keys
+    const additionalKeys = Object.keys(value).filter(
+      key => propertyNames.includes(key) === false
+    )
+
+    if (features.enableThrowOnUnexpectedAdditionalData && currentSchema.additionalProperties === false) {
+      if (additionalKeys.length > 0) {
+        return {
+          succeed: false,
+          errorMessage: `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`,
+          fieldName: name
+        }
+      }
+    } else if (features.enableThrowOnUnexpectedAdditionalData && currentSchema.additionalProperties === true) {
+      for (const propName of additionalKeys) {
+        const propValue = (value as Record<string, unknown>)[propName]
+        if (typeof propValue !== 'undefined') {
+          filteredProperties[propName] = propValue
+        }
+      }
+    } else if (
       currentSchema.additionalProperties &&
       typeof currentSchema.additionalProperties !== 'boolean'
     ) {
-      const filteredKeys = Object.keys(filteredProperties)
-      const keys = Object.keys(value).filter(key => filteredKeys.includes(key) === false)
-
-      for (const propName of keys) {
+      // additionalProperties is a schema object - validate against it
+      for (const propName of additionalKeys) {
         const propValue = (value as Record<string, unknown>)[propName]
         if (typeof propValue !== 'undefined') {
           const validationResult = validateAndParseValueAgainstSchema(
             `${name}.${propName}`,
             propValue,
             currentSchema.additionalProperties as any,
-            schemas
+            schemas,
+            features
           )
           if (!validationResult.succeed) {
             return validationResult
@@ -400,9 +426,16 @@ function validateAndParseValueAgainstSchema (
           filteredProperties[propName] = validationResult.value
         }
       }
-
-      return { succeed: true, value: filteredProperties }
+    } else {
+      if (features.enableThrowOnUnexpectedAdditionalData && additionalKeys.length > 0) {
+        return {
+          succeed: false,
+          errorMessage: `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`,
+          fieldName: name
+        }
+      }
     }
+
     return { succeed: true, value: filteredProperties }
   }
   // AllOf
@@ -412,7 +445,8 @@ function validateAndParseValueAgainstSchema (
         `${name}.${i}`,
         value,
         schema,
-        schemas
+        schemas,
+        features
       ))
 
     if (schemasValues.length === 1) {
@@ -440,7 +474,8 @@ function validateAndParseValueAgainstSchema (
           `${name}.${i}`,
           value,
           schema,
-          schemas
+          schemas,
+          features
         )
       if (succeed) {
         // set as matching value if we haven't found one
