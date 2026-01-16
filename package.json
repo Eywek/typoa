@@ -21,31 +21,31 @@
     "node": ">=18.15.0"
   },
   "devDependencies": {
-    "@types/debug": "^4.1.12",
-    "@types/express": "^5.0.6",
-    "@types/node": "^25.0.3",
-    "@types/supertest": "^6.0.3",
-    "@types/yamljs": "^0.2.34",
-    "@typescript-eslint/eslint-plugin": "^8.52.0",
-    "@typescript-eslint/parser": "^8.52.0",
-    "body-parser": "^1.19.0",
+    "@types/debug": "4.1.12",
+    "@types/express": "5.0.6",
+    "@types/node": "25.0.9",
+    "@types/supertest": "6.0.3",
+    "@types/yamljs": "0.2.34",
+    "@typescript-eslint/eslint-plugin": "8.53.0",
+    "@typescript-eslint/parser": "8.53.0",
+    "body-parser": "1.19.0",
     "eslint": "9.39.2",
     "eslint-config-standard": "17.1.0",
-    "eslint-plugin-prettier": "5.5.4",
+    "eslint-plugin-prettier": "5.5.5",
     "eslint-plugin-unicorn": "62.0.0",
-    "express": "^4.17.1",
-    "openapi-types": "^7.0.1",
-    "prettier": "3.7.4",
-    "supertest": "^7.2.2",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "8.52.0"
+    "express": "4.17.1",
+    "openapi-types": "7.0.1",
+    "prettier": "3.8.0",
+    "supertest": "7.2.2",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.53.0"
   },
   "dependencies": {
-    "debug": "^4.4.3",
-    "glob": "^7.1.6",
-    "handlebars": "^4.7.8",
-    "ts-morph": "^23.0.0",
-    "yamljs": "^0.3.0"
+    "debug": "4.4.3",
+    "glob": "7.1.6",
+    "handlebars": "4.7.8",
+    "ts-morph": "23.0.0",
+    "yamljs": "0.3.0"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
