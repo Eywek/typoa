@@ -6,9 +6,7 @@ import {
   InterfaceDeclaration,
   ExportedDeclarations
 } from 'ts-morph'
-// @ts-expect-error Glob package probably needs to be updated
 import { glob } from 'glob'
-import { promisify } from 'util'
 import path from 'path'
 import { addController } from './controller'
 import { createSpec } from './openapi'
@@ -140,7 +138,6 @@ export function getConfig(): OpenAPIConfiguration | undefined {
   return configStore
 }
 
-const promiseGlob = promisify(glob)
 export async function generate(config: OpenAPIConfiguration) {
   configStore = config
 
@@ -169,9 +166,8 @@ export async function generate(config: OpenAPIConfiguration) {
   // Iterate over controllers and patch spec
   await Promise.all(
     config.controllers.map(async controller => {
-      const files = await promiseGlob(controller)
+      const files = await glob(controller)
       await Promise.all(
-        // @ts-expect-error Glob package probably needs to be updated
         files.map(async file => {
           const filePath = path.resolve(root, file)
           const sourceFile = project.getSourceFileOrThrow(filePath)
@@ -248,7 +244,7 @@ export async function generate(config: OpenAPIConfiguration) {
     ] as const
     const responses = Object.values(spec.paths)
       .map(path => {
-        return methods.map(method => path[method]?.responses ?? {})
+        return methods.map(method => path?.[method]?.responses ?? {})
       })
       .flat()
       .reduce<
