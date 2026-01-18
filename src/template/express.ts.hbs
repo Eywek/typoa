@@ -22,6 +22,10 @@ import { {{name}} } from '{{relativePath}}'
 
 const schemas = {{json schemas}}
 
+const features = {
+  enableThrowOnUnexpectedAdditionalData: {{features.enableThrowOnUnexpectedAdditionalData}}
+}
+
 export function bindToRouter (router: express.Router) {
   {{#each controllers}}
   {{#each methods}}
@@ -37,7 +41,8 @@ export function bindToRouter (router: express.Router) {
             params: {{json params}},
             body: {{#if body}}{{json body}}{{else}}undefined{{/if}},
             bodyDiscriminatorFn: {{#if bodyDiscriminator}}{{bodyDiscriminator.name}}{{else}}undefined{{/if}}
-          }
+          },
+          features
         ) as any
       )
       {{#if validateResponse}}
@@ -46,7 +51,8 @@ export function bindToRouter (router: express.Router) {
         schemas as any,
         {{json responses}},
         ('getStatus' in controller ? (controller as any).getStatus()?.toString() : undefined) ?? (typeof data !== 'undefined' && data !== null ? '200' : '204'),
-        ((('getHeaders' in controller ? (controller as any).getHeaders()?.['content-type'] : undefined) ?? '{{contentType}}')).split(';')[0]
+        ((('getHeaders' in controller ? (controller as any).getHeaders()?.['content-type'] : undefined) ?? '{{contentType}}')).split(';')[0],
+        features
       )
       RuntimeResponse.send(controller, validatedData, res, '{{contentType}}')
       {{else}}
