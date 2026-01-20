@@ -248,7 +248,8 @@ function validateAndParseValueAgainstSchema (
     | OpenAPIV3.ArraySchemaObject
     | OpenAPIV3.NonArraySchemaObject,
   schemas: OpenAPIV3.ComponentsObject['schemas'],
-  features: InternalFeatures
+  features: InternalFeatures,
+  ancestorIsAllOf: boolean = false,
 ): SafeValidatedValue {
   const currentSchema = getFromRef(schema, schemas)
   // Nullable
@@ -427,7 +428,7 @@ function validateAndParseValueAgainstSchema (
         }
       }
     } else {
-      if (features.enableThrowOnUnexpectedAdditionalData && additionalKeys.length > 0) {
+      if (!ancestorIsAllOf && features.enableThrowOnUnexpectedAdditionalData && additionalKeys.length > 0) {
         return {
           succeed: false,
           errorMessage: `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`,
@@ -446,17 +447,10 @@ function validateAndParseValueAgainstSchema (
         value,
         schema,
         schemas,
-        features
+        features,
+        true
       ))
 
-    if (schemasValues.length === 1) {
-      return schemasValues[0].succeed ? schemasValues[0] : {
-        ...schemasValues[0],
-        // When the body is { field: myKey }, it returns { fieldName: field.0.myKey }.
-        // In this case, we clean it
-        fieldName: schemasValues[0].fieldName.replace('.0.', '.')
-      }
-    }
     // Check for any failures first
     const firstFailure = schemasValues.find(v => !v.succeed)
     if (firstFailure) {
@@ -471,33 +465,38 @@ function validateAndParseValueAgainstSchema (
     let matchingValue: unknown | undefined
     currentSchema.oneOf.forEach((schema, i) => {
       const { succeed, value: parsedValue } = validateAndParseValueAgainstSchema(
-          `${name}.${i}`,
-          value,
-          schema,
-          schemas,
-          features
-        )
+        `${name}.${i}`,
+        value,
+        schema,
+        schemas,
+        features
+      )
+
       if (succeed) {
         // set as matching value if we haven't found one
-          if (typeof matchingValue === 'undefined') {
+        if (typeof matchingValue === 'undefined') {
           matchingValue = parsedValue
           return
         }
+
         // replace matched value if the new one have more keys
-          if (
+        if (
           typeof matchingValue === 'object' && matchingValue !== null &&
           typeof parsedValue === 'object' && parsedValue !== null &&
           Object.keys(parsedValue).length > Object.keys(matchingValue).length
         ) {
           matchingValue = parsedValue
         }
-        }
+      }
     })
+
     if (typeof matchingValue === 'undefined') {
       return { succeed: false, errorMessage: 'Found no matching schema for provided value', fieldName: name }
     }
+
     return { succeed: true, value: matchingValue }
   }
+
   log(`Schema of ${name} is not yet supported, skipping value validation`)
   return { succeed: true, value }
 }
