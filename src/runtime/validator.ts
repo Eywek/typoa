@@ -91,7 +91,7 @@ export async function validateAndParse(
       continue
     }
 
-    const ValidationResponse = validateAndParseValueAgainstSchema(param.name, value, param.schema!, schemas, features)
+    const ValidationResponse = validateAndParseValueAgainstSchema(param.name, value, param.schema!, schemas, features, "unknown")
     if (!ValidationResponse.succeed) {
       throw new ValidateError({
         [param.name]: { message: ValidationResponse.errorMessage, value }
@@ -131,7 +131,7 @@ export function validateAndParseResponse(
       throw new ValidateError({}, 'This content-type is not allowed')
     }
 
-    const ValidationResponse = validateAndParseValueAgainstSchema('response', data, expectedSchema, schemas, features)
+    const ValidationResponse = validateAndParseValueAgainstSchema('response', data, expectedSchema, schemas, features, "unknown")
     if (!ValidationResponse.succeed) {
       throw new ValidateError({ response: { message: ValidationResponse.errorMessage } }, 'Invalid response')
     }
@@ -168,7 +168,7 @@ async function validateBody(
 
   if (discriminatorFn) {
     const schemaName = await discriminatorFn(req)
-    const validationResult = validateAndParseValueAgainstSchema('body', body, { $ref: buildRef(schemaName) }, schemas, features)
+    const validationResult = validateAndParseValueAgainstSchema('body', body, { $ref: buildRef(schemaName) }, schemas, features, "unknown")
     if (validationResult.succeed) {
       return validationResult.value
     }
@@ -184,7 +184,7 @@ async function validateBody(
     }, validationResult.errorMessage)
   }
 
-  const validationResult = validateAndParseValueAgainstSchema('body', body, expectedSchema, schemas, features)
+  const validationResult = validateAndParseValueAgainstSchema('body', body, expectedSchema, schemas, features, "unknown")
   if (validationResult.succeed) {
     return validationResult.value
   }
@@ -249,7 +249,7 @@ function validateAndParseValueAgainstSchema (
     | OpenAPIV3.NonArraySchemaObject,
   schemas: OpenAPIV3.ComponentsObject['schemas'],
   features: InternalFeatures,
-  ancestorIsAllOf: boolean = false,
+  parentType: "allOf" | "oneOf" | "array" | "object" | "unknown",
 ): SafeValidatedValue {
   const currentSchema = getFromRef(schema, schemas)
   // Nullable
@@ -340,7 +340,7 @@ function validateAndParseValueAgainstSchema (
       return { succeed: false, errorMessage: `This property can have ${currentSchema.maxItems} items maximum`, fieldName: name }
     }
 
-    const values = value.map((item, i) => validateAndParseValueAgainstSchema(`${name}.${i}`, item, currentSchema.items, schemas, features))
+    const values = value.map((item, i) => validateAndParseValueAgainstSchema(`${name}.${i}`, item, currentSchema.items, schemas, features, "array"))
     const everyItemIsGood = values.every(value => value.succeed)
     const firstFailure = values.find(value => value.succeed === false)
     return everyItemIsGood ? { succeed: true, value: values.map(({ value }) => value) } : { succeed: false, errorMessage: firstFailure?.errorMessage ?? '', fieldName: firstFailure?.fieldName ?? name }
@@ -371,7 +371,8 @@ function validateAndParseValueAgainstSchema (
           propValue,
           currentSchema.properties![propName],
           schemas,
-          features
+          features,
+          "unknown"
         )
         if (!validationResult.succeed) {
           return validationResult
@@ -419,7 +420,8 @@ function validateAndParseValueAgainstSchema (
             propValue,
             currentSchema.additionalProperties as any,
             schemas,
-            features
+            features,
+            "unknown"
           )
           if (!validationResult.succeed) {
             return validationResult
@@ -428,7 +430,7 @@ function validateAndParseValueAgainstSchema (
         }
       }
     } else {
-      if (!ancestorIsAllOf && features.enableThrowOnUnexpectedAdditionalData && additionalKeys.length > 0) {
+      if (parentType !== "allOf" && features.enableThrowOnUnexpectedAdditionalData && additionalKeys.length > 0) {
         return {
           succeed: false,
           errorMessage: `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`,
@@ -448,7 +450,7 @@ function validateAndParseValueAgainstSchema (
         schema,
         schemas,
         features,
-        true
+        "allOf"
       ))
 
     // Check for any failures first
@@ -469,7 +471,8 @@ function validateAndParseValueAgainstSchema (
         value,
         schema,
         schemas,
-        features
+        features,
+        "oneOf"
       )
 
       if (succeed) {
