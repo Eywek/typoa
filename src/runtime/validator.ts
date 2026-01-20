@@ -91,7 +91,7 @@ export async function validateAndParse(
       continue
     }
 
-    const ValidationResponse = validateAndParseValueAgainstSchema(param.name, value, param.schema!, schemas, features)
+    const ValidationResponse = validateAndParseValueAgainstSchema(param.name, value, param.schema!, schemas, features, "unknown")
     if (!ValidationResponse.succeed) {
       throw new ValidateError({
         [param.name]: { message: ValidationResponse.errorMessage, value }
@@ -131,7 +131,7 @@ export function validateAndParseResponse(
       throw new ValidateError({}, 'This content-type is not allowed')
     }
 
-    const ValidationResponse = validateAndParseValueAgainstSchema('response', data, expectedSchema, schemas, features)
+    const ValidationResponse = validateAndParseValueAgainstSchema('response', data, expectedSchema, schemas, features, "unknown")
     if (!ValidationResponse.succeed) {
       throw new ValidateError({ response: { message: ValidationResponse.errorMessage } }, 'Invalid response')
     }
@@ -168,7 +168,7 @@ async function validateBody(
 
   if (discriminatorFn) {
     const schemaName = await discriminatorFn(req)
-    const validationResult = validateAndParseValueAgainstSchema('body', body, { $ref: buildRef(schemaName) }, schemas, features)
+    const validationResult = validateAndParseValueAgainstSchema('body', body, { $ref: buildRef(schemaName) }, schemas, features, "unknown")
     if (validationResult.succeed) {
       return validationResult.value
     }
@@ -184,7 +184,7 @@ async function validateBody(
     }, validationResult.errorMessage)
   }
 
-  const validationResult = validateAndParseValueAgainstSchema('body', body, expectedSchema, schemas, features)
+  const validationResult = validateAndParseValueAgainstSchema('body', body, expectedSchema, schemas, features, "unknown")
   if (validationResult.succeed) {
     return validationResult.value
   }
@@ -248,7 +248,8 @@ function validateAndParseValueAgainstSchema (
     | OpenAPIV3.ArraySchemaObject
     | OpenAPIV3.NonArraySchemaObject,
   schemas: OpenAPIV3.ComponentsObject['schemas'],
-  features: InternalFeatures
+  features: InternalFeatures,
+  parentType: "allOf" | "oneOf" | "array" | "object" | "unknown",
 ): SafeValidatedValue {
   const currentSchema = getFromRef(schema, schemas)
   // Nullable
@@ -339,7 +340,7 @@ function validateAndParseValueAgainstSchema (
       return { succeed: false, errorMessage: `This property can have ${currentSchema.maxItems} items maximum`, fieldName: name }
     }
 
-    const values = value.map((item, i) => validateAndParseValueAgainstSchema(`${name}.${i}`, item, currentSchema.items, schemas, features))
+    const values = value.map((item, i) => validateAndParseValueAgainstSchema(`${name}.${i}`, item, currentSchema.items, schemas, features, "array"))
     const everyItemIsGood = values.every(value => value.succeed)
     const firstFailure = values.find(value => value.succeed === false)
     return everyItemIsGood ? { succeed: true, value: values.map(({ value }) => value) } : { succeed: false, errorMessage: firstFailure?.errorMessage ?? '', fieldName: firstFailure?.fieldName ?? name }
@@ -370,7 +371,8 @@ function validateAndParseValueAgainstSchema (
           propValue,
           currentSchema.properties![propName],
           schemas,
-          features
+          features,
+          "unknown"
         )
         if (!validationResult.succeed) {
           return validationResult
@@ -418,7 +420,8 @@ function validateAndParseValueAgainstSchema (
             propValue,
             currentSchema.additionalProperties as any,
             schemas,
-            features
+            features,
+            "unknown"
           )
           if (!validationResult.succeed) {
             return validationResult
@@ -427,7 +430,7 @@ function validateAndParseValueAgainstSchema (
         }
       }
     } else {
-      if (features.enableThrowOnUnexpectedAdditionalData && additionalKeys.length > 0) {
+      if (parentType !== "allOf" && features.enableThrowOnUnexpectedAdditionalData && additionalKeys.length > 0) {
         return {
           succeed: false,
           errorMessage: `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`,
@@ -446,17 +449,10 @@ function validateAndParseValueAgainstSchema (
         value,
         schema,
         schemas,
-        features
+        features,
+        "allOf"
       ))
 
-    if (schemasValues.length === 1) {
-      return schemasValues[0].succeed ? schemasValues[0] : {
-        ...schemasValues[0],
-        // When the body is { field: myKey }, it returns { fieldName: field.0.myKey }.
-        // In this case, we clean it
-        fieldName: schemasValues[0].fieldName.replace('.0.', '.')
-      }
-    }
     // Check for any failures first
     const firstFailure = schemasValues.find(v => !v.succeed)
     if (firstFailure) {
@@ -471,33 +467,39 @@ function validateAndParseValueAgainstSchema (
     let matchingValue: unknown | undefined
     currentSchema.oneOf.forEach((schema, i) => {
       const { succeed, value: parsedValue } = validateAndParseValueAgainstSchema(
-          `${name}.${i}`,
-          value,
-          schema,
-          schemas,
-          features
-        )
+        `${name}.${i}`,
+        value,
+        schema,
+        schemas,
+        features,
+        "oneOf"
+      )
+
       if (succeed) {
         // set as matching value if we haven't found one
-          if (typeof matchingValue === 'undefined') {
+        if (typeof matchingValue === 'undefined') {
           matchingValue = parsedValue
           return
         }
+
         // replace matched value if the new one have more keys
-          if (
+        if (
           typeof matchingValue === 'object' && matchingValue !== null &&
           typeof parsedValue === 'object' && parsedValue !== null &&
           Object.keys(parsedValue).length > Object.keys(matchingValue).length
         ) {
           matchingValue = parsedValue
         }
-        }
+      }
     })
+
     if (typeof matchingValue === 'undefined') {
       return { succeed: false, errorMessage: 'Found no matching schema for provided value', fieldName: name }
     }
+
     return { succeed: true, value: matchingValue }
   }
+
   log(`Schema of ${name} is not yet supported, skipping value validation`)
   return { succeed: true, value }
 }
