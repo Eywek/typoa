@@ -17,7 +17,6 @@ import { CodeGenControllers } from './types'
 import handlebars from 'handlebars'
 import { getRelativeFilePath, resolveProperty } from './utils'
 import { resolve } from './resolve'
-import { initLogger, type CustomLogger } from './logger'
 
 export type OpenAPIConfiguration = {
   tsconfigFilePath: string
@@ -166,7 +165,7 @@ export async function generate(config: OpenAPIConfiguration) {
           for (const controller of controllers) {
             const routeDecorator = controller.getDecorator('Route')
             if (routeDecorator === undefined) continue // skip
-            addController(controller, spec, codegenControllers, config.router, initLogger(config.features?.customLogger))
+            addController(controller, spec, codegenControllers, config.router)
             controllersPathByName[controller.getName()!] = filePath
           }
         })
