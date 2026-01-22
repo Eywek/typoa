@@ -284,7 +284,7 @@ function validateAndParseValueAgainstSchema (
       }
     }
     if (currentSchema.format) {
-      const formatResult = validateAndParseFormat(name, value, currentSchema.format)
+      const formatResult = validateAndParseFormat(logger, name, value, currentSchema.format)
       if (!formatResult.succeed) {
         return {succeed: false, errorMessage: formatResult.errorMessage, fieldName: name}
       }
@@ -511,7 +511,7 @@ function validateAndParseValueAgainstSchema (
   return { succeed: true, value }
 }
 
-function validateAndParseFormat (name: string, value: string, format: string): SafeValidatedValue {
+function validateAndParseFormat (logger: CustomLogger, name: string, value: string, format: string): SafeValidatedValue {
   if (format === 'date' || format === 'date-time') {
     const date = new Date(value)
     if (String(date) === 'Invalid Date') {
