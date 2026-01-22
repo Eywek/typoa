@@ -1,11 +1,9 @@
 import express from 'express'
 import { OpenAPIV3 } from 'openapi-types'
-import debug from 'debug'
 import { buildRef } from '../resolve'
 import { BodyDiscriminatorFunction } from './decorators'
 import { InternalFeatures } from '..'
-
-const log = debug('typoa:validator')
+import { CustomLogger, initLogger } from '../logger'
 
 export class ValidateError extends Error {
   public status = 400
@@ -39,7 +37,7 @@ export async function validateAndParse(
     // Handling body
     if (param.in === 'body') {
       args.push(
-        await validateBody(req, rules.body!, rules.bodyDiscriminatorFn, schemas, features)
+        await validateBody(req, rules.body!, rules.bodyDiscriminatorFn, schemas, initLogger(features.customLogger), features)
       )
       continue
     }
@@ -91,7 +89,7 @@ export async function validateAndParse(
       continue
     }
 
-    const ValidationResponse = validateAndParseValueAgainstSchema(param.name, value, param.schema!, schemas, features, "unknown")
+    const ValidationResponse = validateAndParseValueAgainstSchema(param.name, value, param.schema!, schemas, initLogger(features.customLogger), features, "unknown")
     if (!ValidationResponse.succeed) {
       throw new ValidateError({
         [param.name]: { message: ValidationResponse.errorMessage, value }
@@ -109,6 +107,7 @@ export function validateAndParseResponse(
   rules: Record<string, OpenAPIV3.ResponseObject>,
   statusCode: string,
   contentType: string,
+  logger: CustomLogger,
   features: InternalFeatures
 ): unknown {
   try {
@@ -127,11 +126,11 @@ export function validateAndParseResponse(
       if (typeof data === 'undefined' || data === null) {
         return data
       }
-      log(`Schema is not found for '${contentType}', throwing error`)
+      logger.error(`Schema is not found for '${contentType}', throwing error`)
       throw new ValidateError({}, 'This content-type is not allowed')
     }
 
-    const ValidationResponse = validateAndParseValueAgainstSchema('response', data, expectedSchema, schemas, features, "unknown")
+    const ValidationResponse = validateAndParseValueAgainstSchema('response', data, expectedSchema, schemas, logger, features, "unknown")
     if (!ValidationResponse.succeed) {
       throw new ValidateError({ response: { message: ValidationResponse.errorMessage } }, 'Invalid response')
     }
@@ -150,6 +149,7 @@ async function validateBody(
   rule: OpenAPIV3.RequestBodyObject,
   discriminatorFn: BodyDiscriminatorFunction | undefined,
   schemas: OpenAPIV3.ComponentsObject['schemas'],
+  logger: CustomLogger,
   features: InternalFeatures
 ): Promise<unknown> {
   const body = req.body
@@ -158,17 +158,18 @@ async function validateBody(
   )[0]
   const expectedSchema = rule.content[contentType]?.schema
   if (typeof expectedSchema === 'undefined') {
-    log(`Schema is not found for '${contentType}', throwing error`)
+    logger.error(`Schema is not found for '${contentType}', throwing error`)
     throw new ValidateError({}, 'This content-type is not allowed')
   }
+
   if (req.readableEnded === false) {
-    log(`! Warning: Body has not be parsed, body validation skipped !`)
+    logger.warn(`! Warning: Body has not be parsed, body validation skipped !`)
     return body
   }
 
   if (discriminatorFn) {
     const schemaName = await discriminatorFn(req)
-    const validationResult = validateAndParseValueAgainstSchema('body', body, { $ref: buildRef(schemaName) }, schemas, features, "unknown")
+    const validationResult = validateAndParseValueAgainstSchema('body', body, { $ref: buildRef(schemaName) }, schemas, logger, features, "unknown")
     if (validationResult.succeed) {
       return validationResult.value
     }
@@ -184,7 +185,7 @@ async function validateBody(
     }, validationResult.errorMessage)
   }
 
-  const validationResult = validateAndParseValueAgainstSchema('body', body, expectedSchema, schemas, features, "unknown")
+  const validationResult = validateAndParseValueAgainstSchema('body', body, expectedSchema, schemas, logger, features, "unknown")
   if (validationResult.succeed) {
     return validationResult.value
   }
@@ -248,6 +249,7 @@ function validateAndParseValueAgainstSchema (
     | OpenAPIV3.ArraySchemaObject
     | OpenAPIV3.NonArraySchemaObject,
   schemas: OpenAPIV3.ComponentsObject['schemas'],
+  logger: CustomLogger,
   features: InternalFeatures,
   parentType: "allOf" | "oneOf" | "array" | "object" | "unknown",
 ): SafeValidatedValue {
@@ -288,7 +290,7 @@ function validateAndParseValueAgainstSchema (
       }
     }
     if (currentSchema.format) {
-      const formatResult = validateAndParseFormat(name, value, currentSchema.format)
+      const formatResult = validateAndParseFormat(logger, name, value, currentSchema.format)
       if (!formatResult.succeed) {
         return {succeed: false, errorMessage: formatResult.errorMessage, fieldName: name}
       }
@@ -340,7 +342,7 @@ function validateAndParseValueAgainstSchema (
       return { succeed: false, errorMessage: `This property can have ${currentSchema.maxItems} items maximum`, fieldName: name }
     }
 
-    const values = value.map((item, i) => validateAndParseValueAgainstSchema(`${name}.${i}`, item, currentSchema.items, schemas, features, "array"))
+    const values = value.map((item, i) => validateAndParseValueAgainstSchema(`${name}.${i}`, item, currentSchema.items, schemas, logger, features, "array"))
     const everyItemIsGood = values.every(value => value.succeed)
     const firstFailure = values.find(value => value.succeed === false)
     return everyItemIsGood ? { succeed: true, value: values.map(({ value }) => value) } : { succeed: false, errorMessage: firstFailure?.errorMessage ?? '', fieldName: firstFailure?.fieldName ?? name }
@@ -371,6 +373,7 @@ function validateAndParseValueAgainstSchema (
           propValue,
           currentSchema.properties![propName],
           schemas,
+          logger,
           features,
           "unknown"
         )
@@ -398,7 +401,7 @@ function validateAndParseValueAgainstSchema (
     ) {
       if (additionalKeys.length > 0) {
         if (features.enableLogUnexpectedAdditionalData) {
-          log(`! Warning: additional properties are not allowed. Found: ${additionalKeys.join(', ')}`)
+          logger.warn(`Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`)
         } else {
           return {
             succeed: false,
@@ -427,6 +430,7 @@ function validateAndParseValueAgainstSchema (
             propValue,
             currentSchema.additionalProperties as any,
             schemas,
+            logger,
             features,
             "unknown"
           )
@@ -443,7 +447,7 @@ function validateAndParseValueAgainstSchema (
         additionalKeys.length > 0
       ) {
         if (features.enableLogUnexpectedAdditionalData) {
-          log(`! Warning: additional properties are not allowed. Found: ${additionalKeys.join(', ')}`)
+          logger.warn(`Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`)
         } else {
           return {
             succeed: false,
@@ -464,6 +468,7 @@ function validateAndParseValueAgainstSchema (
         value,
         schema,
         schemas,
+        logger,
         features,
         "allOf"
       ))
@@ -486,6 +491,7 @@ function validateAndParseValueAgainstSchema (
         value,
         schema,
         schemas,
+        logger,
         features,
         "oneOf"
       )
@@ -515,11 +521,11 @@ function validateAndParseValueAgainstSchema (
     return { succeed: true, value: matchingValue }
   }
 
-  log(`Schema of ${name} is not yet supported, skipping value validation`)
+  logger.warn(`Schema of ${name} is not yet supported, skipping value validation`)
   return { succeed: true, value }
 }
 
-function validateAndParseFormat (name: string, value: string, format: string): SafeValidatedValue {
+function validateAndParseFormat (logger: CustomLogger, name: string, value: string, format: string): SafeValidatedValue {
   if (format === 'date' || format === 'date-time') {
     const date = new Date(value)
     if (String(date) === 'Invalid Date') {
@@ -527,7 +533,8 @@ function validateAndParseFormat (name: string, value: string, format: string): S
     }
     return { succeed: true, value: date }
   }
-  log(`Format '${format}' is not yet supported, value is returned without additionnal parsing`)
+
+  logger.warn(`Format '${format}' is not yet supported, value is returned without additionnal parsing`)
   return { succeed: true, value }
 }
 

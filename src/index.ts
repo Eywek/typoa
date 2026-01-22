@@ -17,6 +17,7 @@ import { CodeGenControllers } from './types'
 import handlebars from 'handlebars'
 import { getRelativeFilePath, resolveProperty } from './utils'
 import { resolve } from './resolve'
+import { initLogger, type CustomLogger } from './logger'
 
 export type InternalFeatures = {
   /**
@@ -31,6 +32,10 @@ export type InternalFeatures = {
    * It helps to prepare the feature "enableThrowOnUnexpectedAdditionalData"
    */
   enableLogUnexpectedAdditionalData?: boolean
+  /**
+   * You can provide a specific logger. The default one is https://www.npmjs.com/package/debug
+   */
+  customLogger?: CustomLogger;
 }
 
 export type OpenAPIConfiguration = {
@@ -181,7 +186,7 @@ export async function generate(config: OpenAPIConfiguration) {
           for (const controller of controllers) {
             const routeDecorator = controller.getDecorator('Route')
             if (routeDecorator === undefined) continue // skip
-            addController(controller, spec, codegenControllers, config.router)
+            addController(controller, spec, codegenControllers, config.router, initLogger(config.features?.customLogger))
             controllersPathByName[controller.getName()!] = filePath
           }
         })
