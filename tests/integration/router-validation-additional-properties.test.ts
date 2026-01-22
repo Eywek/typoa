@@ -77,14 +77,14 @@ before(async () => {
   app.use(createErrorHandler())
 })
 
-//after(async () => {
-//  // Reset runtime options to defaults to prevent affecting other tests
-//  setRuntimeOptions({
-//    features: {
-//      enableThrowOnUnexpectedAdditionalData: false,
-//    }
-//  })
-//})
+after(async () => {
+  // Reset runtime options to defaults to prevent affecting other tests
+  setRuntimeOptions({
+    features: {
+      enableThrowOnUnexpectedAdditionalData: false,
+    }
+  })
+})
 
 describe('Additional properties', () => {
   test('Should reject if a given property does not exist in the schema', async () => {
