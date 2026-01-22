@@ -8,10 +8,10 @@ const defaultLogger = debug('typoa')
 
 export function initLogger(customLogger?: CustomLogger): CustomLogger {
   return customLogger ?? {
-    trace: defaultLogger.log,
-    debug: defaultLogger.log,
-    info: defaultLogger.log,
-    warn: defaultLogger.log,
-    error: defaultLogger.log,
+    trace: defaultLogger,
+    debug: defaultLogger,
+    info: defaultLogger,
+    warn: defaultLogger,
+    error: defaultLogger,
   }
 }
