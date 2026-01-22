@@ -392,12 +392,19 @@ function validateAndParseValueAgainstSchema (
       key => propertyNames.includes(key) === false
     )
 
-    if (features.enableThrowOnUnexpectedAdditionalData && currentSchema.additionalProperties === false) {
+    if (
+      (features.enableThrowOnUnexpectedAdditionalData || features.enableLogUnexpectedAdditionalData) &&
+      currentSchema.additionalProperties === false
+    ) {
       if (additionalKeys.length > 0) {
-        return {
-          succeed: false,
-          errorMessage: `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`,
-          fieldName: name
+        if (features.enableLogUnexpectedAdditionalData) {
+          log(`! Warning: additional properties are not allowed. Found: ${additionalKeys.join(', ')}`)
+        } else {
+          return {
+            succeed: false,
+            errorMessage: `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`,
+            fieldName: name
+          }
         }
       }
     } else if (features.enableThrowOnUnexpectedAdditionalData && currentSchema.additionalProperties === true) {
@@ -430,11 +437,19 @@ function validateAndParseValueAgainstSchema (
         }
       }
     } else {
-      if (parentType !== "allOf" && features.enableThrowOnUnexpectedAdditionalData && additionalKeys.length > 0) {
-        return {
-          succeed: false,
-          errorMessage: `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`,
-          fieldName: name
+      if (
+        parentType !== "allOf" &&
+        (features.enableThrowOnUnexpectedAdditionalData || features.enableLogUnexpectedAdditionalData) &&
+        additionalKeys.length > 0
+      ) {
+        if (features.enableLogUnexpectedAdditionalData) {
+          log(`! Warning: additional properties are not allowed. Found: ${additionalKeys.join(', ')}`)
+        } else {
+          return {
+            succeed: false,
+            errorMessage: `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`,
+            fieldName: name
+          }
         }
       }
     }
