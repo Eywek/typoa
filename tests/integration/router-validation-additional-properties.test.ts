@@ -7,6 +7,7 @@ import { test, describe, before } from 'node:test'
 import { generate } from '../../src'
 import { createErrorHandler } from './shared'
 import { randomUUID } from 'node:crypto'
+import { setRuntimeOptions } from '../../src/index'
 
 // Complete validBody with all required fields for testing
 const validBody = {
@@ -62,10 +63,9 @@ before(async () => {
       validateResponse: false,
       runtimeImport: '../../src'
     },
-    features: {
-      enableThrowOnUnexpectedAdditionalData: true
-    }
   })
+
+  setRuntimeOptions({ features: { enableThrowOnUnexpectedAdditionalData: true } })
 
   // Create Express app
   app = express()

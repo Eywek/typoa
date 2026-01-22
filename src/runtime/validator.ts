@@ -2,8 +2,9 @@ import express from 'express'
 import { OpenAPIV3 } from 'openapi-types'
 import { buildRef } from '../resolve'
 import { BodyDiscriminatorFunction } from './decorators'
-import { InternalFeatures } from '..'
-import { CustomLogger, initLogger } from '../logger'
+import { options } from '../option'
+
+const { customLogger: logger, features } = options;
 
 export class ValidateError extends Error {
   public status = 400
@@ -25,7 +26,6 @@ export async function validateAndParse(
     body?: OpenAPIV3.RequestBodyObject
     bodyDiscriminatorFn?: BodyDiscriminatorFunction
   },
-  features: InternalFeatures
 ): Promise<any[]> {
   const args: any[] = []
   for (const param of rules.params || []) {
@@ -37,7 +37,7 @@ export async function validateAndParse(
     // Handling body
     if (param.in === 'body') {
       args.push(
-        await validateBody(req, rules.body!, rules.bodyDiscriminatorFn, schemas, initLogger(features.customLogger), features)
+        await validateBody(req, rules.body!, rules.bodyDiscriminatorFn, schemas)
       )
       continue
     }
@@ -89,7 +89,7 @@ export async function validateAndParse(
       continue
     }
 
-    const ValidationResponse = validateAndParseValueAgainstSchema(param.name, value, param.schema!, schemas, initLogger(features.customLogger), features, "unknown")
+    const ValidationResponse = validateAndParseValueAgainstSchema(param.name, value, param.schema!, schemas, "unknown")
     if (!ValidationResponse.succeed) {
       throw new ValidateError({
         [param.name]: { message: ValidationResponse.errorMessage, value }
@@ -107,8 +107,6 @@ export function validateAndParseResponse(
   rules: Record<string, OpenAPIV3.ResponseObject>,
   statusCode: string,
   contentType: string,
-  logger: CustomLogger,
-  features: InternalFeatures
 ): unknown {
   try {
     const rule = rules[statusCode] ?? rules.default
@@ -130,7 +128,7 @@ export function validateAndParseResponse(
       throw new ValidateError({}, 'This content-type is not allowed')
     }
 
-    const ValidationResponse = validateAndParseValueAgainstSchema('response', data, expectedSchema, schemas, logger, features, "unknown")
+    const ValidationResponse = validateAndParseValueAgainstSchema('response', data, expectedSchema, schemas, "unknown")
     if (!ValidationResponse.succeed) {
       throw new ValidateError({ response: { message: ValidationResponse.errorMessage } }, 'Invalid response')
     }
@@ -149,8 +147,6 @@ async function validateBody(
   rule: OpenAPIV3.RequestBodyObject,
   discriminatorFn: BodyDiscriminatorFunction | undefined,
   schemas: OpenAPIV3.ComponentsObject['schemas'],
-  logger: CustomLogger,
-  features: InternalFeatures
 ): Promise<unknown> {
   const body = req.body
   const contentType = (req.headers['content-type'] ?? 'application/json').split(
@@ -169,7 +165,7 @@ async function validateBody(
 
   if (discriminatorFn) {
     const schemaName = await discriminatorFn(req)
-    const validationResult = validateAndParseValueAgainstSchema('body', body, { $ref: buildRef(schemaName) }, schemas, logger, features, "unknown")
+    const validationResult = validateAndParseValueAgainstSchema('body', body, { $ref: buildRef(schemaName) }, schemas, "unknown")
     if (validationResult.succeed) {
       return validationResult.value
     }
@@ -185,7 +181,7 @@ async function validateBody(
     }, validationResult.errorMessage)
   }
 
-  const validationResult = validateAndParseValueAgainstSchema('body', body, expectedSchema, schemas, logger, features, "unknown")
+  const validationResult = validateAndParseValueAgainstSchema('body', body, expectedSchema, schemas, "unknown")
   if (validationResult.succeed) {
     return validationResult.value
   }
@@ -249,8 +245,6 @@ function validateAndParseValueAgainstSchema (
     | OpenAPIV3.ArraySchemaObject
     | OpenAPIV3.NonArraySchemaObject,
   schemas: OpenAPIV3.ComponentsObject['schemas'],
-  logger: CustomLogger,
-  features: InternalFeatures,
   parentType: "allOf" | "oneOf" | "array" | "object" | "unknown",
 ): SafeValidatedValue {
   const currentSchema = getFromRef(schema, schemas)
@@ -290,7 +284,7 @@ function validateAndParseValueAgainstSchema (
       }
     }
     if (currentSchema.format) {
-      const formatResult = validateAndParseFormat(logger, name, value, currentSchema.format)
+      const formatResult = validateAndParseFormat(name, value, currentSchema.format)
       if (!formatResult.succeed) {
         return {succeed: false, errorMessage: formatResult.errorMessage, fieldName: name}
       }
@@ -342,7 +336,7 @@ function validateAndParseValueAgainstSchema (
       return { succeed: false, errorMessage: `This property can have ${currentSchema.maxItems} items maximum`, fieldName: name }
     }
 
-    const values = value.map((item, i) => validateAndParseValueAgainstSchema(`${name}.${i}`, item, currentSchema.items, schemas, logger, features, "array"))
+    const values = value.map((item, i) => validateAndParseValueAgainstSchema(`${name}.${i}`, item, currentSchema.items, schemas, "array"))
     const everyItemIsGood = values.every(value => value.succeed)
     const firstFailure = values.find(value => value.succeed === false)
     return everyItemIsGood ? { succeed: true, value: values.map(({ value }) => value) } : { succeed: false, errorMessage: firstFailure?.errorMessage ?? '', fieldName: firstFailure?.fieldName ?? name }
@@ -373,9 +367,7 @@ function validateAndParseValueAgainstSchema (
           propValue,
           currentSchema.properties![propName],
           schemas,
-          logger,
-          features,
-          "unknown"
+          "unknown",
         )
         if (!validationResult.succeed) {
           return validationResult
@@ -396,7 +388,7 @@ function validateAndParseValueAgainstSchema (
     )
 
     if (
-      (features.enableThrowOnUnexpectedAdditionalData || features.enableLogUnexpectedAdditionalData) &&
+      (features?.enableThrowOnUnexpectedAdditionalData || features?.enableLogUnexpectedAdditionalData) &&
       currentSchema.additionalProperties === false
     ) {
       if (additionalKeys.length > 0) {
@@ -410,7 +402,7 @@ function validateAndParseValueAgainstSchema (
           }
         }
       }
-    } else if (features.enableThrowOnUnexpectedAdditionalData && currentSchema.additionalProperties === true) {
+    } else if (features?.enableThrowOnUnexpectedAdditionalData && currentSchema.additionalProperties === true) {
       for (const propName of additionalKeys) {
         const propValue = (value as Record<string, unknown>)[propName]
         if (typeof propValue !== 'undefined') {
@@ -430,9 +422,7 @@ function validateAndParseValueAgainstSchema (
             propValue,
             currentSchema.additionalProperties as any,
             schemas,
-            logger,
-            features,
-            "unknown"
+            "unknown",
           )
           if (!validationResult.succeed) {
             return validationResult
@@ -443,7 +433,7 @@ function validateAndParseValueAgainstSchema (
     } else {
       if (
         parentType !== "allOf" &&
-        (features.enableThrowOnUnexpectedAdditionalData || features.enableLogUnexpectedAdditionalData) &&
+        (features?.enableThrowOnUnexpectedAdditionalData || features?.enableLogUnexpectedAdditionalData) &&
         additionalKeys.length > 0
       ) {
         if (features.enableLogUnexpectedAdditionalData) {
@@ -468,9 +458,7 @@ function validateAndParseValueAgainstSchema (
         value,
         schema,
         schemas,
-        logger,
-        features,
-        "allOf"
+        "allOf",
       ))
 
     // Check for any failures first
@@ -491,9 +479,7 @@ function validateAndParseValueAgainstSchema (
         value,
         schema,
         schemas,
-        logger,
-        features,
-        "oneOf"
+        "oneOf",
       )
 
       if (succeed) {
@@ -525,7 +511,7 @@ function validateAndParseValueAgainstSchema (
   return { succeed: true, value }
 }
 
-function validateAndParseFormat (logger: CustomLogger, name: string, value: string, format: string): SafeValidatedValue {
+function validateAndParseFormat (name: string, value: string, format: string): SafeValidatedValue {
   if (format === 'date' || format === 'date-time') {
     const date = new Date(value)
     if (String(date) === 'Invalid Date') {

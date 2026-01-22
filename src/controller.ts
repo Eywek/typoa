@@ -29,7 +29,7 @@ import {
 } from './resolve'
 import { CodeGenControllers } from './types'
 import { OpenAPIConfiguration } from './'
-import { CustomLogger } from './logger'
+import { options } from './option'
 
 const VERB_DECORATORS = ['Get', 'Post', 'Put', 'Delete', 'Patch']
 const PARAMETER_DECORATORS = ['Query', 'Body', 'Path', 'Header', 'Request']
@@ -37,12 +37,13 @@ const MIDDLEWARE_DECORATOR = 'Middleware'
 const RESPONSE_DECORATOR = 'Response'
 const PRODUCES_DECORATOR = 'Produces'
 
+const { customLogger: logger } = options;
+
 export function addController(
   controller: ClassDeclaration,
   spec: OpenAPIV3.Document,
   codegenControllers: CodeGenControllers,
   config: OpenAPIConfiguration['router'],
-  logger: CustomLogger,
 ): void {
   logger.debug(`Handle ${controller.getName()} controller`);
 
