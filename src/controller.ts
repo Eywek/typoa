@@ -27,11 +27,9 @@ import {
   appendInitializer,
   appendMetaToResolvedType
 } from './resolve'
-import debug from 'debug'
 import { CodeGenControllers } from './types'
 import { OpenAPIConfiguration } from './'
-
-const log = debug('typoa:controller')
+import { options } from './option'
 
 const VERB_DECORATORS = ['Get', 'Post', 'Put', 'Delete', 'Patch']
 const PARAMETER_DECORATORS = ['Query', 'Body', 'Path', 'Header', 'Request']
@@ -39,13 +37,16 @@ const MIDDLEWARE_DECORATOR = 'Middleware'
 const RESPONSE_DECORATOR = 'Response'
 const PRODUCES_DECORATOR = 'Produces'
 
+const { customLogger: logger } = options;
+
 export function addController(
   controller: ClassDeclaration,
   spec: OpenAPIV3.Document,
   codegenControllers: CodeGenControllers,
-  config: OpenAPIConfiguration['router']
+  config: OpenAPIConfiguration['router'],
 ): void {
-  log(`Handle ${controller.getName()} controller`)
+  logger.debug(`Handle ${controller.getName()} controller`);
+
   const routeDecorator = controller.getDecoratorOrThrow('Route')
   const controllerEndpoint = extractDecoratorValues(routeDecorator)[0]
   const controllerName = controller.getName()!
@@ -55,7 +56,8 @@ export function addController(
   const controllerMiddlewares = getMiddlewares(controller)
   const controllerResponses = getResponses(controller, spec)
   for (const method of methods) {
-    log(`Handle ${controllerName}.${method.getName()} method`)
+    logger.debug(`Handle ${controllerName}.${method.getName()} method`)
+
     const jsDocTags = method
       .getJsDocs()
       .map(doc => doc.getTags())
@@ -97,7 +99,7 @@ export function addController(
       return VERB_DECORATORS.includes(decorator.getName())
     })
     if (verbDecorators.length === 0) {
-      log(
+      logger.trace(
         `Found no HTTP verbs for ${controller.getName()}.${method.getName()} method, skipping`
       )
       continue // skip
@@ -372,9 +374,10 @@ export function addController(
       const verb = decorator.getName()
       // OpenAPI
       if (isHidden === false) {
-        log(
+        logger.debug(
           `Adding '${verb} ${endpoint}' for ${controllerName}.${method.getName()} method to spec`
         )
+
         appendToSpec(
           spec,
           endpoint

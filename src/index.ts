@@ -18,15 +18,6 @@ import handlebars from 'handlebars'
 import { getRelativeFilePath, resolveProperty } from './utils'
 import { resolve } from './resolve'
 
-export type InternalFeatures = {
-  /**
-   * By default, validation accept any additional data even if it's not allowed by OpenAPI schema.
-   * Enable this feature will throw if a property is not declared in the schema.
-   * MIGHT BREAK YOUR API! Check before enabling it
-   */
-  enableThrowOnUnexpectedAdditionalData: boolean;
-}
-
 export type OpenAPIConfiguration = {
   tsconfigFilePath: string
   /**
@@ -129,8 +120,7 @@ export type OpenAPIConfiguration = {
      * Defaults to 'typoa'. Useful for tests to point to local source (e.g. '../../src').
      */
     runtimeImport?: string
-  },
-  features?: InternalFeatures
+  }
 }
 
 let configStore: OpenAPIConfiguration | undefined = undefined
@@ -416,9 +406,6 @@ export async function generate(config: OpenAPIConfiguration) {
         (middleware, index, self) =>
           self.findIndex(m => m.name === middleware.name) === index
       ),
-    features: {
-      enableThrowOnUnexpectedAdditionalData: config.features?.enableThrowOnUnexpectedAdditionalData ?? false // Must be false by default because it was the original behaviour
-    },
   })
 
   await fs.promises.writeFile(routerFilePath, routerFileContent)
@@ -428,3 +415,4 @@ export * from './runtime/decorators'
 export * from './runtime/interfaces'
 export * as RuntimeResponse from './runtime/response'
 export * as Validator from './runtime/validator'
+export { type TypoaRuntimeOptions, setRuntimeOptions } from './option'
