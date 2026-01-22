@@ -2,7 +2,7 @@ import path from 'path'
 import express from 'express'
 import request from 'supertest'
 import { strict as assert } from 'node:assert'
-import { test, describe, before } from 'node:test'
+import { test, describe, before, after } from 'node:test'
 
 import { generate } from '../../src'
 import { createErrorHandler } from './shared'
@@ -75,6 +75,15 @@ before(async () => {
   bindToRouter(app)
 
   app.use(createErrorHandler())
+})
+
+after(async () => {
+  // Reset runtime options to defaults to prevent affecting other tests
+  setRuntimeOptions({
+    features: {
+      enableThrowOnUnexpectedAdditionalData: false,
+    }
+  })
 })
 
 describe('Additional properties', () => {
