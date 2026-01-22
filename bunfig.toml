@@ -1,5 +1,0 @@
-[test]
-# Note: Bun doesn't fully isolate tests in separate worker threads by default.
-# To prevent global state leakage between tests, ensure each test file that
-# modifies global state (e.g., via setRuntimeOptions) cleans up in an 'after' hook.
-maxConcurrency = 1
