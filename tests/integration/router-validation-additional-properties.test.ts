@@ -65,7 +65,7 @@ before(async () => {
     },
   })
 
-  setRuntimeOptions({ features: { enableThrowOnUnexpectedAdditionalData: true } })
+  setRuntimeOptions({ features: { enableThrowOnUnexpectedAdditionalData: false } })
 
   // Create Express app
   app = express()
