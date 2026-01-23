@@ -466,6 +466,11 @@ function validateAndParseValueAgainstSchema (
     if (firstFailure) {
       return firstFailure
     }
+
+    if (schemasValues.length === 1) {
+      return schemasValues[0];
+    }
+
     // All succeeded, merge values
     const mergedValue = Object.assign({}, ...schemasValues.map(v => v.value as Record<string, unknown>))
     return { succeed: true, value: mergedValue }
