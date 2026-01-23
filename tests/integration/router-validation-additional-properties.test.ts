@@ -35,10 +35,13 @@ const validBody = {
 }
 
 let app: express.Application
-const routerFile = path.resolve(__dirname, 'generated-router-validation-additional-properties.ts')
+const routerFile = path.resolve(
+  __dirname,
+  'generated-router-validation-additional-properties.ts'
+)
 const openapiFile = path.resolve(
   __dirname,
-    'generated-openapi-router-validation-additional-properties.json'
+  'generated-openapi-router-validation-additional-properties.json'
 )
 
 before(async () => {
@@ -62,10 +65,12 @@ before(async () => {
       ),
       validateResponse: false,
       runtimeImport: '../../src'
-    },
+    }
   })
 
-  setRuntimeOptions({ features: { enableThrowOnUnexpectedAdditionalData: true } })
+  setRuntimeOptions({
+    features: { enableThrowOnUnexpectedAdditionalData: true }
+  })
 
   // Create Express app
   app = express()
@@ -81,7 +86,7 @@ after(async () => {
   // Reset runtime options to defaults to prevent affecting other tests
   setRuntimeOptions({
     features: {
-      enableThrowOnUnexpectedAdditionalData: false,
+      enableThrowOnUnexpectedAdditionalData: false
     }
   })
 })

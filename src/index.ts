@@ -405,7 +405,7 @@ export async function generate(config: OpenAPIConfiguration) {
       .filter(
         (middleware, index, self) =>
           self.findIndex(m => m.name === middleware.name) === index
-      ),
+      )
   })
 
   await fs.promises.writeFile(routerFilePath, routerFileContent)
