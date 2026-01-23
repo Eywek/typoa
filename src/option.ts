@@ -1,4 +1,4 @@
-import { CustomLogger, initLogger } from "./logger";
+import { CustomLogger, initLogger } from './logger'
 
 type InternalFeatures = {
   /**
@@ -19,29 +19,29 @@ export type TypoaRuntimeOptions = {
   /**
    * You can provide a specific logger. The default one is https://www.npmjs.com/package/debug
    */
-  customLogger?: CustomLogger;
+  customLogger?: CustomLogger
   /**
    * features flags to opt-in specific features of the library
    */
   features: InternalFeatures
 }
 
-type SetRequired<T, K extends keyof T> = Omit<T, K> & Required<Pick<T, K>>;
-export const options: SetRequired<TypoaRuntimeOptions, "customLogger"> = {
+type SetRequired<T, K extends keyof T> = Omit<T, K> & Required<Pick<T, K>>
+export const options: SetRequired<TypoaRuntimeOptions, 'customLogger'> = {
   customLogger: initLogger(),
   features: {
     enableLogUnexpectedAdditionalData: false,
-    enableThrowOnUnexpectedAdditionalData: false,
-  },
+    enableThrowOnUnexpectedAdditionalData: false
+  }
 }
 
 /**
  * Update options to affect library's behaviour
  */
-export function setRuntimeOptions(
-  incomingOptions: TypoaRuntimeOptions
-): void {
-  options.customLogger = initLogger(incomingOptions.customLogger);
-  options.features.enableLogUnexpectedAdditionalData = incomingOptions.features.enableLogUnexpectedAdditionalData ?? false
-  options.features.enableThrowOnUnexpectedAdditionalData = incomingOptions.features.enableThrowOnUnexpectedAdditionalData ?? false
+export function setRuntimeOptions(incomingOptions: TypoaRuntimeOptions): void {
+  options.customLogger = initLogger(incomingOptions.customLogger)
+  options.features.enableLogUnexpectedAdditionalData =
+    incomingOptions.features.enableLogUnexpectedAdditionalData ?? false
+  options.features.enableThrowOnUnexpectedAdditionalData =
+    incomingOptions.features.enableThrowOnUnexpectedAdditionalData ?? false
 }

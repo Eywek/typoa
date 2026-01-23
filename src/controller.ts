@@ -37,15 +37,15 @@ const MIDDLEWARE_DECORATOR = 'Middleware'
 const RESPONSE_DECORATOR = 'Response'
 const PRODUCES_DECORATOR = 'Produces'
 
-const { customLogger: logger } = options;
+const { customLogger: logger } = options
 
 export function addController(
   controller: ClassDeclaration,
   spec: OpenAPIV3.Document,
   codegenControllers: CodeGenControllers,
-  config: OpenAPIConfiguration['router'],
+  config: OpenAPIConfiguration['router']
 ): void {
-  logger.debug(`Handle ${controller.getName()} controller`);
+  logger.debug(`Handle ${controller.getName()} controller`)
 
   const routeDecorator = controller.getDecoratorOrThrow('Route')
   const controllerEndpoint = extractDecoratorValues(routeDecorator)[0]

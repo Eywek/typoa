@@ -14,8 +14,7 @@
     "build": "tsc --project ./tsconfig.build.json",
     "postbuild": "mkdir build/template/ && cp src/template/express.ts.hbs build/template/express.ts.hbs",
     "test": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov",
-    "lint": "eslint --fix .",
-    "prettier": "prettier --write ."
+    "lint": "prettier --write . && eslint --fix ."
   },
   "engines": {
     "node": ">=18.15.0"
