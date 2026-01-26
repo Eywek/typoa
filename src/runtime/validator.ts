@@ -82,13 +82,11 @@ export async function validateAndParse(
         'Missing parameter'
       )
     }
-
     // Don't validate
     if (isUndefined) {
       args.push(undefined)
       continue
     }
-
     const ValidationResponse = validateAndParseValueAgainstSchema(
       param.name,
       value,
@@ -104,7 +102,6 @@ export async function validateAndParse(
         'Missing parameter'
       )
     }
-
     args.push(ValidationResponse.value)
   }
   return args
@@ -136,7 +133,6 @@ export function validateAndParseResponse(
       logger.error(`Schema is not found for '${contentType}', throwing error`)
       throw new ValidateError({}, 'This content-type is not allowed')
     }
-
     const ValidationResponse = validateAndParseValueAgainstSchema(
       'response',
       data,
@@ -175,12 +171,10 @@ async function validateBody(
     logger.error(`Schema is not found for '${contentType}', throwing error`)
     throw new ValidateError({}, 'This content-type is not allowed')
   }
-
   if (req.readableEnded === false) {
     logger.warn(`! Warning: Body has not be parsed, body validation skipped !`)
     return body
   }
-
   if (discriminatorFn) {
     const schemaName = await discriminatorFn(req)
     const validationResult = validateAndParseValueAgainstSchema(
@@ -212,7 +206,6 @@ async function validateBody(
       validationResult.errorMessage
     )
   }
-
   const validationResult = validateAndParseValueAgainstSchema(
     'body',
     body,
@@ -223,7 +216,6 @@ async function validateBody(
   if (validationResult.succeed) {
     return validationResult.value
   }
-
   const fieldPath = validationResult.fieldName || 'body'
   const failingValue =
     fieldPath === 'body'
@@ -282,7 +274,7 @@ function getNestedValue(obj: any, path: string): any {
 type SafeValidatedValue =
   | {
       succeed: false
-      value?: undefined
+      value?: unknown
       errorMessage: string
       fieldName: string
     }
@@ -350,7 +342,8 @@ function validateAndParseValueAgainstSchema(
       return {
         succeed: false,
         errorMessage: `This property must be one of ${currentSchema.enum}`,
-        fieldName: name
+        fieldName: name,
+        value
       }
     }
     if (currentSchema.pattern) {
@@ -422,7 +415,8 @@ function validateAndParseValueAgainstSchema(
       return {
         succeed: false,
         errorMessage: `This property must be one of ${currentSchema.enum}`,
-        fieldName: name
+        fieldName: name,
+        value
       }
     }
     return { succeed: true, value: parsedValue }
@@ -471,7 +465,6 @@ function validateAndParseValueAgainstSchema(
         fieldName: name
       }
     }
-
     const values = value.map((item, i) =>
       validateAndParseValueAgainstSchema(
         `${name}.${i}`,
@@ -555,8 +548,8 @@ function validateAndParseValueAgainstSchema(
     const additionalKeys = Object.keys(value).filter(
       key => propertyNames.includes(key) === false
     )
-
     if (
+      parentType !== 'allOf' &&
       (features?.enableThrowOnUnexpectedAdditionalData ||
         features?.enableLogUnexpectedAdditionalData) &&
       currentSchema.additionalProperties === false
@@ -625,15 +618,14 @@ function validateAndParseValueAgainstSchema(
         }
       }
     }
-
     return { succeed: true, value: filteredProperties }
   }
   // AllOf
   if (currentSchema.allOf) {
     // try to validate every allOf and merge their results
-    const schemasValues = currentSchema.allOf.map((schema, i) =>
+    const schemasValues = currentSchema.allOf.map(schema =>
       validateAndParseValueAgainstSchema(
-        `${name}.${i}`,
+        `${name}`,
         value,
         schema,
         schemas,
@@ -646,11 +638,9 @@ function validateAndParseValueAgainstSchema(
     if (firstFailure) {
       return firstFailure
     }
-
     if (schemasValues.length === 1) {
       return schemasValues[0]
     }
-
     // All succeeded, merge values
     const mergedValue = Object.assign(
       {},
@@ -670,14 +660,12 @@ function validateAndParseValueAgainstSchema(
           schemas,
           'oneOf'
         )
-
       if (succeed) {
         // set as matching value if we haven't found one
         if (typeof matchingValue === 'undefined') {
           matchingValue = parsedValue
           return
         }
-
         // replace matched value if the new one have more keys
         if (
           typeof matchingValue === 'object' &&
@@ -690,7 +678,6 @@ function validateAndParseValueAgainstSchema(
         }
       }
     })
-
     if (typeof matchingValue === 'undefined') {
       return {
         succeed: false,
@@ -698,10 +685,8 @@ function validateAndParseValueAgainstSchema(
         fieldName: name
       }
     }
-
     return { succeed: true, value: matchingValue }
   }
-
   logger.warn(
     `Schema of ${name} is not yet supported, skipping value validation`
   )
@@ -724,7 +709,6 @@ function validateAndParseFormat(
     }
     return { succeed: true, value: date }
   }
-
   logger.warn(
     `Format '${format}' is not yet supported, value is returned without additionnal parsing`
   )

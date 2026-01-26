@@ -56,8 +56,6 @@ type ValidationTestBody = {
   boolean: boolean
   tuple: [string, number]
   array: string[]
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  object: {}
   record: Record<string, string>
   mappedType: { [key: string]: number }
   objectWithProps: {
@@ -243,6 +241,14 @@ export class MyController extends Controller {
     record: Record<'foo', string>
     mappedType: { [key: number]: number }
     emptyObject: Record<string, never>
+    /**
+     * @additionalProperties true
+     */
+    recordWithAdditionalPropertiesTrue: Record<'bar', string>
+    /**
+     * @additionalProperties false
+     */
+    recordWithAdditionalPropertiesFalse: Record<'bar', string>
   }> {
     return {} as any
   }

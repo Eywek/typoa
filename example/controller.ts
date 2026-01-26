@@ -37,6 +37,13 @@ class MyModelTwo extends MyModel {
   type!: 'two'
 }
 
+/**
+ * @additionalproperties true
+ */
+class MyModelThree extends MyModel {
+  type!: 'three'
+}
+
 const securities = { company: [] }
 
 // tslint:disable-next-line: max-classes-per-file
@@ -58,7 +65,7 @@ export class MyController extends Controller {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Header('x-foo') foo: string,
     @Body('application/json', discriminatorFn) // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    body: MyModelTwo | MyModel
+    body: MyModelTwo | MyModel | MyModelThree
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   ): {} {
     return new MyModelTwo()

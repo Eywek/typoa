@@ -304,7 +304,6 @@ export function resolve(
       // For other and anonymous types, don't use ref
       return resolveObjectType(type, spec)
     }
-
     // Add to spec components if not already resolved
     // tslint:disable-next-line: strict-type-predicates
     if (typeof spec.components!.schemas![typeName] === 'undefined') {
@@ -363,7 +362,10 @@ type ResolvePropertiesReturnType = Required<
   Pick<OpenAPIV3.BaseSchemaObject, 'properties'>
 > & {
   required?: string[]
-  additionalProperties?: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
+  additionalProperties?:
+    | OpenAPIV3.ReferenceObject
+    | OpenAPIV3.SchemaObject
+    | boolean
 }
 
 function resolveProperties(
@@ -451,57 +453,103 @@ function resolveProperties(
     // OpenAPI don't want the required[] prop if it's empty
     delete result.required
   }
-
-  // Check for index signatures regardless of whether explicit properties exist
-  const stringIndexType = type.getStringIndexType()
-  const numberIndexType = type.getNumberIndexType()
-
-  // Handle mapped types and objects with index signatures (ex: { [key: string]: any } or Record<string, any>)
-  if (
-    (typeof stringIndexType !== 'undefined' &&
-      stringIndexType.getText() !== 'never') ||
-    (typeof numberIndexType !== 'undefined' &&
-      numberIndexType.getText() !== 'never')
-  ) {
-    result.additionalProperties = resolve(
-      stringIndexType ?? numberIndexType!,
-      spec
+  // Check for @additionalproperties JSDoc tag on the type declaration
+  // First try the alias symbol (for type aliases), then the regular symbol (for interfaces)
+  const aliasSymbol = type.getAliasSymbol()
+  const typeSymbol = type.getSymbol()
+  let additionalPropertiesFromJSDoc: boolean | undefined = undefined
+  // Check alias symbol first (for type aliases like `type X = { ... }`)
+  if (aliasSymbol) {
+    const jsDocTags = aliasSymbol.compilerSymbol.getJsDocTags()
+    const additionalPropsTag = jsDocTags.find(
+      tag => tag.name === 'additionalproperties'
     )
-  } else {
-    // Edge cases where TypeScript's getStringIndexType() might fail to detect
-    // index signatures in complex type scenarios (e.g., after type transformations)
-
-    // Check if the type represents a Record-like structure that should have additionalProperties
-    const typeSymbol = type.getSymbol()
-    const typeText = type.getText()
-
-    // Handle cases where the type might be a transformed Record type
-    if (typeSymbol?.getName() === '__type' || typeText.includes('Record<')) {
-      // For anonymous types that might be transformed Record types,
-      // check if the structure suggests it should have additional properties
-
-      // Check the type's apparent type for index signatures
-      const apparentType = type.getApparentType()
-      if (apparentType && apparentType !== type) {
-        const apparentStringIndexType = apparentType.getStringIndexType()
-        const apparentNumberIndexType = apparentType.getNumberIndexType()
-
-        if (
-          (typeof apparentStringIndexType !== 'undefined' &&
-            apparentStringIndexType.getText() !== 'never') ||
-          (typeof apparentNumberIndexType !== 'undefined' &&
-            apparentNumberIndexType.getText() !== 'never')
-        ) {
-          result.additionalProperties = resolve(
-            apparentStringIndexType ?? apparentNumberIndexType!,
-            spec
-          )
-        }
+    if (additionalPropsTag && additionalPropsTag.text) {
+      const tagText = additionalPropsTag.text
+        .map(t => t.text)
+        .join(' ')
+        .trim()
+        .toLowerCase()
+      if (tagText === 'true') {
+        additionalPropertiesFromJSDoc = true
+      } else if (tagText === 'false') {
+        additionalPropertiesFromJSDoc = false
       }
     }
   }
+  // If not found in alias symbol, check the regular symbol (for interfaces)
+  if (additionalPropertiesFromJSDoc === undefined && typeSymbol) {
+    const jsDocTags = typeSymbol.compilerSymbol.getJsDocTags()
+    const additionalPropsTag = jsDocTags.find(
+      tag => tag.name === 'additionalproperties'
+    )
+    if (additionalPropsTag && additionalPropsTag.text) {
+      const tagText = additionalPropsTag.text
+        .map(t => t.text)
+        .join(' ')
+        .trim()
+        .toLowerCase()
+      if (tagText === 'true') {
+        additionalPropertiesFromJSDoc = true
+      } else if (tagText === 'false') {
+        additionalPropertiesFromJSDoc = false
+      }
+    }
+  }
+  // If JSDoc tag is explicitly set, use it (overrides index signature detection)
+  if (additionalPropertiesFromJSDoc !== undefined) {
+    result.additionalProperties = additionalPropertiesFromJSDoc
+    return result
+  } else {
+    // Check for index signatures regardless of whether explicit properties exist
+    const stringIndexType = type.getStringIndexType()
+    const numberIndexType = type.getNumberIndexType()
+    // Handle mapped types and objects with index signatures (ex: { [key: string]: any } or Record<string, any>)
+    if (
+      (typeof stringIndexType !== 'undefined' &&
+        stringIndexType.getText() !== 'never') ||
+      (typeof numberIndexType !== 'undefined' &&
+        numberIndexType.getText() !== 'never')
+    ) {
+      result.additionalProperties = resolve(
+        stringIndexType ?? numberIndexType!,
+        spec
+      )
+    } else {
+      // Edge cases where TypeScript's getStringIndexType() might fail to detect
+      // index signatures in complex type scenarios (e.g., after type transformations)
 
-  return result
+      // Check if the type represents a Record-like structure that should have additionalProperties
+      const typeText = type.getText()
+      // Handle cases where the type might be a transformed Record type
+      if (typeSymbol?.getName() === '__type' || typeText.includes('Record<')) {
+        // For anonymous types that might be transformed Record types,
+        // check if the structure suggests it should have additional properties
+
+        // Check the type's apparent type for index signatures
+        const apparentType = type.getApparentType()
+        if (apparentType && apparentType !== type) {
+          const apparentStringIndexType = apparentType.getStringIndexType()
+          const apparentNumberIndexType = apparentType.getNumberIndexType()
+          if (
+            (typeof apparentStringIndexType !== 'undefined' &&
+              apparentStringIndexType.getText() !== 'never') ||
+            (typeof apparentNumberIndexType !== 'undefined' &&
+              apparentNumberIndexType.getText() !== 'never')
+          ) {
+            result.additionalProperties = resolve(
+              apparentStringIndexType ?? apparentNumberIndexType!,
+              spec
+            )
+          }
+        }
+      } else {
+        // No index signature found and no JSDoc tag - default to false (no additional properties allowed)
+        result.additionalProperties = false
+      }
+    }
+    return result
+  }
 }
 
 /**
@@ -530,7 +578,6 @@ function resolveMappedObjectType(
     const omittedKeys = typeArguments[1].isUnion()
       ? typeArguments[1].getUnionTypes().map(t => String(t.getLiteralValue()))
       : [String(typeArguments[1].getLiteralValue())]
-
     if (helperName === 'Omit' && omittedKeys.includes('toJSON')) {
       // If we're omitting toJSON, don't follow it to avoid infinite loops
       shouldSkipToJSON = true
@@ -539,7 +586,6 @@ function resolveMappedObjectType(
       shouldSkipToJSON = true
     }
   }
-
   // Check if the subject type has a toJSON method
   const toJSONProperty = subjectType.getProperty('toJSON')
   if (toJSONProperty && !shouldSkipToJSON) {
@@ -547,14 +593,12 @@ function resolveMappedObjectType(
       | MethodDeclaration
       | MethodSignature
     const toJSONReturnType = resolve(node.getReturnType(), spec)
-
     // Apply mapped type transformation to the toJSON return type
     if ('$ref' in toJSONReturnType) {
       // For reference types, we need to create a new schema with the transformation applied
       // This is more complex, so for now we'll fall back to normal resolution
       return resolveObjectType(type, spec)
     }
-
     if (toJSONReturnType.type === 'object' && toJSONReturnType.properties) {
       const transformedSchema = { ...toJSONReturnType }
 
@@ -571,7 +615,6 @@ function resolveMappedObjectType(
       return transformedSchema
     }
   }
-
   // Fall back to normal object resolution if no toJSON or transformation failed
   return resolveObjectType(type, spec)
 }
@@ -582,7 +625,6 @@ function resolveMappedObjectType(
 function hasInterfaceInheritance(type: Type): boolean {
   const symbol = type.getSymbol()
   if (!symbol) return false
-
   const declarations = symbol.getDeclarations()
 
   return declarations.some(
@@ -599,13 +641,11 @@ function getBaseInterfaces(
 ): OpenAPIV3.ReferenceObject[] {
   const symbol = type.getSymbol()
   if (!symbol) return []
-
   const baseRefs: OpenAPIV3.ReferenceObject[] = []
   const declarations = symbol.getDeclarations()
 
   for (const decl of declarations) {
     if (!Node.isInterfaceDeclaration(decl)) continue
-
     const extendsExpressions = decl.getExtends()
     for (const extendsExpr of extendsExpressions) {
       const baseType = extendsExpr.getType()
@@ -631,17 +671,14 @@ function getOwnInterfaceProperties(
     // Fallback to normal property resolution
     return resolveProperties(type, spec)
   }
-
   const declarations = symbol.getDeclarations()
   const interfaceDecl = declarations.find(decl =>
     Node.isInterfaceDeclaration(decl)
   )
-
   if (!interfaceDecl) {
     // Fallback to normal property resolution
     return resolveProperties(type, spec)
   }
-
   const result: ResolvePropertiesReturnType = {
     properties: {},
     required: []
@@ -675,7 +712,6 @@ function getOwnInterfaceProperties(
     // Handle JSDoc tags
     const jsDocTags = propSig.getSymbol()?.compilerSymbol.getJsDocTags() ?? []
     appendJsDocTags(jsDocTags, resolvedType)
-
     // Add to properties
     if (
       !('type' in resolvedType && (resolvedType.type as any) === 'undefined')
@@ -686,14 +722,11 @@ function getOwnInterfaceProperties(
       }
     }
   }
-
   // Handle method signatures (but ignore them like in resolveProperties)
   // Methods are already filtered out by only looking at property signatures
-
   if (result.required!.length === 0) {
     delete result.required
   }
-
   return result
 }
 
@@ -719,17 +752,65 @@ function resolveObjectType(
       | MethodSignature
     return resolve(node.getReturnType(), spec)
   }
-
   // Check for interface inheritance
   if (!hasInterfaceInheritance(type)) {
+    const propertiesResult = resolveProperties(type, spec)
+    // Check for @additionalproperties JSDoc tag on the type declaration
+    // This needs to be checked here because resolveProperties might not have access to the alias symbol
+    const aliasSymbol = type.getAliasSymbol()
+    const typeSymbol = type.getSymbol()
+    let additionalPropertiesFromJSDoc: boolean | undefined = undefined
+    // Check alias symbol first (for type aliases like `type X = { ... }`)
+    if (aliasSymbol) {
+      const jsDocTags = aliasSymbol.compilerSymbol.getJsDocTags()
+      const additionalPropsTag = jsDocTags.find(
+        tag => tag.name === 'additionalproperties'
+      )
+      if (additionalPropsTag && additionalPropsTag.text) {
+        const tagText = additionalPropsTag.text
+          .map(t => t.text)
+          .join(' ')
+          .trim()
+          .toLowerCase()
+        if (tagText === 'true') {
+          additionalPropertiesFromJSDoc = true
+        } else if (tagText === 'false') {
+          additionalPropertiesFromJSDoc = false
+        }
+      }
+    }
+    // If not found in alias symbol, check the regular symbol (for interfaces)
+    if (additionalPropertiesFromJSDoc === undefined && typeSymbol) {
+      const jsDocTags = typeSymbol.compilerSymbol.getJsDocTags()
+      const additionalPropsTag = jsDocTags.find(
+        tag => tag.name === 'additionalproperties'
+      )
+      if (additionalPropsTag && additionalPropsTag.text) {
+        const tagText = additionalPropsTag.text
+          .map(t => t.text)
+          .join(' ')
+          .trim()
+          .toLowerCase()
+        if (tagText === 'true') {
+          additionalPropertiesFromJSDoc = true
+        } else if (tagText === 'false') {
+          additionalPropertiesFromJSDoc = false
+        }
+      }
+    }
+    // Override additionalProperties if JSDoc tag is set
+    if (additionalPropertiesFromJSDoc !== undefined) {
+      propertiesResult.additionalProperties = additionalPropertiesFromJSDoc
+    } else if (propertiesResult.additionalProperties === undefined) {
+      // If no JSDoc tag and no index signature, default to false
+      propertiesResult.additionalProperties = false
+    }
     return {
       type: 'object',
-      ...resolveProperties(type, spec)
+      ...propertiesResult
     }
   }
-
   const baseRefs = getBaseInterfaces(type, spec)
-
   // If there are no base interfaces, fall back to normal resolution
   if (baseRefs.length === 0) {
     return {
@@ -737,13 +818,11 @@ function resolveObjectType(
       ...resolveProperties(type, spec)
     }
   }
-
   // Shallow copy to avoid mutating the original baseRefs array
   const allOfElements = Array.from<
     OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
   >(baseRefs)
   const ownProps = getOwnInterfaceProperties(type, spec)
-
   // Add own properties if any exist
   if (
     Object.keys(ownProps.properties).length > 0 ||
@@ -754,7 +833,6 @@ function resolveObjectType(
       ...ownProps
     })
   }
-
   return {
     allOf: allOfElements
   }
@@ -823,7 +901,6 @@ export function appendJsDocTags(
     if (!supportedTags.includes(tag.name) || !tag.text) {
       continue
     }
-
     const textValue = tag.text.map(t => t.text).join('\n')
     const value = numericTags.includes(tag.name)
       ? parseFloat(textValue)
@@ -845,7 +922,6 @@ export function appendInitializer(
   // Default value
   const initializer = node.getInitializer()
   const initializerType = initializer?.getType()
-
   if (initializerType?.isLiteral()) {
     const initializerLiteralType = initializerType.compilerType as
       | ts.StringLiteralType

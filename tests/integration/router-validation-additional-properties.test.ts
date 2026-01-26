@@ -21,9 +21,7 @@ const validBody = {
   number: 1,
   numberEnum: 4,
   numberWithMinAndMax: 5,
-  object: { ignored: 1 },
   objectWithProps: { string: 'my-string' },
-  readonlyProp: 'my prop',
   record: { foo: '1' },
   string: 'my-string',
   stringEnum: 'foo',
@@ -93,17 +91,20 @@ after(async () => {
 
 describe('Additional properties', () => {
   test('Should reject if a given property does not exist in the schema', async () => {
+    const id = randomUUID()
     const res = await request(app)
       .post('/my-controller/')
       .set('x-custom-header', 'my-header')
-      .send({ ...validBody, [randomUUID()]: 'random' })
+      .send({ ...validBody, [id]: 'random' })
       .expect(400)
 
     assert.deepStrictEqual(res.body.fields, {
-      'body.object': {
-        message: 'Additional properties are not allowed. Found: ignored',
+      body: {
+        message: `Additional properties are not allowed. Found: ${id}`,
         value: {
-          ignored: 1
+          ...validBody,
+          [id]: 'random',
+          stringWithFormat: new Date(validBody.stringWithFormat).toISOString()
         }
       }
     })
