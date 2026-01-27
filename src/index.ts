@@ -148,7 +148,6 @@ export async function generate(config: OpenAPIConfiguration) {
   if (typeof config.openapi.securitySchemes !== 'undefined') {
     spec.components!.securitySchemes = config.openapi.securitySchemes
   }
-
   // Codegen object
   const codegenControllers: CodeGenControllers = {}
   const controllersPathByName: Record<string, string> = {}
@@ -215,7 +214,6 @@ export async function generate(config: OpenAPIConfiguration) {
       spec.components!.schemas![name] = resolved
     }
   }
-
   // Export all responses
   if (
     typeof config.openapi.outputErrorsToDescription !== 'undefined' &&
@@ -327,7 +325,6 @@ export async function generate(config: OpenAPIConfiguration) {
       rows.map(row => `| ${row.join(' | ')} |`).join('\n')
     spec.info.description = `# Errors\n${markdown}`
   }
-
   // Write OpenAPI file(s)
   const jsonContent = JSON.stringify(spec, null, '\t')
 
@@ -339,7 +336,6 @@ export async function generate(config: OpenAPIConfiguration) {
   // Process each file path
   for (const filePath of filePaths) {
     const resolvedPath = path.resolve(root, filePath)
-
     // Determine format based on file extension
     if (
       filePath.toLowerCase().endsWith('.yaml') ||

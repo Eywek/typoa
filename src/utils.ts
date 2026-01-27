@@ -32,18 +32,15 @@ function findFunctionDefinition(
   if (!symbol) {
     throw new Error('Not a function reference found')
   }
-
   // Get function name and path
   const name = symbol.getName()
   const declarations = symbol.getDeclarations()
   if (!declarations || declarations.length === 0) {
     throw new Error(`No declarations found for middleware function '${name}'`)
   }
-
   const decl = declarations[0]
   let filePath: string | undefined
   let args: any[] | undefined
-
   // Handle factory function call
   if (node && Node.isCallExpression(node)) {
     // Store factory arguments
@@ -65,7 +62,6 @@ function findFunctionDefinition(
       }
     }
   }
-
   // Handle normal function or variable
   if (!filePath) {
     if (Node.isFunctionDeclaration(decl) && !decl.isExported()) {
@@ -79,7 +75,6 @@ function findFunctionDefinition(
     }
     filePath = decl.getSourceFile().getFilePath()
   }
-
   return { name, path: filePath, args }
 }
 
@@ -116,7 +111,6 @@ export function getRelativeFilePath(
   let filePath = (dirPath || '.') + '/' + path.basename(absolutePath)
 
   filePath = filePath.replace(/\\/g, '/')
-
   if (!filePath.startsWith('/') && !filePath.startsWith('.')) {
     filePath = `./${filePath}`
   }

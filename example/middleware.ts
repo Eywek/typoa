@@ -27,7 +27,6 @@ export function rateLimitMiddleware(
     const ip = req.ip
     const now = Date.now()
     const record = requestCounts.get(ip!)
-
     if (!record || now > record.resetTime) {
       requestCounts.set(ip!, {
         count: 1,
@@ -36,7 +35,6 @@ export function rateLimitMiddleware(
       next()
       return
     }
-
     if (record.count >= maxRequests) {
       res.status(429).json({
         error: 'Too Many Requests',
@@ -44,7 +42,6 @@ export function rateLimitMiddleware(
       })
       return
     }
-
     record.count++
     next()
   }
