@@ -623,9 +623,9 @@ function validateAndParseValueAgainstSchema(
   // AllOf
   if (currentSchema.allOf) {
     // try to validate every allOf and merge their results
-    const schemasValues = currentSchema.allOf.map(schema =>
+    const schemasValues = currentSchema.allOf.map((schema, i) =>
       validateAndParseValueAgainstSchema(
-        `${name}`,
+        `${name}.${i}`,
         value,
         schema,
         schemas,

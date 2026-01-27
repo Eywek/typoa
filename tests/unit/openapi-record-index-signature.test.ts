@@ -71,7 +71,6 @@ test('Should generate additionalProperties for types with specific keys and inde
   assert.strictEqual(deltaSchema.type, 'object')
   // Should have specific properties
   assert.ok(deltaSchema.properties)
-  console.log(deltaSchema.properties)
   assert.strictEqual(deltaSchema.additionalProperties, false)
   assert.strictEqual(deltaSchema.properties.oxygen.type, 'number')
 
