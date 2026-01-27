@@ -241,14 +241,6 @@ export class MyController extends Controller {
     record: Record<'foo', string>
     mappedType: { [key: number]: number }
     emptyObject: Record<string, never>
-    /**
-     * @additionalProperties true
-     */
-    recordWithAdditionalPropertiesTrue: Record<'bar', string>
-    /**
-     * @additionalProperties false
-     */
-    recordWithAdditionalPropertiesFalse: Record<'bar', string>
   }> {
     return {} as any
   }
