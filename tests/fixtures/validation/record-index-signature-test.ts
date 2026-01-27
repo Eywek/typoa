@@ -10,18 +10,18 @@ export type Meta = {
  * @additionalproperties true
  */
 export type Beta = {
-  hydrogen: number;
+  hydrogen: number
 }
 
 /**
  * @additionalproperties false
  */
 export type Gamma = {
-  iron: number;
+  iron: number
 }
 
 export type Delta = {
-  oxygen: number;
+  oxygen: number
 }
 
 export interface Company {
@@ -54,11 +54,11 @@ export class RecordIndexSignatureTestController extends Controller {
   // Test additional properties enabled
   @Get('/additionalPropertiesEnabled')
   additionalPropertiesEnabled(): Beta & {
-    carbon: number;
+    carbon: number
   } {
     return {
       carbon: 6,
-      hydrogen: 1,
+      hydrogen: 1
     }
   }
 
@@ -66,7 +66,7 @@ export class RecordIndexSignatureTestController extends Controller {
   @Get('/additionalPropertiesDisabled')
   additionalPropertiesDisabled(): Gamma {
     return {
-      iron: 26,
+      iron: 26
     }
   }
 
@@ -74,7 +74,7 @@ export class RecordIndexSignatureTestController extends Controller {
   @Get('/additionalPropertiesDefault')
   additionalPropertiesDefault(): Delta {
     return {
-      oxygen: 8,
+      oxygen: 8
     }
   }
 }
