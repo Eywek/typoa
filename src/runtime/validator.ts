@@ -4,7 +4,7 @@ import { buildRef } from '../resolve'
 import { BodyDiscriminatorFunction } from './decorators'
 import { options } from '../option'
 
-const { customLogger: logger, features } = options
+const { getCustomLogger, features } = options
 
 export class ValidateError extends Error {
   public status = 400
@@ -130,7 +130,9 @@ export function validateAndParseResponse(
       if (typeof data === 'undefined' || data === null) {
         return data
       }
-      logger.error(`Schema is not found for '${contentType}', throwing error`)
+      getCustomLogger().error(
+        `Schema is not found for '${contentType}', throwing error`
+      )
       throw new ValidateError({}, 'This content-type is not allowed')
     }
     const ValidationResponse = validateAndParseValueAgainstSchema(
@@ -168,11 +170,15 @@ async function validateBody(
   )[0]
   const expectedSchema = rule.content[contentType]?.schema
   if (typeof expectedSchema === 'undefined') {
-    logger.error(`Schema is not found for '${contentType}', throwing error`)
+    getCustomLogger().error(
+      `Schema is not found for '${contentType}', throwing error`
+    )
     throw new ValidateError({}, 'This content-type is not allowed')
   }
   if (req.readableEnded === false) {
-    logger.warn(`! Warning: Body has not be parsed, body validation skipped !`)
+    getCustomLogger().warn(
+      `! Warning: Body has not be parsed, body validation skipped !`
+    )
     return body
   }
   if (discriminatorFn) {
@@ -556,7 +562,7 @@ function validateAndParseValueAgainstSchema(
     ) {
       if (additionalKeys.length > 0) {
         if (features.enableLogUnexpectedAdditionalData) {
-          logger.warn(
+          getCustomLogger().warn(
             `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`
           )
         } else {
@@ -606,7 +612,7 @@ function validateAndParseValueAgainstSchema(
         additionalKeys.length > 0
       ) {
         if (features.enableLogUnexpectedAdditionalData) {
-          logger.warn(
+          getCustomLogger().warn(
             `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`
           )
         } else {
@@ -687,7 +693,7 @@ function validateAndParseValueAgainstSchema(
     }
     return { succeed: true, value: matchingValue }
   }
-  logger.warn(
+  getCustomLogger().warn(
     `Schema of ${name} is not yet supported, skipping value validation`
   )
   return { succeed: true, value }
@@ -709,7 +715,7 @@ function validateAndParseFormat(
     }
     return { succeed: true, value: date }
   }
-  logger.warn(
+  getCustomLogger().warn(
     `Format '${format}' is not yet supported, value is returned without additionnal parsing`
   )
   return { succeed: true, value }

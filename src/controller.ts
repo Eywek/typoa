@@ -37,7 +37,7 @@ const MIDDLEWARE_DECORATOR = 'Middleware'
 const RESPONSE_DECORATOR = 'Response'
 const PRODUCES_DECORATOR = 'Produces'
 
-const { customLogger: logger } = options
+const { getCustomLogger } = options
 
 export function addController(
   controller: ClassDeclaration,
@@ -45,7 +45,7 @@ export function addController(
   codegenControllers: CodeGenControllers,
   config: OpenAPIConfiguration['router']
 ): void {
-  logger.debug(`Handle ${controller.getName()} controller`)
+  getCustomLogger().debug(`Handle ${controller.getName()} controller`)
 
   const routeDecorator = controller.getDecoratorOrThrow('Route')
   const controllerEndpoint = extractDecoratorValues(routeDecorator)[0]
@@ -56,7 +56,9 @@ export function addController(
   const controllerMiddlewares = getMiddlewares(controller)
   const controllerResponses = getResponses(controller, spec)
   for (const method of methods) {
-    logger.debug(`Handle ${controllerName}.${method.getName()} method`)
+    getCustomLogger().debug(
+      `Handle ${controllerName}.${method.getName()} method`
+    )
 
     const jsDocTags = method
       .getJsDocs()
@@ -99,7 +101,7 @@ export function addController(
       return VERB_DECORATORS.includes(decorator.getName())
     })
     if (verbDecorators.length === 0) {
-      logger.trace(
+      getCustomLogger().trace(
         `Found no HTTP verbs for ${controller.getName()}.${method.getName()} method, skipping`
       )
       continue // skip
@@ -368,7 +370,7 @@ export function addController(
       const verb = decorator.getName()
       // OpenAPI
       if (isHidden === false) {
-        logger.debug(
+        getCustomLogger().debug(
           `Adding '${verb} ${endpoint}' for ${controllerName}.${method.getName()} method to spec`
         )
 
