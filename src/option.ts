@@ -26,20 +26,26 @@ export type TypoaRuntimeOptions = {
   features: InternalFeatures
 }
 
-type SetRequired<T, K extends keyof T> = Omit<T, K> & Required<Pick<T, K>>
-export const options: SetRequired<TypoaRuntimeOptions, 'customLogger'> = {
-  customLogger: initLogger(),
-  features: {
-    enableLogUnexpectedAdditionalData: false,
-    enableThrowOnUnexpectedAdditionalData: false
+export const options: Omit<TypoaRuntimeOptions, 'customLogger'> & {
+  getCustomLogger: () => CustomLogger
+} = (() => {
+  const initializedLogger = initLogger()
+  return {
+    getCustomLogger: () => initializedLogger,
+    features: {
+      enableLogUnexpectedAdditionalData: false,
+      enableThrowOnUnexpectedAdditionalData: false
+    }
   }
-}
+})()
 
 /**
  * Update options to affect library's behaviour
  */
 export function setRuntimeOptions(incomingOptions: TypoaRuntimeOptions): void {
-  options.customLogger = initLogger(incomingOptions.customLogger)
+  const initializedLogger = initLogger(incomingOptions.customLogger)
+
+  options.getCustomLogger = () => initializedLogger
   options.features.enableLogUnexpectedAdditionalData =
     incomingOptions.features.enableLogUnexpectedAdditionalData ?? false
   options.features.enableThrowOnUnexpectedAdditionalData =
