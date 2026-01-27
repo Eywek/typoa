@@ -124,7 +124,7 @@ export function validateAndParseResponse(
   statusCode: string,
   contentType: string
 ): unknown {
-  const logger = getCustomLogger()
+  const logger = options.getCustomLogger()
   try {
     const rule = rules[statusCode] ?? rules.default
     if (!rule)
