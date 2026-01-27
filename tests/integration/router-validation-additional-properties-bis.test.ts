@@ -1,7 +1,6 @@
 import path from 'path'
 import express from 'express'
 import request from 'supertest'
-import { strict as assert } from 'node:assert'
 import { test, describe, before, after } from 'node:test'
 
 import { generate } from '../../src'
