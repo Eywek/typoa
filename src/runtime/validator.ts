@@ -5,7 +5,7 @@ import { BodyDiscriminatorFunction } from './decorators'
 import { options } from '../option'
 import { CustomLogger } from '../logger'
 
-const { getCustomLogger, features } = options
+const { features } = options
 
 export class ValidateError extends Error {
   public status = 400
@@ -28,7 +28,7 @@ export async function validateAndParse(
     bodyDiscriminatorFn?: BodyDiscriminatorFunction
   }
 ): Promise<any[]> {
-  const logger = getCustomLogger()
+  const logger = options.getCustomLogger()
 
   const args: any[] = []
   for (const param of rules.params || []) {
