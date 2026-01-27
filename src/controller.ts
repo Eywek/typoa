@@ -45,7 +45,8 @@ export function addController(
   codegenControllers: CodeGenControllers,
   config: OpenAPIConfiguration['router']
 ): void {
-  getCustomLogger().debug(`Handle ${controller.getName()} controller`)
+  const logger = getCustomLogger()
+  logger.debug(`Handle ${controller.getName()} controller`)
 
   const routeDecorator = controller.getDecoratorOrThrow('Route')
   const controllerEndpoint = extractDecoratorValues(routeDecorator)[0]
@@ -56,9 +57,7 @@ export function addController(
   const controllerMiddlewares = getMiddlewares(controller)
   const controllerResponses = getResponses(controller, spec)
   for (const method of methods) {
-    getCustomLogger().debug(
-      `Handle ${controllerName}.${method.getName()} method`
-    )
+    logger.debug(`Handle ${controllerName}.${method.getName()} method`)
 
     const jsDocTags = method
       .getJsDocs()
@@ -101,7 +100,7 @@ export function addController(
       return VERB_DECORATORS.includes(decorator.getName())
     })
     if (verbDecorators.length === 0) {
-      getCustomLogger().trace(
+      logger.trace(
         `Found no HTTP verbs for ${controller.getName()}.${method.getName()} method, skipping`
       )
       continue // skip
@@ -370,7 +369,7 @@ export function addController(
       const verb = decorator.getName()
       // OpenAPI
       if (isHidden === false) {
-        getCustomLogger().debug(
+        logger.debug(
           `Adding '${verb} ${endpoint}' for ${controllerName}.${method.getName()} method to spec`
         )
 
