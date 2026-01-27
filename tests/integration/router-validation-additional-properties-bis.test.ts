@@ -1,7 +1,6 @@
 import path from 'path'
 import express from 'express'
 import request from 'supertest'
-import { strict as assert } from 'node:assert'
 import { test, describe, before, after } from 'node:test'
 
 import { generate } from '../../src'
@@ -35,18 +34,18 @@ const validBody = {
 let app: express.Application
 const routerFile = path.resolve(
   __dirname,
-  'generated-router-validation-additional-properties.ts'
+  'generated-router-validation-additional-properties-bis.ts'
 )
 const openapiFile = path.resolve(
   __dirname,
-  'generated-openapi-router-validation-additional-properties.json'
+  'generated-openapi-router-validation-additional-properties-bis.json'
 )
 
 before(async () => {
   await generate({
     tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
     controllers: [
-      path.resolve(__dirname, '../fixtures/controllers/controller.ts')
+      path.resolve(__dirname, '../fixtures/controllers/controller-bis.ts')
     ],
     openapi: {
       filePath: openapiFile,
@@ -89,24 +88,13 @@ after(async () => {
   })
 })
 
-describe('Additional properties', () => {
-  test('Should reject if a given property does not exist in the schema', async () => {
+describe('when typoa reject additional properties and validBody accepts it explicitly with jsdoc', () => {
+  test('should accept the request', async () => {
     const id = randomUUID()
-    const res = await request(app)
+    await request(app)
       .post('/my-controller/')
       .set('x-custom-header', 'my-header')
       .send({ ...validBody, [id]: 'random' })
-      .expect(400)
-
-    assert.deepStrictEqual(res.body.fields, {
-      body: {
-        message: `Additional properties are not allowed. Found: ${id}`,
-        value: {
-          ...validBody,
-          [id]: 'random',
-          stringWithFormat: new Date(validBody.stringWithFormat).toISOString()
-        }
-      }
-    })
+      .expect(201)
   })
 })

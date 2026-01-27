@@ -56,8 +56,6 @@ type ValidationTestBody = {
   boolean: boolean
   tuple: [string, number]
   array: string[]
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  object: {}
   record: Record<string, string>
   mappedType: { [key: string]: number }
   objectWithProps: {

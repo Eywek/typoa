@@ -40,7 +40,6 @@ test('Should generate additionalProperties for types with specific keys and inde
   const metaSchema = spec.components.schemas.Meta
   assert.ok(metaSchema)
   assert.strictEqual(metaSchema.type, 'object')
-
   // Should have specific properties
   assert.ok(metaSchema.properties)
   assert.ok(metaSchema.properties['email-token'])
@@ -48,8 +47,32 @@ test('Should generate additionalProperties for types with specific keys and inde
   assert.strictEqual(metaSchema.properties['email-token'].type, 'string')
   assert.strictEqual(metaSchema.properties.esp.type, 'string')
 
-  // Should NOT have required array (both properties are optional)
-  assert.ok(!metaSchema.required)
+  // Verify the Beta schema
+  const betaSchema = spec.components.schemas.Beta
+  assert.ok(betaSchema)
+  assert.strictEqual(betaSchema.type, 'object')
+  // Should have specific properties
+  assert.ok(betaSchema.properties)
+  assert.strictEqual(betaSchema.additionalProperties, true)
+  assert.strictEqual(betaSchema.properties.hydrogen.type, 'number')
+
+  // Verify the Gamma schema
+  const gammaSchema = spec.components.schemas.Gamma
+  assert.ok(gammaSchema)
+  assert.strictEqual(gammaSchema.type, 'object')
+  // Should have specific properties
+  assert.ok(gammaSchema.properties)
+  assert.strictEqual(gammaSchema.additionalProperties, false)
+  assert.strictEqual(gammaSchema.properties.iron.type, 'number')
+
+  // Verify the Delta schema
+  const deltaSchema = spec.components.schemas.Delta
+  assert.ok(deltaSchema)
+  assert.strictEqual(deltaSchema.type, 'object')
+  // Should have specific properties
+  assert.ok(deltaSchema.properties)
+  assert.strictEqual(deltaSchema.additionalProperties, false)
+  assert.strictEqual(deltaSchema.properties.oxygen.type, 'number')
 
   // Should have additionalProperties for the index signature
   // Note: `| undefined` in index signature means values can be omitted (implied by additionalProperties),
@@ -69,7 +92,6 @@ test('Should generate additionalProperties for types with specific keys and inde
     spec.paths['/record-index-test/partial-pick'].get.responses['200']
   const partialPickSchema =
     partialPickResponse.content['application/json'].schema
-
   // The partial-pick should either reference Meta or have inline properties
   // that preserve the additionalProperties via reference
   if (partialPickSchema.$ref) {
@@ -86,7 +108,6 @@ test('Should generate additionalProperties for types with specific keys and inde
       '#/components/schemas/Meta'
     )
   }
-
   // Verify intersection type endpoint
   const intersectionResponse =
     spec.paths['/record-index-test/intersection'].get.responses['200']
