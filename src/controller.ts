@@ -104,7 +104,6 @@ export function addController(
       )
       continue // skip
     }
-
     let hasSuccessResponse = false
     const returnType = method.getReturnType()
 
@@ -168,7 +167,6 @@ export function addController(
         }
       }
     }
-
     // Add default success response
     if (!hasSuccessResponse) {
       if (
@@ -190,7 +188,6 @@ export function addController(
         }
       }
     }
-
     // We use another array for codegen parameters instead of operation.parameters
     // because we want to have Request() and Body() in the codegen one
     // to send it to the method at runtime
@@ -328,7 +325,6 @@ export function addController(
 
     // Security
     operation.security = [...controllerSecurities, ...getSecurities(method)]
-
     // OperationId
     if (method.getDecorator('OperationId')) {
       operation.operationId = extractDecoratorValues(
@@ -338,12 +334,10 @@ export function addController(
       const name = method.getName()
       operation.operationId = name.charAt(0).toUpperCase() + name.slice(1)
     }
-
     // Deprecated
     if (method.getDecorator('Deprecated')) {
       operation.deprecated = true
     }
-
     // Add to spec + codegen
     const isHidden =
       typeof (

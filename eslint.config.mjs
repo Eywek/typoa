@@ -76,7 +76,13 @@ export default tseslint.config(
          Existing rule you had
          =========================== */
 
-      '@typescript-eslint/no-explicit-any': 'off'
+      '@typescript-eslint/no-explicit-any': 'off',
+
+      'padding-line-between-statements': [
+        'error',
+        { blankLine: 'never', prev: 'if', next: '*' },
+        { blankLine: 'never', prev: '*', next: 'if' }
+      ]
     }
   }
 )
