@@ -10,3 +10,5 @@ tests/fixture/router.ts
 
 # Ignore coverage reports
 lcov.info
+coverage
+.nyc_output
