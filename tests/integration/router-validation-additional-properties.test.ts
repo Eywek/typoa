@@ -100,6 +100,7 @@ describe('Additional properties', () => {
 
     assert.deepStrictEqual(res.body.fields, {
       body: {
+        details: [],
         message: `Additional properties are not allowed. Found: ${id}`,
         value: {
           ...validBody,

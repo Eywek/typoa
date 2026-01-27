@@ -83,7 +83,8 @@ describe('Content type and middleware', () => {
     assert.deepStrictEqual(res.body.fields, {
       'body.type': {
         message: 'This property must be one of one',
-        value: 'two'
+        value: 'two',
+        details: []
       }
     })
   })

@@ -7,12 +7,20 @@ import { CustomLogger } from '../logger'
 
 const { features } = options
 
+type ValidationErrorDetail = { errorMessage: string; fieldName: string }
 export class ValidateError extends Error {
   public status = 400
   public name = 'ValidateError'
 
   constructor(
-    public fields: Record<string, { message: string; value?: any }>,
+    public fields: Record<
+      string,
+      {
+        message: string
+        value?: any
+        details?: Array<ValidationErrorDetail>
+      }
+    >,
     public message: string
   ) {
     super(message)
@@ -96,7 +104,7 @@ export async function validateAndParse(
       args.push(undefined)
       continue
     }
-    const ValidationResponse = validateAndParseValueAgainstSchema(
+    const validationResponse = validateAndParseValueAgainstSchema(
       param.name,
       value,
       param.schema!,
@@ -104,15 +112,19 @@ export async function validateAndParse(
       'unknown',
       logger
     )
-    if (!ValidationResponse.succeed) {
+    if (!validationResponse.succeed) {
       throw new ValidateError(
         {
-          [param.name]: { message: ValidationResponse.errorMessage, value }
+          [param.name]: {
+            message: validationResponse.errorMessage,
+            value,
+            details: validationResponse.details
+          }
         },
         'Missing parameter'
       )
     }
-    args.push(ValidationResponse.value)
+    args.push(validationResponse.value)
   }
   return args
 }
@@ -207,8 +219,13 @@ async function validateBody(
       fieldPath === 'body'
         ? body
         : getNestedValue(body, fieldPath.replace('body.', ''))
-    const errorField: { message: string; value?: any } = {
-      message: validationResult.errorMessage
+    const errorField: {
+      message: string
+      value?: any
+      details: Array<ValidationErrorDetail>
+    } = {
+      message: validationResult.errorMessage,
+      details: validationResult.details ?? []
     }
     if (failingValue !== null && failingValue !== undefined) {
       errorField.value = failingValue
@@ -236,8 +253,13 @@ async function validateBody(
     fieldPath === 'body'
       ? body
       : getNestedValue(body, fieldPath.replace('body.', ''))
-  const errorField: { message: string; value?: any } = {
-    message: validationResult.errorMessage
+  const errorField: {
+    message: string
+    value?: any
+    details: Array<ValidationErrorDetail>
+  } = {
+    message: validationResult.errorMessage,
+    details: validationResult.details ?? []
   }
   if (failingValue !== null && failingValue !== undefined) {
     errorField.value = failingValue
@@ -292,6 +314,7 @@ type SafeValidatedValue =
       value?: unknown
       errorMessage: string
       fieldName: string
+      details?: Array<ValidationErrorDetail>
     }
   | { succeed: true; value: unknown }
 function validateAndParseValueAgainstSchema(
@@ -578,7 +601,8 @@ function validateAndParseValueAgainstSchema(
           logger.warn(
             `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`
           )
-        } else {
+        }
+        if (features.enableThrowOnUnexpectedAdditionalData) {
           return {
             succeed: false,
             errorMessage: `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`,
@@ -629,7 +653,8 @@ function validateAndParseValueAgainstSchema(
           logger.warn(
             `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`
           )
-        } else {
+        }
+        if (features.enableThrowOnUnexpectedAdditionalData) {
           return {
             succeed: false,
             errorMessage: `Additional properties are not allowed. Found: ${additionalKeys.join(', ')}`,
@@ -672,39 +697,47 @@ function validateAndParseValueAgainstSchema(
   // OneOf
   if (currentSchema.oneOf) {
     let matchingValue: unknown | undefined
+    const details: Array<ValidationErrorDetail> = []
+
     currentSchema.oneOf.forEach((schema, i) => {
-      const { succeed, value: parsedValue } =
-        validateAndParseValueAgainstSchema(
-          `${name}.${i}`,
-          value,
-          schema,
-          schemas,
-          'oneOf',
-          logger
-        )
-      if (succeed) {
+      const validationResult = validateAndParseValueAgainstSchema(
+        `${name}.${i}`,
+        value,
+        schema,
+        schemas,
+        'oneOf',
+        logger
+      )
+      if (validationResult.succeed) {
         // set as matching value if we haven't found one
         if (typeof matchingValue === 'undefined') {
-          matchingValue = parsedValue
+          matchingValue = validationResult.value
           return
         }
         // replace matched value if the new one have more keys
         if (
           typeof matchingValue === 'object' &&
           matchingValue !== null &&
-          typeof parsedValue === 'object' &&
-          parsedValue !== null &&
-          Object.keys(parsedValue).length > Object.keys(matchingValue).length
+          typeof validationResult.value === 'object' &&
+          validationResult.value !== null &&
+          Object.keys(validationResult.value).length >
+            Object.keys(matchingValue).length
         ) {
-          matchingValue = parsedValue
+          matchingValue = validationResult.value
         }
+      } else {
+        details.push({
+          errorMessage: validationResult.errorMessage,
+          fieldName: validationResult.fieldName
+        })
       }
     })
     if (typeof matchingValue === 'undefined') {
       return {
         succeed: false,
         errorMessage: 'Found no matching schema for provided value',
-        fieldName: name
+        fieldName: name,
+        details
       }
     }
     return { succeed: true, value: matchingValue }
