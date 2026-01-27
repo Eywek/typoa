@@ -95,7 +95,8 @@ describe('Basic type validation', () => {
     assert.deepStrictEqual(res.body.fields, {
       'body.number': {
         message: 'This property must be a number',
-        value: 'not a number'
+        value: 'not a number',
+        details: []
       }
     })
   })
@@ -110,7 +111,8 @@ describe('Basic type validation', () => {
     assert.deepStrictEqual(res.body.fields, {
       'body.boolean': {
         message: 'This property must be a boolean',
-        value: 10
+        value: 10,
+        details: []
       }
     })
   })
@@ -135,7 +137,8 @@ describe('Basic type validation', () => {
     assert.deepStrictEqual(res.body.fields, {
       'body.array': {
         message: 'This property must be an array',
-        value: {}
+        value: {},
+        details: []
       }
     })
   })
@@ -150,7 +153,8 @@ describe('Basic type validation', () => {
     assert.deepStrictEqual(res.body.fields, {
       'body.tuple.0': {
         message: 'Found no matching schema for provided value',
-        value: {}
+        value: {},
+        details: []
       }
     })
   })
@@ -164,7 +168,8 @@ describe('Basic type validation', () => {
 
     assert.deepStrictEqual(res.body.fields, {
       'body.intersection': {
-        message: 'This property is not nullable'
+        message: 'This property is not nullable',
+        details: []
       }
     })
   })
@@ -189,7 +194,8 @@ describe('Format and constraint validation', () => {
     assert.deepStrictEqual(res.body.fields, {
       'body.stringWithPattern': {
         message: 'This property must match the pattern: /[A-Z]+/',
-        value: '1'
+        value: '1',
+        details: []
       }
     })
   })
@@ -207,7 +213,8 @@ describe('Format and constraint validation', () => {
     assert.deepStrictEqual(res.body.fields, {
       'body.stringWithFormat': {
         message: 'This property must be a valid date',
-        value: 'invalid-date'
+        value: 'invalid-date',
+        details: []
       }
     })
   })
@@ -222,7 +229,8 @@ describe('Format and constraint validation', () => {
     assert.deepStrictEqual(res.body.fields, {
       'body.stringEnum': {
         message: 'This property must be one of foo,bar',
-        value: 'not in enum'
+        value: 'not in enum',
+        details: []
       }
     })
   })
@@ -237,7 +245,8 @@ describe('Format and constraint validation', () => {
     assert.deepStrictEqual(res.body.fields, {
       'body.numberEnum': {
         message: 'This property must be one of 4,6',
-        value: 300
+        value: 300,
+        details: []
       }
     })
   })
@@ -252,7 +261,8 @@ describe('Format and constraint validation', () => {
     assert.deepStrictEqual(res.body.fields, {
       'body.numberWithMinAndMax': {
         message: 'This property must be >= 4',
-        value: 3
+        value: 3,
+        details: []
       }
     })
   })
@@ -267,7 +277,8 @@ describe('Format and constraint validation', () => {
     assert.deepStrictEqual(res.body.fields, {
       'body.numberWithMinAndMax': {
         message: 'This property must be <= 10',
-        value: 11
+        value: 11,
+        details: []
       }
     })
   })
