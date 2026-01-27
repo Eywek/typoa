@@ -28,19 +28,24 @@ export type TypoaRuntimeOptions = {
 
 export const options: Omit<TypoaRuntimeOptions, 'customLogger'> & {
   getCustomLogger: () => CustomLogger
-} = {
-  getCustomLogger: () => initLogger(),
-  features: {
-    enableLogUnexpectedAdditionalData: false,
-    enableThrowOnUnexpectedAdditionalData: false
+} = (() => {
+  const initializedLogger = initLogger()
+  return {
+    getCustomLogger: () => initializedLogger,
+    features: {
+      enableLogUnexpectedAdditionalData: false,
+      enableThrowOnUnexpectedAdditionalData: false
+    }
   }
-}
+})()
 
 /**
  * Update options to affect library's behaviour
  */
 export function setRuntimeOptions(incomingOptions: TypoaRuntimeOptions): void {
-  options.getCustomLogger = () => initLogger(incomingOptions.customLogger)
+  const initializedLogger = initLogger(incomingOptions.customLogger)
+
+  options.getCustomLogger = () => initializedLogger
   options.features.enableLogUnexpectedAdditionalData =
     incomingOptions.features.enableLogUnexpectedAdditionalData ?? false
   options.features.enableThrowOnUnexpectedAdditionalData =
