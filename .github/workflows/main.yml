@@ -50,13 +50,12 @@ jobs:
             - name: test
               run: bun run test
 
-            - name: upload coverage artifact
+            - name: Coverage report
               if: github.event_name == 'pull_request'
-              uses: actions/upload-artifact@v4
+              uses: xseman/coverage@v0.2.0
               with:
-                  name: coverage
-                  path: coverage/lcov.info
-                  if-no-files-found: warn
+                  coverage-artifact-paths: |
+                      bun:coverage/lcov.info
 
     lint:
         runs-on: ubuntu-latest
