@@ -84,7 +84,6 @@ export function appendToSpec(
   verb: 'get' | 'patch' | 'put' | 'delete' | 'post',
   operation: OpenAPIV3.OperationObject
 ): void {
-  // tslint:disable-next-line: strict-type-predicates
   if (typeof spec.paths[path] === 'undefined') {
     spec.paths[path] = {}
   }

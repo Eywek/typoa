@@ -66,7 +66,7 @@ export async function validateAndParse(
         break
       case 'query':
         value = req.query[param.name] as string | undefined | string[]
-        // eslint-disable-next-line no-case-declarations
+
         const schema = param.schema!
         if (
           'type' in schema &&
@@ -282,7 +282,6 @@ function getFromRef(
   if ('$ref' in schema) {
     const schemaName =
       schemas![schema.$ref.substr('#/components/schemas/'.length)]
-    // tslint:disable-next-line: strict-type-predicates
     if (typeof schemaName === 'undefined') {
       throw new Error(`Schema '${schema.$ref}' not found`)
     }

@@ -393,7 +393,6 @@ export function addController(
         )
       }
       // Codegen
-      // tslint:disable-next-line: strict-type-predicates
       if (typeof codegenControllers[controllerName] === 'undefined') {
         codegenControllers[controllerName] = []
       }
@@ -514,7 +513,6 @@ function findDiscriminatorFunction(node: Identifier): {
   }
   // eslint-disable-next-line prefer-const
   discriminatorFunction = foundFunctions[0] ?? foundVariables[0]
-  // tslint:disable-next-line: strict-type-predicates
   if (typeof discriminatorFunction === 'undefined') {
     throw new Error(
       `The 2nd argument of @Body() decorator must be the name of a function defined in source files`

@@ -270,7 +270,6 @@ export async function generate(config: OpenAPIConfiguration) {
           tableColumns.map(({ value }) => {
             switch (value.type) {
               case 'path':
-                // eslint-disable-next-line no-case-declarations
                 const resolved = resolveProperty(
                   content,
                   spec.components!,

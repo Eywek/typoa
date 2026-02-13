@@ -20,7 +20,6 @@ export const discriminatorFn: BodyDiscriminatorFunction = req => {
   return 'MyModelTwo'
 }
 
-// tslint:disable-next-line: max-classes-per-file
 class MyModel {
   get id() {
     return 'my-id'
@@ -32,7 +31,6 @@ class MyModel {
   name!: string
 }
 
-// tslint:disable-next-line: max-classes-per-file
 class MyModelTwo extends MyModel {
   type!: 'two'
 }
@@ -46,7 +44,6 @@ class MyModelThree extends MyModel {
 
 const securities = { company: [] }
 
-// tslint:disable-next-line: max-classes-per-file
 @Route()
 @Tags('my-tag')
 export class MyController extends Controller {

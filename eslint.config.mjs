@@ -1,4 +1,3 @@
-import eslint from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import unicorn from 'eslint-plugin-unicorn'
 import prettier from 'eslint-plugin-prettier'
@@ -7,9 +6,6 @@ export default tseslint.config(
   {
     ignores: ['node_modules', 'dist', 'build']
   },
-
-  // Base ESLint recommended
-  eslint.configs.recommended,
 
   // TypeScript recommended
   ...tseslint.configs.recommended,
@@ -76,13 +72,7 @@ export default tseslint.config(
          Existing rule you had
          =========================== */
 
-      '@typescript-eslint/no-explicit-any': 'off',
-
-      'padding-line-between-statements': [
-        'error',
-        { blankLine: 'never', prev: 'if', next: '*' },
-        { blankLine: 'never', prev: '*', next: 'if' }
-      ]
+      '@typescript-eslint/no-explicit-any': 'off'
     }
   }
 )

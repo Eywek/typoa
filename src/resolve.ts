@@ -151,8 +151,6 @@ export function resolve(
     return { $ref: buildRef('AnyValue') }
   }
   if (type.isTuple()) {
-    // OpenAPI doesn't support it, so we take it as an union of array
-    // tslint:disable-next-line: no-console
     return {
       type: 'array',
       items: {
@@ -165,7 +163,6 @@ export function resolve(
     const enumName = symbol.getName()
     const declaration = symbol.getDeclarations()[0] as EnumDeclaration
     // Add to spec components if not already resolved
-    // tslint:disable-next-line: strict-type-predicates
     if (typeof spec.components!.schemas![enumName] === 'undefined') {
       const values = declaration.getMembers().map(m => m.getValue()!)
       const names = declaration.getMembers().map(m => m.getName())
@@ -211,7 +208,6 @@ export function resolve(
       switch (helperName) {
         case 'Omit':
         case 'Pick':
-          // eslint-disable-next-line no-case-declarations
           const args = typeArguments[1].isUnion()
             ? typeArguments[1]
                 .getUnionTypes()
@@ -304,8 +300,6 @@ export function resolve(
       // For other and anonymous types, don't use ref
       return resolveObjectType(type, spec)
     }
-    // Add to spec components if not already resolved
-    // tslint:disable-next-line: strict-type-predicates
     if (typeof spec.components!.schemas![typeName] === 'undefined') {
       if (
         helperName === 'Partial' ||
