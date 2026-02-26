@@ -188,9 +188,7 @@ async function validateBody(
   logger: CustomLogger
 ): Promise<unknown> {
   const body = req.body
-  const contentType = (req.headers['content-type'] ?? 'application/json').split(
-    ';'
-  )[0]
+  const contentType = (req.headers['content-type'] ?? 'application/json').split(';')[0]
 
   const expectedSchema = rule.content[contentType]?.schema
   if (typeof expectedSchema === 'undefined') {
@@ -199,7 +197,7 @@ async function validateBody(
   }
 
   if (req.readableEnded === false) {
-    logger.debug(`! Warning: Body has not be parsed, body validation skipped !`)
+    logger.debug(`Body has not be parsed, body validation skipped!`)
     return body
   }
 
