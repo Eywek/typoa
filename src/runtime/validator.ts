@@ -332,7 +332,12 @@ function validateAndParseValueAgainstSchema(
   // Nullable
   if (value === null) {
     if (currentSchema.nullable) {
-      return { succeed: true, value: currentSchema.default }
+      // `null` is a valid value of a nullable schema and must survive as `null`.
+      // Returning `currentSchema.default` when no default is declared yields
+      // `undefined`, which `res.json()` drops and an ORM `save()` skips — a client
+      // sending `{ "field": null }` to clear a field would silently change nothing.
+      // A declared default keeps the previous behaviour.
+      return { succeed: true, value: currentSchema.default ?? null }
     }
     return {
       succeed: false,
