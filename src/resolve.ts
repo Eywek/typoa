@@ -378,6 +378,10 @@ function resolveProperties(
         return schema // ignore functions
       }
       const jsDocTags = property.compilerSymbol.getJsDocTags()
+      assertNoMisspelledJsDocTag(
+        jsDocTags,
+        `${type.getSymbol()?.getName() ?? type.getText()}.${property.getName()}`
+      )
       // Handle readonly / getters props / @readonly tag
       const modifierFlags =
         property.getValueDeclaration()?.getCombinedModifierFlags() ??
@@ -705,6 +709,7 @@ function getOwnInterfaceProperties(
 
     // Handle JSDoc tags
     const jsDocTags = propSig.getSymbol()?.compilerSymbol.getJsDocTags() ?? []
+    assertNoMisspelledJsDocTag(jsDocTags, propSig.getName())
     appendJsDocTags(jsDocTags, resolvedType)
     // Add to properties
     if (
@@ -861,6 +866,73 @@ export function appendMetaToResolvedType(
   return Object.assign(type, metas)
 }
 
+const supportedJsDocTags = [
+  'format',
+  'example',
+  'description',
+  'title',
+  'pattern',
+  'minimum',
+  'maximum',
+  'minLength',
+  'maxLength',
+  'minItems',
+  'maxItems'
+]
+
+// Tags handled by the callers of appendJsDocTags, listed here only so that a
+// misspelling of them (`@readOnly`, `@writeonly `) is reported too.
+const otherKnownJsDocTags = ['readonly', 'writeonly']
+
+function levenshtein(a: string, b: string): number {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i)
+  for (let i = 1; i <= a.length; i++) {
+    let previous = row[0]
+    row[0] = i
+    for (let j = 1; j <= b.length; j++) {
+      const current = row[j]
+      row[j] = Math.min(
+        row[j] + 1,
+        row[j - 1] + 1,
+        previous + (a[i - 1] === b[j - 1] ? 0 : 1)
+      )
+      previous = current
+    }
+  }
+  return row[b.length]
+}
+
+/**
+ * An unknown JSDoc tag is ignored on purpose (`@see`, `@deprecated`, ...), but a tag
+ * that is one or two letters away from a constraint we support is almost certainly a
+ * typo — and silently dropping `@minLenght 3` means the constraint vanishes from the
+ * spec and from validation with no trace. Fail the generation instead.
+ */
+export function assertNoMisspelledJsDocTag(
+  jsDocTags: ts.JSDocTagInfo[],
+  location: string
+) {
+  const known = [...supportedJsDocTags, ...otherKnownJsDocTags]
+  for (const tag of jsDocTags) {
+    if (known.includes(tag.name)) continue
+    const [suggestion, distance] = known
+      .map(candidate => [
+        candidate,
+        levenshtein(tag.name.toLowerCase(), candidate.toLowerCase())
+      ])
+      .sort((a, b) => (a[1] as number) - (b[1] as number))[0] as [
+      string,
+      number
+    ]
+    if (distance <= 2) {
+      throw new Error(
+        `Unknown JSDoc tag @${tag.name} on ${location}, did you mean @${suggestion}? ` +
+          `Misspelled tags are not applied to the schema.`
+      )
+    }
+  }
+}
+
 export function appendJsDocTags(
   jsDocTags: ts.JSDocTagInfo[],
   resolvedType:
@@ -868,19 +940,7 @@ export function appendJsDocTags(
     | OpenAPIV3.ArraySchemaObject
     | OpenAPIV3.NonArraySchemaObject
 ) {
-  const supportedTags = [
-    'format',
-    'example',
-    'description',
-    'title',
-    'pattern',
-    'minimum',
-    'maximum',
-    'minLength',
-    'maxLength',
-    'minItems',
-    'maxItems'
-  ]
+  const supportedTags = supportedJsDocTags
 
   const numericTags = [
     'minimum',
