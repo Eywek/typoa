@@ -347,9 +347,22 @@ function validateAndParseValueAgainstSchema(
   }
   // Strings
   if (currentSchema.type === 'string') {
-    // Special case for date format
+    // Special case for date formats: a Date instance is a valid value for both.
+    // `date-time` is left to JSON serialisation (full ISO string); `date` is a
+    // calendar day, so the time part is cut off here — leaving it to the client
+    // would hand a UTC midnight to every other time zone as the previous evening.
     if (value instanceof Date && currentSchema.format === 'date-time') {
       return { succeed: true, value }
+    }
+    if (value instanceof Date && currentSchema.format === 'date') {
+      if (isNaN(value.getTime())) {
+        return {
+          succeed: false,
+          errorMessage: 'This property must be a valid date',
+          fieldName: name
+        }
+      }
+      return { succeed: true, value: value.toISOString().slice(0, 10) }
     }
     // Special case for binary format
     if (currentSchema.format === 'binary' && Buffer.isBuffer(value)) {
