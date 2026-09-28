@@ -12,6 +12,7 @@ import {
 } from 'ts-morph'
 import { OpenAPIV3 } from 'openapi-types'
 import { getConfig } from '.'
+import { options } from './option'
 
 export function buildRef(name: string): string {
   return `#/components/schemas/${name}`
@@ -378,7 +379,7 @@ function resolveProperties(
         return schema // ignore functions
       }
       const jsDocTags = property.compilerSymbol.getJsDocTags()
-      assertNoMisspelledJsDocTag(
+      reportMisspelledJsDocTags(
         jsDocTags,
         `${type.getSymbol()?.getName() ?? type.getText()}.${property.getName()}`
       )
@@ -709,7 +710,7 @@ function getOwnInterfaceProperties(
 
     // Handle JSDoc tags
     const jsDocTags = propSig.getSymbol()?.compilerSymbol.getJsDocTags() ?? []
-    assertNoMisspelledJsDocTag(jsDocTags, propSig.getName())
+    reportMisspelledJsDocTags(jsDocTags, propSig.getName())
     appendJsDocTags(jsDocTags, resolvedType)
     // Add to properties
     if (
@@ -906,9 +907,10 @@ function levenshtein(a: string, b: string): number {
  * An unknown JSDoc tag is ignored on purpose (`@see`, `@deprecated`, ...), but a tag
  * that is one or two letters away from a constraint we support is almost certainly a
  * typo — and silently dropping `@minLenght 3` means the constraint vanishes from the
- * spec and from validation with no trace. Fail the generation instead.
+ * spec and from validation with no trace. Report it through the logger, or fail the
+ * generation when `openapi.strictJsDocTags` is enabled.
  */
-export function assertNoMisspelledJsDocTag(
+export function reportMisspelledJsDocTags(
   jsDocTags: ts.JSDocTagInfo[],
   location: string
 ) {
@@ -924,12 +926,14 @@ export function assertNoMisspelledJsDocTag(
       string,
       number
     ]
-    if (distance <= 2) {
-      throw new Error(
-        `Unknown JSDoc tag @${tag.name} on ${location}, did you mean @${suggestion}? ` +
-          `Misspelled tags are not applied to the schema.`
-      )
+    if (distance > 2) continue
+    const message =
+      `Unknown JSDoc tag @${tag.name} on ${location}, did you mean @${suggestion}? ` +
+      `Misspelled tags are not applied to the schema.`
+    if (getConfig()?.openapi?.strictJsDocTags === true) {
+      throw new Error(message)
     }
+    options.getCustomLogger().warn(message)
   }
 }
 
