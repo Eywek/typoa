@@ -53,6 +53,12 @@ export type OpenAPIConfiguration = {
      */
     xEnumVarnames?: boolean
     /**
+     * By default a JSDoc tag that looks like a misspelled supported tag
+     * (e.g. `@minLenght`) is only reported through the logger (`warn`).
+     * Enable this option to fail the generation instead.
+     */
+    strictJsDocTags?: boolean
+    /**
      * If you enable this option we will find every responses
      * with an HTTP code >300 and output it to a markdown
      * table on `info.description`

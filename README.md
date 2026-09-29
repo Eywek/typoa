@@ -144,7 +144,9 @@ await generate({
         name: 'x-company-id',
         in: 'header'
       }
-    }
+    },
+    // Optional, fail on a misspelled JSDoc tag (e.g. @minLenght) instead of a logger warning
+    strictJsDocTags: true
   },
   router: {
     filePath: './router.ts', // Where do you want to generate the router file
