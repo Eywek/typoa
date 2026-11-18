@@ -12,7 +12,7 @@ function loadedCompilerModules(
 ): string[] {
   const script = `
     require(${JSON.stringify(entry)})
-    const keys = Object.keys(require.cache).filter(k => /ts-morph|[\\\\/]typescript[\\\\/]/.test(k))
+    const keys = Object.keys(require.cache).filter(k => /[\\\\/]node_modules[\\\\/](typescript|ts-morph|@ts-morph)[\\\\/]/.test(k))
     process.stdout.write(JSON.stringify(keys))
   `
   const output = execFileSync(process.execPath, [...nodeArgs, '-e', script], {
