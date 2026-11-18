@@ -36,7 +36,7 @@ You only need to add the `@Route()` decorator at the top of your controller clas
 of each method definition, like this:
 
 ```ts
-import { Route, Get } from 'typoa'
+import { Route, Get } from 'typoa/runtime'
 
 @Route()
 class MyController {
@@ -50,7 +50,7 @@ You can provide the route path in the `@Route()` decorator or in each verb decor
 You also will need to extends the `Controller` class if you want to override the default HTTP status (200 if your method return content, 204 if not):
 
 ```ts
-import { Route, Get, Controller } from 'typoa'
+import { Route, Get, Controller } from 'typoa/runtime'
 
 @Route('/controller-path')
 class MyController extends Controller {
@@ -70,7 +70,7 @@ If you return a stream, `typoa` will stream it to the client.
 To use the parsed (and validated) body from typoa you only need to provide the `@Body()` decorator:
 
 ```ts
-import { Route, Get, Controller } from 'typoa'
+import { Route, Get, Controller } from 'typoa/runtime'
 
 @Route('/controller-path')
 class MyController extends Controller {
@@ -95,7 +95,12 @@ Sometimes you want to validate the body against a specific schema depending on w
 To handle that, you can provide a `discriminator function` to the body decorator:
 
 ```ts
-import { Route, Get, Controller, BodyDiscriminatorFunction } from 'typoa'
+import {
+  Route,
+  Get,
+  Controller,
+  BodyDiscriminatorFunction
+} from 'typoa/runtime'
 
 type TypeA = { name: string }
 type TypeB = { name: number }
@@ -125,6 +130,8 @@ class MyController extends Controller {
 To generate the openapi definition and the router you will need to bind to express, you only need to call the `generate` method of `typoa`:
 
 ```ts
+import { generate } from 'typoa'
+
 await generate({
   tsconfigFilePath: path.resolve(__dirname, './tsconfig.json'),
   controllers: [path.resolve(__dirname, './*.ts')], // Path of your controllers
@@ -154,3 +161,15 @@ await generate({
   }
 })
 ```
+
+### Runtime imports
+
+`typoa` is the generator entry point and loads `ts-morph` (the TypeScript compiler), which costs tens of MiB of memory.
+Code that runs in your service (controllers, decorators, `Controller`, `setRuntimeOptions`...) should import from `typoa/runtime` instead, which never loads it:
+
+```ts
+import { Route, Get, Controller, setRuntimeOptions } from 'typoa/runtime'
+```
+
+Keep `import { generate } from 'typoa'` in your generation script only.
+The generated router imports from `typoa/runtime` by default (override with `router.runtimeImport`).
