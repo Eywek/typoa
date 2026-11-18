@@ -14,7 +14,10 @@
     "./runtime": {
       "types": "./build/runtime/index.d.ts",
       "default": "./build/runtime/index.js"
-    }
+    },
+    "./build/*.js": "./build/*.js",
+    "./build/*": "./build/*.js",
+    "./package.json": "./package.json"
   },
   "typesVersions": {
     "*": {
