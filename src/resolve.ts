@@ -13,10 +13,7 @@ import {
 import { OpenAPIV3 } from 'openapi-types'
 import { getConfig } from '.'
 import { options } from './option'
-
-export function buildRef(name: string): string {
-  return `#/components/schemas/${name}`
-}
+import { buildRef } from './runtime/ref'
 
 function capitalizeFirstLetter(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1)

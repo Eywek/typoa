@@ -1,6 +1,6 @@
 import express from 'express'
 import { OpenAPIV3 } from 'openapi-types'
-import { buildRef } from '../resolve'
+import { buildRef } from './ref'
 import { BodyDiscriminatorFunction } from './decorators'
 import { options } from '../option'
 import { CustomLogger } from '../logger'

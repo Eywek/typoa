@@ -123,7 +123,8 @@ export type OpenAPIConfiguration = {
 
     /**
      * Override the module name used for runtime imports inside the generated router
-     * Defaults to 'typoa'. Useful for tests to point to local source (e.g. '../../src').
+     * Defaults to 'typoa/runtime', which does not load the TypeScript compiler.
+     * Useful for tests to point to local source (e.g. '../../src').
      */
     runtimeImport?: string
   }
@@ -378,7 +379,7 @@ export async function generate(config: OpenAPIConfiguration) {
     runtimeImport:
       config.router.runtimeImport ??
       process.env.TYPOA_RUNTIME_IMPORT ??
-      'typoa',
+      'typoa/runtime',
     controllers: Object.keys(codegenControllers).map(controllerName => {
       return {
         name: controllerName,
@@ -412,8 +413,4 @@ export async function generate(config: OpenAPIConfiguration) {
   await fs.promises.writeFile(routerFilePath, routerFileContent)
 }
 
-export * from './runtime/decorators'
-export * from './runtime/interfaces'
-export * as RuntimeResponse from './runtime/response'
-export * as Validator from './runtime/validator'
-export { type TypoaRuntimeOptions, setRuntimeOptions } from './option'
+export * from './runtime'

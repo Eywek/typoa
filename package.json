@@ -5,6 +5,26 @@
   "description": "Help you generate OpenAPI definitions via Typescript",
   "homepage": "https://github.com/Eywek/typoa#readme",
   "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./build/index.d.ts",
+      "default": "./build/index.js"
+    },
+    "./runtime": {
+      "types": "./build/runtime/index.d.ts",
+      "default": "./build/runtime/index.js"
+    },
+    "./build/*": "./build/*",
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "runtime": [
+        "build/runtime/index.d.ts"
+      ]
+    }
+  },
   "files": [
     "build/"
   ],
