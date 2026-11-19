@@ -1,3 +1,4 @@
+import fs from 'fs'
 import path from 'path'
 import express from 'express'
 import request from 'supertest'
@@ -127,5 +128,56 @@ describe('Content type and middleware', () => {
     const res = await request(app).get('/list').expect(200)
 
     assert.deepStrictEqual(res.body, {})
+  })
+})
+
+describe('Route registration order', () => {
+  const routeIndexes = (router: string) => {
+    const specific = router.indexOf(`router.patch('/123'`)
+    const generic = router.indexOf(`router.patch('/:id'`)
+    assert.ok(specific > -1 && generic > -1)
+    return { specific, generic }
+  }
+
+  test('Should register routes in the order of the controllers option', async () => {
+    const { specific, generic } = routeIndexes(
+      await fs.promises.readFile(routerFile, 'utf-8')
+    )
+    assert.ok(specific < generic)
+  })
+
+  test('Should follow the controllers option when it is reversed', async () => {
+    const reversedRouterFile = path.resolve(
+      __dirname,
+      'generated-router-middleware-reversed.ts'
+    )
+    await generate({
+      tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
+      controllers: [
+        path.resolve(__dirname, '../fixtures/controllers/controller.ts'),
+        path.resolve(
+          __dirname,
+          '../fixtures/controllers/controller-middleware.ts'
+        )
+      ],
+      openapi: {
+        filePath: path.resolve(
+          __dirname,
+          'generated-openapi-router-middleware-reversed.json'
+        ),
+        service: {
+          name: 'my-service',
+          version: '1.0.0'
+        }
+      },
+      router: {
+        filePath: reversedRouterFile,
+        runtimeImport: '../../src'
+      }
+    })
+    const { specific, generic } = routeIndexes(
+      await fs.promises.readFile(reversedRouterFile, 'utf-8')
+    )
+    assert.ok(generic < specific)
   })
 })
