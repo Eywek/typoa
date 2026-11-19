@@ -1,6 +1,9 @@
 import express from 'express'
 import { describe, test } from 'node:test'
-import { validateAndParse } from '../../src/runtime/validator'
+import {
+  validateAndParse,
+  validateAndParseResponse
+} from '../../src/runtime/validator'
 import assert from 'node:assert'
 import { setRuntimeOptions } from '../../src'
 
@@ -326,6 +329,178 @@ describe('when the request body is optional', () => {
         rules(true)
       ),
       { name: 'ValidateError', message: 'Property name is required' }
+    )
+  })
+})
+
+describe('when merging the values of an allOf', () => {
+  const parseBody = async (schema: unknown, body: unknown) => {
+    const [value] = await validateAndParse(
+      {
+        body,
+        headers: { 'content-type': 'application/json' },
+        readableEnded: true
+      } as unknown as express.Request,
+      {},
+      {
+        params: [{ name: 'body', in: 'body' }] as any,
+        body: {
+          required: true,
+          content: { 'application/json': { schema: schema as any } }
+        }
+      }
+    )
+    return value
+  }
+  const item = (properties: string[]) => ({
+    type: 'object',
+    properties: Object.fromEntries(
+      properties.map(name => [name, { type: 'string' }])
+    ),
+    required: properties
+  })
+
+  test('an array stays an array and its items are merged', async () => {
+    const value = await parseBody(
+      {
+        allOf: [
+          { type: 'array', items: item(['name']) },
+          { type: 'array', items: item(['name', 'label']) }
+        ]
+      },
+      [
+        { name: 'a', label: 'A', unknown: 1 },
+        { name: 'b', label: 'B' }
+      ]
+    )
+    assert.deepStrictEqual(value, [
+      { name: 'a', label: 'A' },
+      { name: 'b', label: 'B' }
+    ])
+  })
+
+  test('the items are merged whatever the order of the members', async () => {
+    const value = await parseBody(
+      {
+        allOf: [
+          { type: 'array', items: item(['name', 'label']) },
+          { type: 'array', items: item(['name']) }
+        ]
+      },
+      [{ name: 'a', label: 'A' }]
+    )
+    assert.deepStrictEqual(value, [{ name: 'a', label: 'A' }])
+  })
+
+  test('an empty array stays an empty array', async () => {
+    const schema = { type: 'array', items: { type: 'string' } }
+    const value = await parseBody({ allOf: [schema, schema] }, [])
+    assert.deepStrictEqual(value, [])
+  })
+
+  test('an array of primitives is kept', async () => {
+    const value = await parseBody(
+      {
+        allOf: [
+          { type: 'array', items: { type: 'string' } },
+          { type: 'array', items: { type: 'string' }, minItems: 1 }
+        ]
+      },
+      ['a', 'b']
+    )
+    assert.deepStrictEqual(value, ['a', 'b'])
+  })
+
+  test('nested arrays are kept', async () => {
+    const schema = {
+      type: 'array',
+      items: { type: 'array', items: item(['name']) }
+    }
+    const value = await parseBody({ allOf: [schema, schema] }, [
+      [{ name: 'a' }, { name: 'b' }],
+      []
+    ])
+    assert.deepStrictEqual(value, [[{ name: 'a' }, { name: 'b' }], []])
+  })
+
+  test('an array property of an object stays an array', async () => {
+    const value = (await parseBody(
+      {
+        type: 'object',
+        properties: {
+          tracks: {
+            allOf: [
+              { type: 'array', items: item(['name']) },
+              { type: 'array', items: item(['label']) }
+            ]
+          }
+        }
+      },
+      { tracks: [{ name: 'a', label: 'A' }] }
+    )) as { tracks: unknown[] }
+    assert.ok(Array.isArray(value.tracks))
+    assert.deepStrictEqual(value.tracks, [{ name: 'a', label: 'A' }])
+  })
+
+  test('a string is not spread into an object of characters', async () => {
+    const value = await parseBody(
+      {
+        allOf: [
+          { type: 'string', minLength: 1 },
+          { type: 'string', maxLength: 5 }
+        ]
+      },
+      'abc'
+    )
+    assert.strictEqual(value, 'abc')
+  })
+
+  test('a Date of a response stays a Date', () => {
+    const date = new Date('2026-01-01T00:00:00.000Z')
+    const value = validateAndParseResponse(
+      date,
+      {},
+      {
+        200: {
+          description: 'Ok',
+          content: {
+            'application/json': {
+              schema: {
+                allOf: [
+                  { type: 'string', format: 'date-time' },
+                  { type: 'string', format: 'date-time' }
+                ]
+              }
+            }
+          }
+        }
+      },
+      '200',
+      'application/json'
+    )
+    assert.strictEqual(value, date)
+  })
+
+  test('objects are still merged', async () => {
+    const value = await parseBody(
+      { allOf: [item(['name']), item(['label'])] },
+      { name: 'a', label: 'A', unknown: 1 }
+    )
+    assert.deepStrictEqual(value, { name: 'a', label: 'A' })
+  })
+
+  test('an invalid item is still rejected', async () => {
+    await assert.rejects(
+      parseBody(
+        {
+          allOf: [
+            { type: 'array', items: item(['name']) },
+            { type: 'array', items: item(['label']) }
+          ]
+        },
+        [{ name: 'a' }]
+      ),
+      { name: 'ValidateError', message: 'Property label is required' }
     )
   })
 })

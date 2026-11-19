@@ -149,6 +149,36 @@ describe('Flattened composed types at runtime', () => {
     assert.strictEqual(res.body.createdAt, 'c')
   })
 
+  test('Should keep an array declared by several intersection members as an array', async () => {
+    const res = await request(app)
+      .post('/inheritance-test/playlist')
+      .send({
+        title: 't',
+        tracks: [
+          { name: 'a', artistIds: ['1', '2'] },
+          { name: 'b', artistIds: ['3'] }
+        ],
+        matrix: [[1, 2], [3]]
+      })
+      .expect(200)
+    assert.deepStrictEqual(res.body, {
+      tracksIsArray: true,
+      artistIds: ['1', '2', '3'],
+      matrix: [[1, 2], [3]]
+    })
+  })
+
+  test('Should still validate the items of an array declared by several intersection members', async () => {
+    const res = await request(app)
+      .post('/inheritance-test/playlist')
+      .send({ tracks: [{ name: 'a', artistIds: ['1'] }, { name: 'b' }] })
+      .expect(400)
+    assert.strictEqual(
+      res.body.fields['body.tracks.1.1.artistIds'].message,
+      'Property artistIds is required'
+    )
+  })
+
   test('Should strip an unknown body property by default', async () => {
     const res = await request(app)
       .post('/inheritance-test/b')

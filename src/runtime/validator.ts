@@ -715,11 +715,10 @@ function validateAndParseValueAgainstSchema(
       return schemasValues[0]
     }
     // All succeeded, merge values
-    const mergedValue = Object.assign(
-      {},
-      ...schemasValues.map(v => v.value as Record<string, unknown>)
-    )
-    return { succeed: true, value: mergedValue }
+    return {
+      succeed: true,
+      value: mergeAllOfValues(schemasValues.map(v => v.value))
+    }
   }
   // OneOf
   if (currentSchema.oneOf) {
@@ -777,6 +776,32 @@ function validateAndParseValueAgainstSchema(
   }
 
   return { succeed: true, value }
+}
+
+/**
+ * Merges the values parsed by every member of an `allOf`. Each member only keeps
+ * the properties it declares, so objects are merged together. `Object.assign` must
+ * not be applied to anything else: it turns an array into `{ 0: ..., 1: ... }` and
+ * a string into an object of characters. Arrays are merged item by item, and any
+ * other value (string, number, Date, ...) is kept as parsed by the last member.
+ */
+function mergeAllOfValues(values: unknown[]): unknown {
+  if (values.every(value => Array.isArray(value))) {
+    const arrays = values as unknown[][]
+    return arrays[0].map((_, i) =>
+      mergeAllOfValues(arrays.map(array => array[i]))
+    )
+  }
+  const isObject = (value: unknown) =>
+    typeof value === 'object' &&
+    value !== null &&
+    Array.isArray(value) === false &&
+    value instanceof Date === false &&
+    Buffer.isBuffer(value) === false
+  if (values.every(isObject)) {
+    return Object.assign({}, ...(values as Record<string, unknown>[]))
+  }
+  return values[values.length - 1]
 }
 
 function validateAndParseFormat(

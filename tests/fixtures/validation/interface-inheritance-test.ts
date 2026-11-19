@@ -119,6 +119,20 @@ interface ExtendsDictionary extends Dictionary {
 
 type Branded = string & { __brand: 'Id' }
 
+interface Playlist {
+  title: string
+  tracks: { name: string }[]
+  matrix: number[][]
+}
+
+// `tracks` and `matrix` are declared by both members of the intersection
+type UpdatePlaylistBody = Partial<
+  Pick<Playlist, 'title' | 'tracks' | 'matrix'>
+> & {
+  tracks?: { name: string; artistIds: string[] }[]
+  matrix?: number[][]
+}
+
 interface Composition {
   base: Base
   closesOpen: ClosesOpen
@@ -211,5 +225,18 @@ export class InterfaceInheritanceTestController extends Controller {
   @Post('/several-bases')
   postSeveralBases(@Body() body: SeveralBases): SeveralBases {
     return { ...body, updatedAt: '2026-01-02' }
+  }
+
+  @Post('/playlist')
+  postPlaylist(@Body() body: UpdatePlaylistBody): {
+    tracksIsArray: boolean
+    artistIds: string[]
+    matrix: number[][]
+  } {
+    return {
+      tracksIsArray: Array.isArray(body.tracks),
+      artistIds: (body.tracks ?? []).flatMap(track => track.artistIds),
+      matrix: body.matrix ?? []
+    }
   }
 }
