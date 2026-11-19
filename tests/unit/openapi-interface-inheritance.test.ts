@@ -120,6 +120,190 @@ describe('Interface inheritance', () => {
     })
   })
 
+  test('Should keep a base used on its own strict', () => {
+    assert.strictEqual(spec.components.schemas.Base.additionalProperties, false)
+    assert.strictEqual(validate('Base', { id: '1', name: 'x' }), true)
+    assert.strictEqual(
+      validate('Base', { id: '1', name: 'x', description: 'd', active: true }),
+      false
+    )
+    assert.strictEqual(
+      validate('Extended', {
+        id: '1',
+        name: 'x',
+        description: 'd',
+        active: true
+      }),
+      true
+    )
+  })
+
+  test('Should merge the properties of several bases', () => {
+    const schema = spec.components.schemas.SeveralBases
+    assert.deepStrictEqual(Object.keys(schema.properties).sort(), [
+      'createdAt',
+      'id',
+      'name',
+      'tags',
+      'updatedAt'
+    ])
+    assert.deepStrictEqual(schema.required.sort(), [
+      'createdAt',
+      'id',
+      'name',
+      'updatedAt'
+    ])
+    // Modifiers of inherited properties are kept
+    assert.strictEqual(schema.properties.updatedAt.readOnly, true)
+    const value = { id: '1', name: 'x', createdAt: 'c', updatedAt: 'u' }
+    assert.strictEqual(validate('SeveralBases', value), true)
+    assert.strictEqual(
+      validate('SeveralBases', { ...value, tags: ['t'] }),
+      true
+    )
+    assert.strictEqual(
+      validate('SeveralBases', { id: '1', name: 'x', updatedAt: 'u' }),
+      false
+    )
+  })
+
+  test('Should only inherit the picked properties of a Pick base', () => {
+    assert.deepStrictEqual(spec.components.schemas.PickedBase, {
+      type: 'object',
+      properties: {
+        label: { type: 'string' },
+        id: { type: 'string' }
+      },
+      required: ['label', 'id'],
+      additionalProperties: false
+    })
+    assert.strictEqual(validate('PickedBase', { id: '1', label: 'l' }), true)
+    assert.strictEqual(
+      validate('PickedBase', { id: '1', label: 'l', name: 'x' }),
+      false
+    )
+  })
+
+  test('Should inherit the properties of a Partial base as optional', () => {
+    const schema = spec.components.schemas.PartialBase
+    assert.deepStrictEqual(Object.keys(schema.properties).sort(), [
+      'id',
+      'label',
+      'name'
+    ])
+    assert.deepStrictEqual(schema.required, ['label'])
+    assert.strictEqual(validate('PartialBase', { label: 'l' }), true)
+    assert.strictEqual(
+      validate('PartialBase', { label: 'l', id: '1', name: 'x' }),
+      true
+    )
+    assert.strictEqual(validate('PartialBase', { id: '1' }), false)
+  })
+
+  test('Should use the narrowed type of an overridden property', () => {
+    assert.deepStrictEqual(spec.components.schemas.Narrowed.properties.name, {
+      type: 'string',
+      enum: ['fixed']
+    })
+    assert.strictEqual(validate('Narrowed', { id: '1', name: 'fixed' }), true)
+    assert.strictEqual(validate('Narrowed', { id: '1', name: 'other' }), false)
+  })
+
+  test('Should keep the JSDoc constraints of inherited properties', () => {
+    assert.deepStrictEqual(
+      spec.components.schemas.ExtendsConstrained.properties.code,
+      { type: 'string', minLength: 3 }
+    )
+    assert.strictEqual(
+      validate('ExtendsConstrained', { code: 'abc', extra: 1 }),
+      true
+    )
+    assert.strictEqual(
+      validate('ExtendsConstrained', { code: 'ab', extra: 1 }),
+      false
+    )
+  })
+
+  test('Should resolve the type arguments of a generic base', () => {
+    assert.deepStrictEqual(spec.components.schemas.StringBox.properties.value, {
+      type: 'string'
+    })
+    assert.strictEqual(validate('StringBox', { value: 'v', label: 'l' }), true)
+    assert.strictEqual(validate('StringBox', { value: 1, label: 'l' }), false)
+  })
+
+  test('Should keep the index signature of a base as additionalProperties', () => {
+    assert.deepStrictEqual(spec.components.schemas.ExtendsDictionary, {
+      type: 'object',
+      properties: { total: { type: 'number' } },
+      required: ['total'],
+      additionalProperties: { type: 'number' }
+    })
+    assert.strictEqual(
+      validate('ExtendsDictionary', { total: 2, a: 1, b: 1 }),
+      true
+    )
+    assert.strictEqual(
+      validate('ExtendsDictionary', { total: 2, a: 'one' }),
+      false
+    )
+  })
+
+  test('Should let an interface close an open base with @additionalproperties false', () => {
+    assert.strictEqual(
+      spec.components.schemas.ClosesOpen.additionalProperties,
+      false
+    )
+    assert.strictEqual(
+      validate('ClosesOpen', { open: 'x', closed: 'y', other: 1 }),
+      false
+    )
+  })
+
+  test('Should narrow a property declared by several intersection members', () => {
+    const schema = spec.components.schemas.Composition.properties.overlapping
+    assert.deepStrictEqual(schema, {
+      type: 'object',
+      properties: { status: { type: 'string', enum: ['ok'] } },
+      required: ['status'],
+      additionalProperties: false
+    })
+  })
+
+  test('Should flatten an intersection of more than two members', () => {
+    const schema = spec.components.schemas.Composition.properties.threeMembers
+    assert.deepStrictEqual(schema, {
+      type: 'object',
+      properties: {
+        a: { type: 'string' },
+        b: { type: 'number' },
+        c: { type: 'boolean' }
+      },
+      required: ['a', 'b'],
+      additionalProperties: false
+    })
+  })
+
+  test('Should keep nullable on a flattened intersection', () => {
+    const schema =
+      spec.components.schemas.Composition.properties.nullableIntersection
+    assert.strictEqual(schema.nullable, true)
+    assert.strictEqual(schema.allOf, undefined)
+    assert.deepStrictEqual(Object.keys(schema.properties), ['a', 'c'])
+  })
+
+  test('Should keep allOf for an intersection with a primitive', () => {
+    const schema = spec.components.schemas.Composition.properties.branded
+    assert.strictEqual(schema.allOf.length, 2)
+    assert.deepStrictEqual(schema.allOf[0], { type: 'string' })
+  })
+
+  test('Should no longer emit a schema only used as a base', () => {
+    for (const name of ['Foo', 'A', 'Article', 'Constrained', 'Dictionary']) {
+      assert.strictEqual(spec.components.schemas[name], undefined, name)
+    }
+  })
+
   test('Should keep additional properties allowed by an extended interface', () => {
     assert.strictEqual(
       spec.components.schemas.ExtendsOpen.additionalProperties,

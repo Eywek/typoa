@@ -1,4 +1,4 @@
-import { Controller, Route, Get } from '../../../src'
+import { Controller, Route, Get, Post, Body } from '../../../src'
 
 interface Foo {
   foo: number
@@ -62,6 +62,79 @@ interface ExtendsOpen extends Open {
   closed: string
 }
 
+/**
+ * @additionalproperties false
+ */
+interface ClosesOpen extends Open {
+  closed: string
+}
+
+interface Timestamps {
+  createdAt: string
+  readonly updatedAt: string
+}
+
+interface SeveralBases extends Base, Timestamps {
+  tags?: string[]
+}
+
+interface PickedBase extends Pick<Base, 'id'> {
+  label: string
+}
+
+interface PartialBase extends Partial<Base> {
+  label: string
+}
+
+interface Narrowed extends Base {
+  name: 'fixed'
+}
+
+interface Constrained {
+  /**
+   * @minLength 3
+   */
+  code: string
+}
+
+interface ExtendsConstrained extends Constrained {
+  extra: number
+}
+
+interface Box<T> {
+  value: T
+}
+
+interface StringBox extends Box<string> {
+  label: string
+}
+
+interface Dictionary {
+  [key: string]: number
+}
+
+interface ExtendsDictionary extends Dictionary {
+  total: number
+}
+
+type Branded = string & { __brand: 'Id' }
+
+interface Composition {
+  base: Base
+  closesOpen: ClosesOpen
+  severalBases: SeveralBases
+  pickedBase: PickedBase
+  partialBase: PartialBase
+  narrowed: Narrowed
+  extendsConstrained: ExtendsConstrained
+  stringBox: StringBox
+  extendsDictionary: ExtendsDictionary
+  overlapping: { status: string } & { status: 'ok' }
+  threeMembers: A & { b: number } & { c?: boolean }
+  nullableIntersection: (A & { c: boolean }) | null
+  branded: Branded
+}
+
 @Route('/inheritance-test')
 export class InterfaceInheritanceTestController extends Controller {
   @Get('/bar')
@@ -113,5 +186,30 @@ export class InterfaceInheritanceTestController extends Controller {
   @Get('/extends-open')
   getExtendsOpen(): ExtendsOpen {
     return { open: 'x', closed: 'y' }
+  }
+
+  @Get('/several-bases')
+  getSeveralBases(): SeveralBases {
+    return {
+      id: '1',
+      name: 'Test',
+      createdAt: '2026-01-01',
+      updatedAt: '2026-01-02'
+    }
+  }
+
+  @Get('/composition')
+  getComposition(): Composition {
+    throw new Error('Only used for the generated schema')
+  }
+
+  @Post('/b')
+  postB(@Body() body: B): B {
+    return body
+  }
+
+  @Post('/several-bases')
+  postSeveralBases(@Body() body: SeveralBases): SeveralBases {
+    return { ...body, updatedAt: '2026-01-02' }
   }
 }
