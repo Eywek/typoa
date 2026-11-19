@@ -20,10 +20,24 @@ import { {{name}} } from '{{relativePath}}'
 
 const schemas = {{json schemas}}
 
+{{#if hasPathPatterns}}
+// Express 5 no longer accepts regexes in route paths: a route is skipped when
+// a path parameter doesn't match its pattern, as express 4 did
+function matchPathParams (patterns: Record<string, string>) {
+  const regexes = Object.entries(patterns).map(
+    ([name, pattern]) => [name, new RegExp(`^(?:${pattern})$`)] as const
+  )
+  return (req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    const matches = regexes.every(([name, regex]) => regex.test(String(req.params[name])))
+    return matches ? next() : next('route')
+  }
+}
+
+{{/if}}
 export function bindToRouter (router: express.Router) {
   {{#each controllers}}
   {{#each methods}}
-  router.{{verb}}('{{endpoint}}'{{#each security}}, securityMiddleware({{json this}}){{/each}}{{#each middlewares}}, {{#if this.args}}{{this.name}}({{#each this.args}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}){{else}}{{this.name}}{{/if}}{{/each}}, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  router.{{verb}}('{{endpoint}}'{{#if pathPatterns}}, matchPathParams({{json pathPatterns}}){{/if}}{{#each security}}, securityMiddleware({{json this}}){{/each}}{{#each middlewares}}, {{#if this.args}}{{this.name}}({{#each this.args}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}){{else}}{{this.name}}{{/if}}{{/each}}, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
       const controller = new {{../name}}()
       const data = await controller.{{name}}.apply(

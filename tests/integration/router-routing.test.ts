@@ -1,3 +1,4 @@
+import fs from 'fs'
 import path from 'path'
 import express from 'express'
 import request from 'supertest'
@@ -66,5 +67,27 @@ describe('Routing and path handling', () => {
 
     // The get method returns {} as any, so expect empty object
     assert.deepStrictEqual(res.body, {})
+  })
+})
+
+describe('Path parameters with a regex', () => {
+  test('Should match a path parameter matching its regex', async () => {
+    await request(app).get('/no-required/ABC').expect(200)
+  })
+
+  test('Should skip the route when a path parameter does not match its regex', async () => {
+    await request(app).get('/no-required/abc').expect(404)
+    await request(app).get('/no-required/ABC1').expect(404)
+  })
+
+  test('Should not put the regex in the express path', async () => {
+    const router = await fs.promises.readFile(routerFile, 'utf-8')
+    assert.ok(
+      router.includes(
+        `router.get('/no-required/:id', matchPathParams({"id":"[A-Z]+"})`
+      )
+    )
+    const spec = JSON.parse(await fs.promises.readFile(openapiFile, 'utf-8'))
+    assert.ok(spec.paths['/no-required/{id}'].get)
   })
 })
