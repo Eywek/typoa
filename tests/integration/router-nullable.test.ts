@@ -1,9 +1,12 @@
 import fs from 'fs'
 import path from 'path'
+import express from 'express'
+import request from 'supertest'
 import { strict as assert } from 'node:assert'
-import { describe, test } from 'node:test'
+import { before, describe, test } from 'node:test'
 
 import { generate } from '../../src'
+import { createErrorHandler } from './shared'
 
 describe('Nullable parameter handling', () => {
   test('Should generate correct nullable/required flags for Query parameters', async () => {
@@ -148,8 +151,100 @@ describe('Nullable parameter handling', () => {
       'Body T | undefined should not have nullable schema'
     )
 
+    // Body with only optional properties - the body itself stays required
+    const bodyAllOptional =
+      spec.paths['/nullable/body-all-optional'].patch.requestBody
+    assert.equal(bodyAllOptional.required, true)
+
     // Cleanup
     fs.unlinkSync(openapiFile)
     fs.unlinkSync(routerFile)
+  })
+})
+
+describe('Optional body validation', () => {
+  let app: express.Application
+
+  before(async () => {
+    const routerFile = path.resolve(
+      __dirname,
+      'generated-router-nullable-body.ts'
+    )
+    await generate({
+      tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
+      controllers: [
+        path.resolve(
+          __dirname,
+          '../fixtures/controllers/controller-nullable.ts'
+        )
+      ],
+      openapi: {
+        filePath: path.resolve(
+          __dirname,
+          'generated-openapi-router-nullable-body.json'
+        ),
+        service: {
+          name: 'nullable-test',
+          version: '1.0.0'
+        }
+      },
+      router: {
+        filePath: routerFile,
+        runtimeImport: '../../src'
+      }
+    })
+    app = express()
+    app.use(express.json())
+    const { bindToRouter } = await import(routerFile)
+    bindToRouter(app)
+    app.use(createErrorHandler())
+  })
+
+  for (const route of ['body-optional', 'body-undefined']) {
+    test(`${route}: no body with a JSON content-type is accepted`, async () => {
+      const res = await request(app)
+        .put(`/nullable/${route}`)
+        .set('Content-Type', 'application/json')
+        .expect(200)
+      assert.deepEqual(res.body, { received: false })
+    })
+
+    test(`${route}: no body and no content-type is accepted`, async () => {
+      const res = await request(app).put(`/nullable/${route}`).expect(200)
+      assert.deepEqual(res.body, { received: false })
+    })
+
+    test(`${route}: a body that is sent is still validated`, async () => {
+      const res = await request(app)
+        .put(`/nullable/${route}`)
+        .send({})
+        .expect(400)
+      assert.equal(
+        res.body.fields['body.name'].message,
+        'Property name is required'
+      )
+      await request(app)
+        .put(`/nullable/${route}`)
+        .send({ name: 'x', email: null })
+        .expect(200, { received: true })
+    })
+  }
+
+  test('a required body is still enforced', async () => {
+    await request(app)
+      .post('/nullable/body-null')
+      .set('Content-Type', 'application/json')
+      .expect(400)
+  })
+
+  test('a required body whose properties are all optional accepts no body', async () => {
+    await request(app)
+      .patch('/nullable/body-all-optional')
+      .set('Content-Type', 'application/json')
+      .expect(200, { received: true })
+    await request(app)
+      .patch('/nullable/body-all-optional')
+      .send({ age: 'nope' })
+      .expect(400)
   })
 })

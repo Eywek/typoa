@@ -1,122 +1,133 @@
 import path from 'path'
+import Ajv from 'ajv'
 import { strict as assert } from 'node:assert'
-import { test } from 'node:test'
+import { before, describe, test } from 'node:test'
 
 import { generate } from '../../src'
 
-test('Should generate allOf schemas for interface inheritance', async () => {
-  const openapiFile = path.resolve(
-    __dirname,
-    'generated-openapi-interface-inheritance-test.json'
-  )
-  const routerFile = path.resolve(
-    __dirname,
-    'generated-router-interface-inheritance.ts'
-  )
+describe('Interface inheritance', () => {
+  let spec: any
+  let validate: (schemaName: string, value: unknown) => boolean
 
-  await generate({
-    tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
-    controllers: [
-      path.resolve(
-        __dirname,
-        '../fixtures/validation/interface-inheritance-test.ts'
-      )
-    ],
-    openapi: {
-      filePath: openapiFile,
-      service: {
-        name: 'test-service',
-        version: '1.0.0'
+  before(async () => {
+    const openapiFile = path.resolve(
+      __dirname,
+      'generated-openapi-interface-inheritance-test.json'
+    )
+    const routerFile = path.resolve(
+      __dirname,
+      'generated-router-interface-inheritance.ts'
+    )
+
+    await generate({
+      tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
+      controllers: [
+        path.resolve(
+          __dirname,
+          '../fixtures/validation/interface-inheritance-test.ts'
+        )
+      ],
+      openapi: {
+        filePath: openapiFile,
+        service: {
+          name: 'test-service',
+          version: '1.0.0'
+        }
+      },
+      router: {
+        filePath: routerFile
       }
-    },
-    router: {
-      filePath: routerFile
-    }
+    })
+
+    spec = (await import(openapiFile)).default
+    const ajv = new Ajv({ strict: false })
+    ajv.addSchema({ components: spec.components }, 'spec')
+    validate = (schemaName, value) =>
+      ajv.validate({ $ref: `spec#/components/schemas/${schemaName}` }, value)
   })
 
-  const spec = (await import(openapiFile)).default
+  test('Should flatten inherited properties into a single object schema', () => {
+    assert.deepStrictEqual(spec.components.schemas.Bar, {
+      type: 'object',
+      properties: {
+        bar: { type: 'number' },
+        foo: { type: 'number' }
+      },
+      required: ['bar', 'foo'],
+      additionalProperties: false
+    })
 
-  // Verify the Base schema
-  const baseSchema = spec.components.schemas.Base
-  assert.ok(baseSchema)
-  assert.strictEqual(baseSchema.type, 'object')
-  assert.ok(baseSchema.properties.id)
-  assert.ok(baseSchema.properties.name)
-  assert.deepStrictEqual(baseSchema.required, ['id', 'name'])
+    const bazSchema = spec.components.schemas.Baz
+    assert.strictEqual(bazSchema.allOf, undefined)
+    assert.deepStrictEqual(Object.keys(bazSchema.properties).sort(), [
+      'bar',
+      'baz',
+      'foo'
+    ])
+    assert.deepStrictEqual(bazSchema.required.sort(), ['bar', 'baz', 'foo'])
 
-  // Verify the Foo schema
-  const fooSchema = spec.components.schemas.Foo
-  assert.ok(fooSchema)
-  assert.strictEqual(fooSchema.type, 'object')
-  assert.ok(fooSchema.properties.foo)
-  assert.deepStrictEqual(fooSchema.required, ['foo'])
+    const multipleSchema = spec.components.schemas.MultipleInheritance
+    assert.strictEqual(multipleSchema.allOf, undefined)
+    assert.deepStrictEqual(Object.keys(multipleSchema.properties).sort(), [
+      'active',
+      'description',
+      'id',
+      'metadata',
+      'name'
+    ])
+    assert.strictEqual(multipleSchema.additionalProperties, false)
+  })
 
-  // Verify the Bar schema uses allOf
-  const barSchema = spec.components.schemas.Bar
-  assert.ok(barSchema)
-  assert.ok(barSchema.allOf, 'Bar should use allOf for inheritance')
-  assert.strictEqual(barSchema.allOf.length, 2)
+  test('Should validate an object extending a mapped type with a JSON Schema validator', () => {
+    assert.strictEqual(spec.components.schemas.B.allOf, undefined)
+    assert.strictEqual(validate('B', { a: 'x', b: 1 }), true)
+    assert.strictEqual(validate('B', { a: 'x', b: 1, c: true }), false)
+    assert.strictEqual(validate('B', { b: 1 }), false)
+  })
 
-  // First element should be a reference to Foo
-  const fooRef = barSchema.allOf[0]
-  assert.ok(fooRef.$ref)
-  assert.strictEqual(fooRef.$ref, '#/components/schemas/Foo')
+  test('Should validate an interface overriding an omitted property', () => {
+    const article = { id: '1', revisions: [{ id: 'r1' }] }
+    assert.strictEqual(validate('SerializedArticle', article), true)
+    assert.strictEqual(
+      validate('SerializedArticle', { ...article, revisions: ['r1'] }),
+      false
+    )
+    assert.strictEqual(
+      validate('SerializedArticle', { ...article, x: 1 }),
+      false
+    )
+  })
 
-  // Second element should contain Bar's own properties
-  const barProperties = barSchema.allOf[1]
-  assert.strictEqual(barProperties.type, 'object')
-  assert.ok(barProperties.properties.bar)
-  assert.deepStrictEqual(barProperties.required, ['bar'])
+  test('Should validate every level of a deep inheritance', () => {
+    assert.strictEqual(validate('Baz', { foo: 1, bar: 2, baz: 'x' }), true)
+    assert.strictEqual(validate('Bar', { foo: 1, bar: 2 }), true)
+    assert.strictEqual(validate('Bar', { foo: 1, bar: 2, baz: 'x' }), false)
+  })
 
-  // Verify the Baz schema uses allOf with Bar reference
-  const bazSchema = spec.components.schemas.Baz
-  assert.ok(bazSchema)
-  assert.ok(bazSchema.allOf, 'Baz should use allOf for inheritance')
-  assert.strictEqual(bazSchema.allOf.length, 2)
+  test('Should flatten object intersections', () => {
+    const schema =
+      spec.paths['/inheritance-test/intersected'].get.responses['200'].content[
+        'application/json'
+      ].schema
+    assert.deepStrictEqual(schema, {
+      type: 'object',
+      properties: {
+        a: { type: 'string' },
+        c: { type: 'boolean' }
+      },
+      required: ['a', 'c'],
+      additionalProperties: false
+    })
+  })
 
-  // First element should be a reference to Bar
-  const barRef = bazSchema.allOf[0]
-  assert.ok(barRef.$ref)
-  assert.strictEqual(barRef.$ref, '#/components/schemas/Bar')
-
-  // Second element should contain Baz's own properties
-  const bazProperties = bazSchema.allOf[1]
-  assert.strictEqual(bazProperties.type, 'object')
-  assert.ok(bazProperties.properties.baz)
-  assert.deepStrictEqual(bazProperties.required, ['baz'])
-
-  // Verify Extended interface uses allOf
-  const extendedSchema = spec.components.schemas.Extended
-  assert.ok(extendedSchema)
-  assert.ok(extendedSchema.allOf)
-  assert.strictEqual(extendedSchema.allOf.length, 2)
-
-  // First element should be a reference to Base
-  const baseRef = extendedSchema.allOf[0]
-  assert.ok(baseRef.$ref)
-  assert.strictEqual(baseRef.$ref, '#/components/schemas/Base')
-
-  // Second element should contain Extended's own properties
-  const extendedProperties = extendedSchema.allOf[1]
-  assert.strictEqual(extendedProperties.type, 'object')
-  assert.ok(extendedProperties.properties.description)
-  assert.ok(extendedProperties.properties.active)
-  assert.deepStrictEqual(extendedProperties.required, ['description', 'active'])
-
-  // Verify MultipleInheritance uses allOf with Extended reference
-  const multipleSchema = spec.components.schemas.MultipleInheritance
-  assert.ok(multipleSchema)
-  assert.ok(multipleSchema.allOf)
-  assert.strictEqual(multipleSchema.allOf.length, 2)
-
-  // First element should be a reference to Extended
-  const extendedRef = multipleSchema.allOf[0]
-  assert.ok(extendedRef.$ref)
-  assert.strictEqual(extendedRef.$ref, '#/components/schemas/Extended')
-
-  // Second element should contain MultipleInheritance's own properties
-  const multipleProperties = multipleSchema.allOf[1]
-  assert.strictEqual(multipleProperties.type, 'object')
-  assert.ok(multipleProperties.properties.metadata)
-  assert.deepStrictEqual(multipleProperties.required, ['metadata'])
+  test('Should keep additional properties allowed by an extended interface', () => {
+    assert.strictEqual(
+      spec.components.schemas.ExtendsOpen.additionalProperties,
+      true
+    )
+    assert.strictEqual(
+      validate('ExtendsOpen', { open: 'x', closed: 'y', other: 1 }),
+      true
+    )
+  })
 })
