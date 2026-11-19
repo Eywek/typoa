@@ -321,6 +321,12 @@ export function resolve(
     return { $ref: buildRef(typeName) }
   }
   if (type.isIntersection()) {
+    // `allOf` validates the whole value against every member, so a member with
+    // `additionalProperties: false` would reject the properties of the others.
+    // Object intersections are flattened into a single schema instead.
+    if (type.getIntersectionTypes().every(isPlainObjectType)) {
+      return resolveObjectType(type, spec)
+    }
     return {
       allOf: type.getIntersectionTypes().map(type => resolve(type, spec))
     }
@@ -449,49 +455,8 @@ function resolveProperties(
     // OpenAPI don't want the required[] prop if it's empty
     delete result.required
   }
-  // Check for @additionalproperties JSDoc tag on the type declaration
-  // First try the alias symbol (for type aliases), then the regular symbol (for interfaces)
-  const aliasSymbol = type.getAliasSymbol()
   const typeSymbol = type.getSymbol()
-  let additionalPropertiesFromJSDoc: boolean | undefined = undefined
-  // Check alias symbol first (for type aliases like `type X = { ... }`)
-  if (aliasSymbol) {
-    const jsDocTags = aliasSymbol.compilerSymbol.getJsDocTags()
-    const additionalPropsTag = jsDocTags.find(
-      tag => tag.name === 'additionalproperties'
-    )
-    if (additionalPropsTag && additionalPropsTag.text) {
-      const tagText = additionalPropsTag.text
-        .map(t => t.text)
-        .join(' ')
-        .trim()
-        .toLowerCase()
-      if (tagText === 'true') {
-        additionalPropertiesFromJSDoc = true
-      } else if (tagText === 'false') {
-        additionalPropertiesFromJSDoc = false
-      }
-    }
-  }
-  // If not found in alias symbol, check the regular symbol (for interfaces)
-  if (additionalPropertiesFromJSDoc === undefined && typeSymbol) {
-    const jsDocTags = typeSymbol.compilerSymbol.getJsDocTags()
-    const additionalPropsTag = jsDocTags.find(
-      tag => tag.name === 'additionalproperties'
-    )
-    if (additionalPropsTag && additionalPropsTag.text) {
-      const tagText = additionalPropsTag.text
-        .map(t => t.text)
-        .join(' ')
-        .trim()
-        .toLowerCase()
-      if (tagText === 'true') {
-        additionalPropertiesFromJSDoc = true
-      } else if (tagText === 'false') {
-        additionalPropertiesFromJSDoc = false
-      }
-    }
-  }
+  const additionalPropertiesFromJSDoc = getAdditionalPropertiesFromJsDoc(type)
   // If JSDoc tag is explicitly set, use it (overrides index signature detection)
   if (additionalPropertiesFromJSDoc !== undefined) {
     result.additionalProperties = additionalPropertiesFromJSDoc
@@ -616,115 +581,55 @@ function resolveMappedObjectType(
 }
 
 /**
- * Checks if a type represents an interface that extends other interfaces
+ * Reads the `@additionalproperties true|false` JSDoc tag of a type, from its alias
+ * (`type X = { ... }`) first, then from its symbol (interfaces, classes).
+ * Extended interfaces and intersection members are flattened into the schema of the
+ * type, so one of them allowing additional properties makes the type allow them too.
  */
-function hasInterfaceInheritance(type: Type): boolean {
-  const symbol = type.getSymbol()
-  if (!symbol) return false
-  const declarations = symbol.getDeclarations()
-
-  return declarations.some(
-    decl => Node.isInterfaceDeclaration(decl) && decl.getExtends().length > 0
-  )
+function getAdditionalPropertiesFromJsDoc(type: Type): boolean | undefined {
+  for (const symbol of [type.getAliasSymbol(), type.getSymbol()]) {
+    const tag = symbol?.compilerSymbol
+      .getJsDocTags()
+      .find(tag => tag.name === 'additionalproperties')
+    const tagText = tag?.text
+      ?.map(t => t.text)
+      .join(' ')
+      .trim()
+      .toLowerCase()
+    if (tagText === 'true') {
+      return true
+    }
+    if (tagText === 'false') {
+      return false
+    }
+  }
+  const parents = type.isIntersection()
+    ? type.getIntersectionTypes()
+    : type.isInterface()
+      ? type.getBaseTypes()
+      : []
+  if (parents.some(parent => getAdditionalPropertiesFromJsDoc(parent))) {
+    return true
+  }
+  return undefined
 }
 
 /**
- * Gets the base interfaces that an interface extends
+ * Object types whose properties can be merged into a single schema
+ * when they are intersected.
  */
-function getBaseInterfaces(
-  type: Type,
-  spec: OpenAPIV3.Document
-): OpenAPIV3.ReferenceObject[] {
-  const symbol = type.getSymbol()
-  if (!symbol) return []
-  const baseRefs: OpenAPIV3.ReferenceObject[] = []
-  const declarations = symbol.getDeclarations()
-
-  for (const decl of declarations) {
-    if (!Node.isInterfaceDeclaration(decl)) continue
-    const extendsExpressions = decl.getExtends()
-    for (const extendsExpr of extendsExpressions) {
-      const baseType = extendsExpr.getType()
-      const baseRef = resolve(baseType, spec)
-      if ('$ref' in baseRef) {
-        baseRefs.push(baseRef)
-      }
-    }
+function isPlainObjectType(type: Type): boolean {
+  if (
+    (type.isObject() === false && type.isClassOrInterface() === false) ||
+    type.isArray() ||
+    type.isTuple() ||
+    type.getCallSignatures().length > 0 ||
+    typeof type.getProperty('toJSON') !== 'undefined'
+  ) {
+    return false
   }
-
-  return baseRefs
-}
-
-/**
- * Gets only the properties declared directly in an interface (not inherited)
- */
-function getOwnInterfaceProperties(
-  type: Type,
-  spec: OpenAPIV3.Document
-): ResolvePropertiesReturnType {
-  const symbol = type.getSymbol()
-  if (!symbol) {
-    // Fallback to normal property resolution
-    return resolveProperties(type, spec)
-  }
-  const declarations = symbol.getDeclarations()
-  const interfaceDecl = declarations.find(decl =>
-    Node.isInterfaceDeclaration(decl)
-  )
-  if (!interfaceDecl) {
-    // Fallback to normal property resolution
-    return resolveProperties(type, spec)
-  }
-  const result: ResolvePropertiesReturnType = {
-    properties: {},
-    required: []
-  }
-
-  // Get only the properties declared in this interface
-  const propertySignatures = interfaceDecl.getProperties()
-
-  for (const propSig of propertySignatures) {
-    const propName = propSig.getName()
-    const propType = propSig.getType()
-    let required = !propSig.hasQuestionToken()
-
-    // Resolve the property type
-    const resolvedType = resolve(
-      propType,
-      spec,
-      (nonNullableType, isUndefined, isNull, spec) => {
-        if (isUndefined) {
-          required = false
-        }
-        if (isNull) {
-          return appendMetaToResolvedType(resolve(nonNullableType, spec), {
-            nullable: true
-          })
-        }
-        return resolve(nonNullableType, spec)
-      }
-    )
-
-    // Handle JSDoc tags
-    const jsDocTags = propSig.getSymbol()?.compilerSymbol.getJsDocTags() ?? []
-    reportMisspelledJsDocTags(jsDocTags, propSig.getName())
-    appendJsDocTags(jsDocTags, resolvedType)
-    // Add to properties
-    if (
-      !('type' in resolvedType && (resolvedType.type as any) === 'undefined')
-    ) {
-      result.properties[propName] = resolvedType
-      if (required) {
-        result.required!.push(propName)
-      }
-    }
-  }
-  // Handle method signatures (but ignore them like in resolveProperties)
-  // Methods are already filtered out by only looking at property signatures
-  if (result.required!.length === 0) {
-    delete result.required
-  }
-  return result
+  const typeName = type.getSymbol()?.getName()
+  return typeName !== 'Date' && typeName !== 'Buffer'
 }
 
 /**
@@ -749,89 +654,17 @@ function resolveObjectType(
       | MethodSignature
     return resolve(node.getReturnType(), spec)
   }
-  // Check for interface inheritance
-  if (!hasInterfaceInheritance(type)) {
-    const propertiesResult = resolveProperties(type, spec)
-    // Check for @additionalproperties JSDoc tag on the type declaration
-    // This needs to be checked here because resolveProperties might not have access to the alias symbol
-    const aliasSymbol = type.getAliasSymbol()
-    const typeSymbol = type.getSymbol()
-    let additionalPropertiesFromJSDoc: boolean | undefined = undefined
-    // Check alias symbol first (for type aliases like `type X = { ... }`)
-    if (aliasSymbol) {
-      const jsDocTags = aliasSymbol.compilerSymbol.getJsDocTags()
-      const additionalPropsTag = jsDocTags.find(
-        tag => tag.name === 'additionalproperties'
-      )
-      if (additionalPropsTag && additionalPropsTag.text) {
-        const tagText = additionalPropsTag.text
-          .map(t => t.text)
-          .join(' ')
-          .trim()
-          .toLowerCase()
-        if (tagText === 'true') {
-          additionalPropertiesFromJSDoc = true
-        } else if (tagText === 'false') {
-          additionalPropertiesFromJSDoc = false
-        }
-      }
-    }
-    // If not found in alias symbol, check the regular symbol (for interfaces)
-    if (additionalPropertiesFromJSDoc === undefined && typeSymbol) {
-      const jsDocTags = typeSymbol.compilerSymbol.getJsDocTags()
-      const additionalPropsTag = jsDocTags.find(
-        tag => tag.name === 'additionalproperties'
-      )
-      if (additionalPropsTag && additionalPropsTag.text) {
-        const tagText = additionalPropsTag.text
-          .map(t => t.text)
-          .join(' ')
-          .trim()
-          .toLowerCase()
-        if (tagText === 'true') {
-          additionalPropertiesFromJSDoc = true
-        } else if (tagText === 'false') {
-          additionalPropertiesFromJSDoc = false
-        }
-      }
-    }
-    // Override additionalProperties if JSDoc tag is set
-    if (additionalPropertiesFromJSDoc !== undefined) {
-      propertiesResult.additionalProperties = additionalPropertiesFromJSDoc
-    } else if (propertiesResult.additionalProperties === undefined) {
-      // If no JSDoc tag and no index signature, default to false
-      propertiesResult.additionalProperties = false
-    }
-    return {
-      type: 'object',
-      ...propertiesResult
-    }
-  }
-  const baseRefs = getBaseInterfaces(type, spec)
-  // If there are no base interfaces, fall back to normal resolution
-  if (baseRefs.length === 0) {
-    return {
-      type: 'object',
-      ...resolveProperties(type, spec)
-    }
-  }
-  // Shallow copy to avoid mutating the original baseRefs array
-  const allOfElements = Array.from<
-    OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
-  >(baseRefs)
-  const ownProps = getOwnInterfaceProperties(type, spec)
-  // Add own properties if any exist
-  if (
-    Object.keys(ownProps.properties).length > 0 ||
-    ownProps.additionalProperties
-  ) {
-    allOfElements.push({
-      type: 'object',
-      ...ownProps
-    })
+  // Inherited properties are flattened into the schema rather than composed with
+  // `allOf`: `allOf` validates the whole value against every member, so a base with
+  // `additionalProperties: false` would reject the properties added by the interface.
+  const propertiesResult = resolveProperties(type, spec)
+  if (propertiesResult.additionalProperties === undefined) {
+    // If no JSDoc tag and no index signature, default to false
+    propertiesResult.additionalProperties = false
   }
   return {
-    allOf: allOfElements
+    type: 'object',
+    ...propertiesResult
   }
 }
 

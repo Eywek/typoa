@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Query,
   Body,
   Header,
@@ -15,6 +16,11 @@ interface CreateUserDto {
   email: string | null // nullable property
   age?: number // optional property
   nickname?: string | null // optional and nullable
+}
+
+interface UpdateUserDto {
+  name?: string
+  age?: number
 }
 
 @Route('nullable')
@@ -104,6 +110,16 @@ export class NullableController extends Controller {
    */
   @Put('body-undefined')
   bodyUndefined(@Body() body: CreateUserDto | undefined): {
+    received: boolean
+  } {
+    return { received: body !== undefined }
+  }
+
+  /**
+   * Test @Body with a type whose properties are all optional - should be required: true
+   */
+  @Patch('body-all-optional')
+  bodyAllOptional(@Body() body: UpdateUserDto): {
     received: boolean
   } {
     return { received: body !== undefined }

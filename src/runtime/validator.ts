@@ -188,6 +188,15 @@ async function validateBody(
   logger: CustomLogger
 ): Promise<unknown> {
   const body = req.body
+  // A body parser turns an empty request into `{}` (express.json() does when the
+  // client sends `Content-Type: application/json` and no payload), which would then
+  // fail the required properties of the schema although the body is optional.
+  if (
+    rule.required !== true &&
+    (typeof body === 'undefined' || req.headers['content-length'] === '0')
+  ) {
+    return undefined
+  }
   const contentType = (req.headers['content-type'] ?? 'application/json').split(';')[0]
 
   const expectedSchema = rule.content[contentType]?.schema

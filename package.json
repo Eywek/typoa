@@ -58,6 +58,7 @@
     "@types/yamljs": "0.2.34",
     "@typescript-eslint/eslint-plugin": "8.55.0",
     "@typescript-eslint/parser": "8.55.0",
+    "ajv": "8.20.0",
     "body-parser": "1.19.0",
     "eslint": "10.0.0",
     "eslint-config-standard": "17.1.0",

@@ -235,3 +235,97 @@ describe('when unknown payload is accepted', () => {
     )
   })
 })
+
+describe('when the request body is optional', () => {
+  const userSchemas = {
+    User: {
+      type: 'object',
+      properties: { name: { type: 'string' } },
+      required: ['name'],
+      additionalProperties: false
+    }
+  }
+  const rules = (required: boolean) => ({
+    params: [{ name: 'body', in: 'body' }] as any,
+    body: {
+      required,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/User' }
+        }
+      }
+    }
+  })
+  const buildRequest = (
+    body: unknown,
+    headers: Record<string, string>
+  ): express.Request =>
+    ({ body, headers, readableEnded: true }) as unknown as express.Request
+
+  test('an empty request parsed as {} is passed as undefined', async () => {
+    const args = await validateAndParse(
+      buildRequest(
+        {},
+        { 'content-type': 'application/json', 'content-length': '0' }
+      ),
+      userSchemas as any,
+      rules(false)
+    )
+    assert.deepStrictEqual(args, [undefined])
+  })
+
+  test('a request without a parsed body is passed as undefined', async () => {
+    const args = await validateAndParse(
+      buildRequest(undefined, { 'content-type': 'application/json' }),
+      userSchemas as any,
+      rules(false)
+    )
+    assert.deepStrictEqual(args, [undefined])
+  })
+
+  test('an empty request with an unsupported content-type is passed as undefined', async () => {
+    const args = await validateAndParse(
+      buildRequest({}, { 'content-type': 'text/plain', 'content-length': '0' }),
+      userSchemas as any,
+      rules(false)
+    )
+    assert.deepStrictEqual(args, [undefined])
+  })
+
+  test('a body that is sent is still validated', async () => {
+    await assert.rejects(
+      validateAndParse(
+        buildRequest(
+          {},
+          { 'content-type': 'application/json', 'content-length': '2' }
+        ),
+        userSchemas as any,
+        rules(false)
+      ),
+      { name: 'ValidateError', message: 'Property name is required' }
+    )
+    const args = await validateAndParse(
+      buildRequest(
+        { name: 'x' },
+        { 'content-type': 'application/json', 'content-length': '12' }
+      ),
+      userSchemas as any,
+      rules(false)
+    )
+    assert.deepStrictEqual(args, [{ name: 'x' }])
+  })
+
+  test('an empty request is rejected when the body is required', async () => {
+    await assert.rejects(
+      validateAndParse(
+        buildRequest(
+          {},
+          { 'content-type': 'application/json', 'content-length': '0' }
+        ),
+        userSchemas as any,
+        rules(true)
+      ),
+      { name: 'ValidateError', message: 'Property name is required' }
+    )
+  })
+})

@@ -27,7 +27,9 @@ test('Should generate additionalProperties for types with specific keys and inde
       service: {
         name: 'test-service',
         version: '1.0.0'
-      }
+      },
+      // Only used in an intersection, which is flattened
+      additionalExportedTypeNames: ['Beta']
     },
     router: {
       filePath: routerFile
@@ -114,24 +116,29 @@ test('Should generate additionalProperties for types with specific keys and inde
   const intersectionSchema =
     intersectionResponse.content['application/json'].schema
 
-  // Intersection types should generate allOf
-  assert.ok(intersectionSchema.allOf)
-  assert.strictEqual(intersectionSchema.allOf.length, 2)
+  // Object intersections are flattened: the specific keys become properties and
+  // the Record<string, string> part becomes additionalProperties
+  assert.deepStrictEqual(intersectionSchema, {
+    type: 'object',
+    properties: {
+      'specific-key': { type: 'string' },
+      'another-key': { type: 'string' }
+    },
+    additionalProperties: { type: 'string' }
+  })
 
-  // One part should have additionalProperties (Record<string, string>)
-  const recordPart = intersectionSchema.allOf.find(
-    (part: any) =>
-      part.additionalProperties &&
-      Object.keys(part.properties || {}).length === 0
-  )
-  assert.ok(recordPart)
-  assert.strictEqual(recordPart.additionalProperties.type, 'string')
-
-  // Other part should have specific properties
-  const specificPart = intersectionSchema.allOf.find(
-    (part: any) => part.properties && Object.keys(part.properties).length > 0
-  )
-  assert.ok(specificPart)
-  assert.ok(specificPart.properties['specific-key'])
-  assert.ok(specificPart.properties['another-key'])
+  // An intersection member allowing additional properties keeps allowing them
+  const additionalPropertiesEnabledSchema =
+    spec.paths['/record-index-test/additionalPropertiesEnabled'].get.responses[
+      '200'
+    ].content['application/json'].schema
+  assert.deepStrictEqual(additionalPropertiesEnabledSchema, {
+    type: 'object',
+    properties: {
+      hydrogen: { type: 'number' },
+      carbon: { type: 'number' }
+    },
+    required: ['hydrogen', 'carbon'],
+    additionalProperties: true
+  })
 })
