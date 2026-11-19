@@ -298,6 +298,38 @@ describe('Interface inheritance', () => {
     assert.deepStrictEqual(schema.allOf[0], { type: 'string' })
   })
 
+  test('Should describe an intersection of arrays as a single array of flattened items', () => {
+    const schema =
+      spec.paths['/inheritance-test/playlist'].post.requestBody.content[
+        'application/json'
+      ].schema
+    assert.deepStrictEqual(schema.properties.tracks, {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          artistIds: { type: 'array', items: { type: 'string' } }
+        },
+        required: ['name', 'artistIds'],
+        additionalProperties: false
+      }
+    })
+    assert.deepStrictEqual(schema.properties.matrix, {
+      type: 'array',
+      items: { type: 'array', items: { type: 'number' } }
+    })
+
+    const ajv = new Ajv({ strict: false })
+    const track = { name: 'a', artistIds: ['1'] }
+    assert.strictEqual(ajv.validate(schema, { tracks: [track] }), true)
+    assert.strictEqual(ajv.validate(schema, { tracks: [{ name: 'a' }] }), false)
+    assert.strictEqual(
+      ajv.validate(schema, { tracks: [{ ...track, other: true }] }),
+      false
+    )
+  })
+
   test('Should no longer emit a schema only used as a base', () => {
     for (const name of ['Foo', 'A', 'Article', 'Constrained', 'Dictionary']) {
       assert.strictEqual(spec.components.schemas[name], undefined, name)

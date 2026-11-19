@@ -174,7 +174,7 @@ describe('Flattened composed types at runtime', () => {
       .send({ tracks: [{ name: 'a', artistIds: ['1'] }, { name: 'b' }] })
       .expect(400)
     assert.strictEqual(
-      res.body.fields['body.tracks.1.1.artistIds'].message,
+      res.body.fields['body.tracks.1.artistIds'].message,
       'Property artistIds is required'
     )
   })
@@ -203,5 +203,23 @@ describe('Flattened composed types at runtime', () => {
       .post('/inheritance-test/b')
       .send({ a: 'x', b: 1 })
       .expect(200, { a: 'x', b: 1 })
+  })
+
+  test('Should accept an array declared by several intersection members when enableThrowOnUnexpectedAdditionalData is on', async () => {
+    setRuntimeOptions({
+      features: { enableThrowOnUnexpectedAdditionalData: true }
+    })
+    await request(app)
+      .post('/inheritance-test/playlist')
+      .send({ tracks: [{ name: 'a', artistIds: ['1'] }] })
+      .expect(200, { tracksIsArray: true, artistIds: ['1'], matrix: [] })
+    const res = await request(app)
+      .post('/inheritance-test/playlist')
+      .send({ tracks: [{ name: 'a', artistIds: ['1'], other: true }] })
+      .expect(400)
+    assert.strictEqual(
+      res.body.fields['body.tracks.0'].message,
+      'Additional properties are not allowed. Found: other'
+    )
   })
 })
