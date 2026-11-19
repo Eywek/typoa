@@ -376,6 +376,9 @@ export async function generate(config: OpenAPIConfiguration) {
         )
       : undefined,
     validateResponse: config.router.validateResponse,
+    hasPathPatterns: Object.values(codegenControllers).some(methods =>
+      methods.some(method => typeof method.pathPatterns !== 'undefined')
+    ),
     runtimeImport:
       config.router.runtimeImport ??
       process.env.TYPOA_RUNTIME_IMPORT ??
