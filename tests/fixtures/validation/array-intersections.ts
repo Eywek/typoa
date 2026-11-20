@@ -82,6 +82,9 @@ export interface Cases {
   serialized: Serialized<Item> & { tags: Kind[] }
   choice: (Serialized<Item> & { tags: Kind[] }) | { other: boolean }
   objects: Named[] & Tagged[]
+  nullableObjects: (Named | null)[] & (Tagged | null)[]
+  mixedNullableObjects: (Named | null)[] & Tagged[]
+  nestedNullableObjects: (Named | null)[][] & (Tagged | null)[][]
   nested: Kind.A[][] & Kind[][]
   nestedDirect: Array<Array<'a'>> & Kind[][]
   nestedObjects: Named[][] & Tagged[][]

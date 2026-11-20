@@ -69,6 +69,12 @@ describe('Lossless intersections', () => {
       oneOf: [object({ tags }), object({ other: { type: 'boolean' } })]
     },
     objects: { type: 'array', items: named },
+    nullableObjects: { type: 'array', items: { ...named, nullable: true } },
+    mixedNullableObjects: { type: 'array', items: named },
+    nestedNullableObjects: {
+      type: 'array',
+      items: { type: 'array', items: { ...named, nullable: true } }
+    },
     nested: { type: 'array', items: tags },
     nestedDirect: { type: 'array', items: direct },
     nestedObjects: { type: 'array', items: { type: 'array', items: named } },
@@ -276,6 +282,28 @@ describe('Lossless intersections', () => {
   })
 
   const samples: Record<string, { valid: unknown[]; invalid: unknown[] }> = {
+    nullableObjects: {
+      valid: [
+        [],
+        [null],
+        [{ name: 'x', tags: [] }],
+        [null, { name: 'x', tags: ['a'] }]
+      ],
+      invalid: [
+        [{}],
+        [{ name: 'x' }],
+        [{ name: 'x', tags: {} }],
+        [{ name: 'x', tags: [], extra: true }]
+      ]
+    },
+    mixedNullableObjects: {
+      valid: [[], [{ name: 'x', tags: [] }]],
+      invalid: [[null], [{}], [{ tags: [] }]]
+    },
+    nestedNullableObjects: {
+      valid: [[], [[]], [[null, { name: 'x', tags: [] }]]],
+      invalid: [[null], [[{}]], [[{ name: 'x' }]]]
+    },
     mutableOverride: {
       valid: [
         { value: 'x', tags: [] },

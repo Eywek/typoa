@@ -400,9 +400,11 @@ function resolveArrayIntersectionItems(
     }
   }
   if (
-    elements.every(isPlainObjectType) &&
+    elements.every(element =>
+      isPlainObjectType(element.getNonNullableType())
+    ) &&
     elementType &&
-    !elementType.isNever()
+    !elementType.getNonNullableType().isNever()
   ) {
     return resolve(elementType, spec)
   }
@@ -631,7 +633,7 @@ function resolveProperties(
             .getDeclarations()
             .some(
               declaration =>
-                declaration.getParent().getSymbol() === type.getSymbol()
+                declaration.getParent()?.getSymbol() === type.getSymbol()
             )
         )
           return false
