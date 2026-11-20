@@ -22,6 +22,14 @@ permissions:
 jobs:
     test:
         runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                express: ['4.22.3', '5.3.0']
+                include:
+                    - express: '4.22.3'
+                      types: '4'
+                    - express: '5.3.0'
+                      types: '5'
         steps:
             - uses: actions/checkout@v5
 
@@ -33,6 +41,9 @@ jobs:
 
             - name: install
               run: yarn
+
+            - name: Install Express version
+              run: yarn add --dev --ignore-engines --no-lockfile express@${{ matrix.express }} @types/express@${{ matrix.types }}
 
             - name: build
               run: yarn run build

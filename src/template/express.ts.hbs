@@ -21,11 +21,15 @@ import { {{name}} } from '{{relativePath}}'
 const schemas = {{json schemas}}
 
 {{#if hasPathPatterns}}
-// Express 5 no longer accepts regexes in route paths: a route is skipped when
-// a path parameter doesn't match its pattern, as express 4 did
-function matchPathParams (patterns: Record<string, string>) {
+function matchPathParams (patterns: Record<string, string>, endpoint: string, caseSensitive: boolean) {
   const regexes = Object.entries(patterns).map(
-    ([name, pattern]) => [name, new RegExp(`^(?:${pattern})$`)] as const
+    ([name, pattern]) => {
+      try {
+        return [name, new RegExp(`^(?:${pattern})$`, caseSensitive ? '' : 'i')] as const
+      } catch (error) {
+        throw new Error(`Invalid path pattern '${pattern}' for parameter '${name}' in route '${endpoint}': ${(error as Error).message}`)
+      }
+    }
   )
   return (req: express.Request, _res: express.Response, next: express.NextFunction) => {
     const matches = regexes.every(([name, regex]) => regex.test(String(req.params[name])))
@@ -33,11 +37,28 @@ function matchPathParams (patterns: Record<string, string>) {
   }
 }
 
+function registerPatternRoute (
+  router: express.Router,
+  register: (path: string, ...handlers: express.RequestHandler[]) => unknown,
+  endpoint: string,
+  plainEndpoint: string,
+  patterns: Record<string, string>,
+  handlers: express.RequestHandler[]
+) {
+  try {
+    register(endpoint, ...handlers)
+  } catch {
+    const options = router as express.Router & { caseSensitive?: boolean, enabled?: (setting: string) => boolean }
+    const caseSensitive = options.caseSensitive ?? options.enabled?.('case sensitive routing') ?? false
+    register(plainEndpoint, matchPathParams(patterns, endpoint, caseSensitive), ...handlers)
+  }
+}
+
 {{/if}}
 export function bindToRouter (router: express.Router) {
   {{#each controllers}}
   {{#each methods}}
-  router.{{verb}}('{{endpoint}}'{{#if pathPatterns}}, matchPathParams({{json pathPatterns}}){{/if}}{{#each security}}, securityMiddleware({{json this}}){{/each}}{{#each middlewares}}, {{#if this.args}}{{this.name}}({{#each this.args}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}){{else}}{{this.name}}{{/if}}{{/each}}, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  {{#if pathPatterns}}registerPatternRoute(router, router.{{verb}}.bind(router), '{{endpoint}}', '{{plainEndpoint}}', {{json pathPatterns}}, [{{else}}router.{{verb}}('{{endpoint}}', {{/if}}{{#each security}}securityMiddleware({{json this}}), {{/each}}{{#each middlewares}}{{#if this.args}}{{this.name}}({{#each this.args}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}){{else}}{{this.name}}{{/if}}, {{/each}}async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
       const controller = new {{../name}}()
       const data = await controller.{{name}}.apply(
@@ -67,7 +88,7 @@ export function bindToRouter (router: express.Router) {
     } catch (err) {
       return next(err)
     }
-  })
+  }{{#if pathPatterns}}]{{/if}})
   {{/each}}
   {{/each}}
 }

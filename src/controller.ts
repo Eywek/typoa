@@ -396,12 +396,14 @@ export function addController(
       if (typeof codegenControllers[controllerName] === 'undefined') {
         codegenControllers[controllerName] = []
       }
-      // Express 5 no longer accepts regexes in paths (/foo/:id([A-Z]+)), they
-      // are checked by the generated router before the route handlers instead
       const pathPatterns: Record<string, string> = {}
       codegenControllers[controllerName].push({
         name: method.getName(),
         endpoint: endpoint
+          .split('/')
+          .map(path => path.replace(/{(.+)}/g, (matches, match) => `:${match}`))
+          .join('/'),
+        plainEndpoint: endpoint
           .split('/')
           // replace as express format
           .map(path =>
@@ -409,13 +411,6 @@ export function addController(
               .replace(
                 /{([A-Za-z0-9-_]+)\((.+)\)}/g,
                 (match, name: string, pattern: string) => {
-                  try {
-                    new RegExp(`^(?:${pattern})$`)
-                  } catch (error) {
-                    throw new Error(
-                      `Invalid path pattern '${pattern}' for parameter '${name}' in route '${verb.toUpperCase()} ${endpoint}': ${(error as Error).message}`
-                    )
-                  }
                   pathPatterns[name] = pattern
                   return `:${name}`
                 }

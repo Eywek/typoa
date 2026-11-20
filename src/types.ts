@@ -6,6 +6,7 @@ export type CodeGenControllers = Record<
     name: string
     endpoint: string
     pathPatterns?: Record<string, string>
+    plainEndpoint?: string
     verb: string
     security?: Record<string, string[]>[]
     params: OpenAPIV3.OperationObject['parameters']
