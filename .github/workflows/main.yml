@@ -47,10 +47,28 @@ jobs:
             - name: Install Express version
               run: yarn add --dev --ignore-engines --no-lockfile express@${{ matrix.express }} @types/express@${{ matrix.types }}
 
+            - name: Verify Express version and dependency tree
+              env:
+                  EXPECTED: ${{ matrix.express }}
+              run: |
+                  node <<'NODE'
+                  const assert = require('node:assert/strict')
+                  const { execFileSync } = require('node:child_process')
+                  const version = require('express/package.json').version
+                  console.log('express', version, 'types', require('@types/express/package.json').version)
+                  assert.equal(version, process.env.EXPECTED)
+                  const tree = execFileSync('npm', ['ls', 'express', '--all', '--parseable'], { encoding: 'utf8' })
+                  console.log(tree)
+                  const copies = tree.trim().split('\n').filter(directory => require(directory + '/package.json').name === 'express')
+                  assert.equal(copies.length, 1, 'Expected exactly one installed Express copy')
+                  NODE
+
             - name: build
               run: yarn run build
 
             - name: test
+              env:
+                  EXPRESS_VERSION: ${{ matrix.express }}
               run: yarn run test:ci
 
             # Skip on fork PRs: GITHUB_TOKEN cannot comment on PRs from forks
