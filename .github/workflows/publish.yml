@@ -1,0 +1,48 @@
+name: publish
+
+on:
+    push:
+        branches:
+            - main
+
+permissions:
+    contents: read
+    # Required for npm trusted publishing (OIDC), no npm token is stored
+    id-token: write
+
+# Publish one merge at a time, in order
+concurrency:
+    group: publish
+    cancel-in-progress: false
+
+jobs:
+    publish:
+        # Forks are not registered as trusted publishers
+        if: github.repository == 'reelevant-tech/typoa'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v6
+              with:
+                  # Trusted publishing needs npm >= 11.5.1, bundled with Node 24
+                  node-version: '24'
+                  cache: 'yarn'
+                  registry-url: 'https://registry.npmjs.org'
+
+            - name: install
+              run: yarn --frozen-lockfile
+
+            - name: build
+              run: yarn run build
+
+            - name: test
+              run: yarn run test
+
+            # Authenticated through OIDC (trusted publisher configured on npmjs.com
+            # for reelevant-tech/typoa, workflow publish.yml), provenance is attached
+            # automatically. Versions are prereleases (1.0.0-alpha.x) published under
+            # `latest`, recent npm versions refuse a prerelease without an explicit tag
+            - name: publish
+              run: npm publish --tag latest
