@@ -396,13 +396,30 @@ export function addController(
       if (typeof codegenControllers[controllerName] === 'undefined') {
         codegenControllers[controllerName] = []
       }
+      const pathPatterns: Record<string, string> = {}
       codegenControllers[controllerName].push({
         name: method.getName(),
         endpoint: endpoint
           .split('/')
-          // replace as express format
           .map(path => path.replace(/{(.+)}/g, (matches, match) => `:${match}`))
           .join('/'),
+        plainEndpoint: endpoint
+          .split('/')
+          // replace as express format
+          .map(path =>
+            path
+              .replace(
+                /{([A-Za-z0-9-_]+)\((.+)\)}/g,
+                (match, name: string, pattern: string) => {
+                  pathPatterns[name] = pattern
+                  return `:${name}`
+                }
+              )
+              .replace(/{(.+)}/g, (matches, match) => `:${match}`)
+          )
+          .join('/'),
+        pathPatterns:
+          Object.keys(pathPatterns).length > 0 ? pathPatterns : undefined,
         verb: verb.toLowerCase(),
         security: operation.security,
         params: codegenParameters,
