@@ -596,16 +596,22 @@ function resolveProperties(
     // OpenAPI don't want the required[] prop if it's empty
     delete result.required
   }
+  const bases = type.isInterface() ? type.getBaseTypes() : []
   const parents = type.isIntersection()
     ? type.getIntersectionTypes()
-    : type.isClassOrInterface()
-      ? type.getBaseTypes()
+    : bases.length > 1
+      ? bases
       : []
   if (parents.length > 0) {
-    const indexes = parents.flatMap(member => {
-      const index = member.getStringIndexType() ?? member.getNumberIndexType()
-      return index ? [resolve(index, spec)] : []
-    })
+    const indexes = type.isIntersection()
+      ? parents.flatMap(member => {
+          const index =
+            member.getStringIndexType() ?? member.getNumberIndexType()
+          return index && !index.isAny() && !index.isUnknown()
+            ? [resolve(index, spec)]
+            : []
+        })
+      : []
     const selected = new Set(
       Object.keys(result.properties).filter(name => {
         if (indexes.length > 0) return true
@@ -641,9 +647,10 @@ function resolveProperties(
         })
       })
     )
-    const members = parents.map(member =>
-      resolveProperties(member, spec, selected)
-    )
+    const members =
+      selected.size === 0
+        ? []
+        : parents.map(member => resolveProperties(member, spec, selected))
     for (const name of selected) {
       const properties = members.flatMap(member =>
         member.properties[name] ? [member.properties[name]] : []

@@ -95,6 +95,12 @@ describe('Lossless intersections', () => {
       allOf: [{ type: 'string' }, { type: 'number' }]
     }),
     inheritedIndex: { $ref: '#/components/schemas/Indexed' },
+    openIndex: object({ name: { type: 'string' } }, ['name'], {
+      $ref: '#/components/schemas/AnyValue'
+    }),
+    anyIndex: object({ name: { type: 'string' } }, ['name'], {
+      $ref: '#/components/schemas/AnyValue'
+    }),
     indexedProperty: object(
       { count: { allOf: [{ type: 'number' }, { type: 'string' }] } },
       ['count'],
@@ -103,6 +109,9 @@ describe('Lossless intersections', () => {
     closed: object({ name: { type: 'string' } }),
     inheritedClosed: { $ref: '#/components/schemas/ClosedPair' },
     modifiers: object({ name: { type: 'string', readOnly: true } }),
+    readMerge: object({ value: { type: 'string', readOnly: true } }),
+    writeMerge: { $ref: '#/components/schemas/WritePair' },
+    mutableClass: { $ref: '#/components/schemas/MutableItem' },
     branded: {
       allOf: [{ type: 'string' }, object({ tag: { type: 'string' } })]
     },
@@ -170,6 +179,20 @@ describe('Lossless intersections', () => {
     })
   })
 
+  test('Should merge writeOnly metadata from a non-leading base', () => {
+    assert.deepEqual(
+      spec.components!.schemas!.WritePair,
+      object({ value: { type: 'string', writeOnly: true } })
+    )
+  })
+
+  test('Should not copy metadata from an overridden class property', () => {
+    assert.deepEqual(
+      spec.components!.schemas!.MutableItem,
+      object({ value: { type: 'string', default: 'x' } }, [])
+    )
+  })
+
   const parse = (schema: OpenAPIV3.SchemaObject, value: unknown) =>
     validateAndParse(
       {
@@ -182,6 +205,20 @@ describe('Lossless intersections', () => {
         body: { required: true, content: { 'application/json': { schema } } }
       }
     )
+
+  test('Should validate open index signatures without weakening named properties', async () => {
+    for (const name of ['openIndex', 'anyIndex']) {
+      for (const value of [
+        { name: 'x', extra: 1 },
+        { name: 'x', extra: { value: true } }
+      ]) {
+        assert.deepEqual(await parse(properties[name], value), [value])
+      }
+      for (const value of [{}, { name: {} }]) {
+        await assert.rejects(() => parse(properties[name], value))
+      }
+    }
+  })
 
   test('Should preserve array constraints for a small exhaustive set of values', async () => {
     const values: unknown[] = ['a', 'b', 'c', 3, null, {}]

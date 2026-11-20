@@ -16,6 +16,23 @@ interface Named {
 interface Tagged {
   tags: string[]
 }
+interface MutableValue {
+  value: string
+}
+interface ReadonlyValue {
+  readonly value: string
+}
+interface HiddenValue {
+  /** @writeonly */
+  value: string
+}
+interface WritePair extends MutableValue, HiddenValue {}
+class BaseItem {
+  readonly value: string = 'x'
+}
+class MutableItem extends BaseItem {
+  value = 'x'
+}
 interface Short {
   /** @minLength 2 */
   name: string
@@ -75,10 +92,15 @@ export interface Cases {
   bounded: ShortList & LongList
   indexed: Record<string, string> & Record<string, number>
   indexedProperty: Record<string, string> & { count: number }
+  openIndex: Record<string, unknown> & { name: string }
+  anyIndex: Record<string, any> & { name: string }
   inheritedIndex: Indexed
   closed: Open & Closed
   inheritedClosed: ClosedPair
   modifiers: { readonly name: string | null } & { name?: string }
+  readMerge: MutableValue & ReadonlyValue
+  writeMerge: WritePair
+  mutableClass: MutableItem
   branded: string & { tag: string }
   reference: JsonValue & { tag: string }
   referenceProperty: Envelope<Named> & { note: string }
