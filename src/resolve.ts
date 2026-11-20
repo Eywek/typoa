@@ -327,6 +327,16 @@ export function resolve(
     if (type.getIntersectionTypes().every(isPlainObjectType)) {
       return resolveObjectType(type, spec)
     }
+    // Same for arrays: `X[] & Y[]` is described as a single array of `X & Y`,
+    // so that the items of `X` do not reject the properties of `Y`.
+    const elementType = type.getNumberIndexType()
+    if (
+      type.getIntersectionTypes().every(member => member.isArray()) &&
+      typeof elementType !== 'undefined' &&
+      elementType.isNever() === false
+    ) {
+      return { type: 'array', items: resolve(elementType, spec) }
+    }
     return {
       allOf: type.getIntersectionTypes().map(type => resolve(type, spec))
     }
