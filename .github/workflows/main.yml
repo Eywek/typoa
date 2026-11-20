@@ -65,9 +65,11 @@ jobs:
             - name: bump version if needed
               env:
                   BASE_REF: ${{ github.base_ref }}
+                  BASE_REPO_URL: ${{ github.event.pull_request.base.repo.clone_url }}
                   CAN_PUSH: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
               run: |
-                  git fetch --depth=1 origin "$BASE_REF"
+                  # Read the baseline from the target repository, origin is the fork on fork PRs
+                  git fetch --depth=1 "$BASE_REPO_URL" "$BASE_REF"
                   base_version=$(git show FETCH_HEAD:package.json | jq -r .version)
                   head_version=$(jq -r .version package.json)
 
