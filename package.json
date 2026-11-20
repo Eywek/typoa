@@ -1,6 +1,6 @@
 {
   "name": "typoa",
-  "version": "1.0.0-alpha.74",
+  "version": "1.0.0-alpha.75",
   "author": "Eywek <contact@eywek.fr>",
   "description": "Help you generate OpenAPI definitions via Typescript",
   "homepage": "https://github.com/reelevant-tech/typoa#readme",

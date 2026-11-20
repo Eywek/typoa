@@ -7,8 +7,6 @@ on:
 
 permissions:
     contents: read
-    # Required for npm trusted publishing (OIDC), no npm token is stored
-    id-token: write
 
 # Publish one merge at a time, in order
 concurrency:
@@ -16,10 +14,54 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
-    publish:
+    test:
         # Forks are not registered as trusted publishers
         if: github.repository == 'reelevant-tech/typoa'
         runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: '24'
+                  cache: 'yarn'
+
+            - name: install
+              run: yarn --frozen-lockfile
+
+            - name: build
+              run: yarn run build
+
+            - name: test
+              run: yarn run test
+
+    lint:
+        if: github.repository == 'reelevant-tech/typoa'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: '24'
+                  cache: 'yarn'
+
+            - name: install
+              run: yarn --frozen-lockfile
+
+            - name: lint
+              run: yarn eslint .
+
+    # Only runs when both test and lint pass
+    publish:
+        needs: [test, lint]
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            # Required for npm trusted publishing (OIDC), no npm token is stored
+            id-token: write
         steps:
             - uses: actions/checkout@v5
 
@@ -36,9 +78,6 @@ jobs:
 
             - name: build
               run: yarn run build
-
-            - name: test
-              run: yarn run test
 
             # Authenticated through OIDC (trusted publisher configured on npmjs.com
             # for reelevant-tech/typoa, workflow publish.yml), provenance is attached
