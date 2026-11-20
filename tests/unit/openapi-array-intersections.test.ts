@@ -106,6 +106,19 @@ describe('Lossless intersections', () => {
       ['count'],
       { type: 'string' }
     ),
+    numericIndex: object({ name: { type: 'number' } }, ['name'], {
+      type: 'string'
+    }),
+    numericProperty: object(
+      { 0: { allOf: [{ type: 'number' }, { type: 'string' }] } },
+      ['0'],
+      { type: 'string' }
+    ),
+    nonNumericProperty: object(
+      { '01': { type: 'number' }, '1e2': { type: 'number' } },
+      ['01', '1e2'],
+      { type: 'string' }
+    ),
     closed: object({ name: { type: 'string' } }),
     inheritedClosed: { $ref: '#/components/schemas/ClosedPair' },
     modifiers: object({ name: { type: 'string', readOnly: true } }),
@@ -300,6 +313,15 @@ describe('Lossless intersections', () => {
       invalid: [{ kind: 'b' }, { kind: 'a', other: {} }]
     },
     indexedProperty: { valid: [], invalid: [{}, { count: {} }] },
+    numericIndex: {
+      valid: [{ name: 1 }, { name: 1, 0: 'x' }],
+      invalid: [{}, { name: {} }, { name: 1, 0: {} }]
+    },
+    numericProperty: { valid: [], invalid: [{}, { 0: {} }] },
+    nonNumericProperty: {
+      valid: [{ '01': 1, '1e2': 2 }],
+      invalid: [{}, { '01': {}, '1e2': 2 }]
+    },
     closed: {
       valid: [{ name: 'x' }],
       invalid: [{ name: 'x', extra: true }, {}]

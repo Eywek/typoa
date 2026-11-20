@@ -95,6 +95,9 @@ export interface Cases {
   bounded: ShortList & LongList
   indexed: Record<string, string> & Record<string, number>
   indexedProperty: Record<string, string> & { count: number }
+  numericIndex: Record<number, string> & { name: number }
+  numericProperty: Record<number, string> & { 0: number }
+  nonNumericProperty: Record<number, string> & { '01': number; '1e2': number }
   openIndex: Record<string, unknown> & { name: string }
   anyIndex: Record<string, any> & { name: string }
   inheritedIndex: Indexed

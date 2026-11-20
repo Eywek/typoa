@@ -608,13 +608,22 @@ function resolveProperties(
           const index =
             member.getStringIndexType() ?? member.getNumberIndexType()
           return index && !index.isAny() && !index.isUnknown()
-            ? [resolve(index, spec)]
+            ? [
+                {
+                  schema: resolve(index, spec),
+                  numeric: !member.getStringIndexType()
+                }
+              ]
             : []
         })
       : []
+    const indexesForProperty = (name: string) =>
+      indexes
+        .filter(index => !index.numeric || String(Number(name)) === name)
+        .map(index => index.schema)
     const selected = new Set(
       Object.keys(result.properties).filter(name => {
-        if (indexes.length > 0) return true
+        if (indexesForProperty(name).length > 0) return true
         const property = type.getPropertyOrThrow(name)
         if (
           type.isInterface() &&
@@ -662,6 +671,7 @@ function resolveProperties(
         ? []
         : parents.map(member => resolveProperties(member, spec, selected))
     for (const name of selected) {
+      const propertyIndexes = indexesForProperty(name)
       const properties = members.flatMap(member =>
         member.properties[name] ? [member.properties[name]] : []
       )
@@ -669,7 +679,10 @@ function resolveProperties(
       const propertyType = property.getTypeAtLocation(
         getDeclarationForProperty(type, property)
       )
-      if (indexes.length > 0 || propertyType.getNonNullableType().isNever()) {
+      if (
+        propertyIndexes.length > 0 ||
+        propertyType.getNonNullableType().isNever()
+      ) {
         if (
           !type.isIntersection() ||
           !propertyType.getNonNullableType().isNever() ||
@@ -677,7 +690,10 @@ function resolveProperties(
         ) {
           properties.unshift(result.properties[name])
         }
-        result.properties[name] = intersectSchemas([...properties, ...indexes])
+        result.properties[name] = intersectSchemas([
+          ...properties,
+          ...propertyIndexes
+        ])
       } else {
         const current = result.properties[name]
         const missing = properties.filter(schema => {
@@ -727,7 +743,9 @@ function resolveProperties(
       indexes.length > 0 &&
       getAdditionalPropertiesFromJsDoc(type) === undefined
     ) {
-      result.additionalProperties = intersectSchemas(indexes)
+      result.additionalProperties = intersectSchemas(
+        indexes.map(index => index.schema)
+      )
       return result
     }
   }
