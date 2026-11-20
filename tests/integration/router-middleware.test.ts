@@ -2,7 +2,6 @@ import fs from 'fs'
 import path from 'path'
 import express from 'express'
 import request from 'supertest'
-import { glob } from 'glob'
 import { strict as assert } from 'node:assert'
 import { test, describe, before } from 'node:test'
 
@@ -180,43 +179,5 @@ describe('Route registration order', () => {
       await fs.promises.readFile(reversedRouterFile, 'utf-8')
     )
     assert.ok(generic < specific)
-  })
-
-  test('Should preserve the returned file order within a glob pattern', async () => {
-    const pattern = path.resolve(
-      __dirname,
-      '../fixtures/controllers/controller{,-middleware}.ts'
-    )
-    const files = await glob(pattern)
-    assert.equal(files.length, 2)
-    const globRouterFile = path.resolve(
-      __dirname,
-      'generated-router-middleware-glob.ts'
-    )
-    await generate({
-      tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
-      controllers: [pattern],
-      openapi: {
-        filePath: path.resolve(
-          __dirname,
-          'generated-openapi-router-middleware-glob.json'
-        ),
-        service: {
-          name: 'my-service',
-          version: '1.0.0'
-        }
-      },
-      router: {
-        filePath: globRouterFile,
-        runtimeImport: '../../src'
-      }
-    })
-    const { specific, generic } = routeIndexes(
-      await fs.promises.readFile(globRouterFile, 'utf-8')
-    )
-    assert.equal(
-      specific < generic,
-      files[0].endsWith('controller-middleware.ts')
-    )
   })
 })

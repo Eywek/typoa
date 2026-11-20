@@ -161,11 +161,11 @@ export async function generate(config: OpenAPIConfiguration) {
 
   // Iterate over controllers and patch spec. Express matches routes in the order
   // they are registered, so controllers are added in the order of
-  // `config.controllers`, preserving each glob's returned file order.
+  // `config.controllers`, then of their file path, not as the globs resolve.
   const filesByPattern = await Promise.all(
     config.controllers.map(controller => glob(controller))
   )
-  for (const file of filesByPattern.flat()) {
+  for (const file of filesByPattern.flatMap(files => [...files].sort())) {
     const filePath = path.resolve(root, file)
     const sourceFile = project.getSourceFileOrThrow(filePath)
     const controllers = sourceFile.getClasses()
