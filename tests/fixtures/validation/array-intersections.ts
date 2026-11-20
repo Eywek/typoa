@@ -22,6 +22,9 @@ interface MutableValue {
 interface ReadonlyValue {
   readonly value: string
 }
+interface MutablePair extends ReadonlyValue, Tagged {
+  value: string
+}
 interface HiddenValue {
   /** @writeonly */
   value: string
@@ -101,6 +104,7 @@ export interface Cases {
   readMerge: MutableValue & ReadonlyValue
   writeMerge: WritePair
   mutableClass: MutableItem
+  mutableOverride: MutablePair
   branded: string & { tag: string }
   reference: JsonValue & { tag: string }
   referenceProperty: Envelope<Named> & { note: string }

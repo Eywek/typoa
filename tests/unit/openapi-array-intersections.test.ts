@@ -112,6 +112,7 @@ describe('Lossless intersections', () => {
     readMerge: object({ value: { type: 'string', readOnly: true } }),
     writeMerge: { $ref: '#/components/schemas/WritePair' },
     mutableClass: { $ref: '#/components/schemas/MutableItem' },
+    mutableOverride: { $ref: '#/components/schemas/MutablePair' },
     branded: {
       allOf: [{ type: 'string' }, object({ tag: { type: 'string' } })]
     },
@@ -193,6 +194,16 @@ describe('Lossless intersections', () => {
     )
   })
 
+  test('Should let an interface override inherited readonly metadata', () => {
+    assert.deepEqual(
+      spec.components!.schemas!.MutablePair,
+      object({
+        value: { type: 'string' },
+        tags: { type: 'array', items: { type: 'string' } }
+      })
+    )
+  })
+
   const parse = (schema: OpenAPIV3.SchemaObject, value: unknown) =>
     validateAndParse(
       {
@@ -252,6 +263,13 @@ describe('Lossless intersections', () => {
   })
 
   const samples: Record<string, { valid: unknown[]; invalid: unknown[] }> = {
+    mutableOverride: {
+      valid: [
+        { value: 'x', tags: [] },
+        { value: 'y', tags: ['a'] }
+      ],
+      invalid: [{}, { value: {}, tags: [] }, { value: 'x', tags: {} }]
+    },
     objects: {
       valid: [[], [{ name: 'x', tags: [] }]],
       invalid: [[{}], [{ name: 'x' }]]

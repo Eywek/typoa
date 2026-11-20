@@ -617,6 +617,16 @@ function resolveProperties(
         if (indexes.length > 0) return true
         const property = type.getPropertyOrThrow(name)
         if (
+          type.isInterface() &&
+          property
+            .getDeclarations()
+            .some(
+              declaration =>
+                declaration.getParent().getSymbol() === type.getSymbol()
+            )
+        )
+          return false
+        if (
           property
             .getTypeAtLocation(getDeclarationForProperty(type, property))
             .getNonNullableType()
