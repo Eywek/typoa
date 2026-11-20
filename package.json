@@ -3,7 +3,11 @@
   "version": "1.0.0-alpha.73",
   "author": "Eywek <contact@eywek.fr>",
   "description": "Help you generate OpenAPI definitions via Typescript",
-  "homepage": "https://github.com/Eywek/typoa#readme",
+  "homepage": "https://github.com/reelevant-tech/typoa#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/reelevant-tech/typoa.git"
+  },
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "exports": {
