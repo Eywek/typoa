@@ -25,6 +25,34 @@ export class DynamicController extends Controller {
     return { value }
   }
 
+  @Get('/digits/{id([0-9]+)}')
+  public digits(@Path('id') id: string): { id: string } {
+    return { id }
+  }
+
+  @Get('/extension/{ext(png|jpg)}')
+  public extension(@Path('ext') ext: string): { ext: string } {
+    return { ext }
+  }
+
+  @Get('/patterns/{letters([A-Z]+)}/{digits([0-9]+)}')
+  public patterns(
+    @Path('letters') letters: string,
+    @Path('digits') digits: string
+  ): { letters: string; digits: string } {
+    return { letters, digits }
+  }
+
+  @Get('/fallback/{id([0-9]+)}')
+  public patterned(@Path('id') id: string): { handler: string; id: string } {
+    return { handler: 'patterned', id }
+  }
+
+  @Get('/fallback/{id}')
+  public fallback(@Path('id') id: string): { handler: string; id: string } {
+    return { handler: 'fallback', id }
+  }
+
   @Get('/file/{id}.json')
   public dotted(@Path('id') id: string): { id: string } {
     return { id }

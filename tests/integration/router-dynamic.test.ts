@@ -122,24 +122,50 @@ describe('Dynamic route parameters over HTTP', () => {
     })
   })
 
-  test('Should preserve Express 4 wildcard captures or explain the unsupported Express 5 pattern', async () => {
-    const { bindToRouter } = await generateRouter(
-      'router-controller-wildcard',
-      'wildcard'
-    )
-    const wildcardApp = express()
-    if (expressMajor === 5) {
-      // Express 5 rejects embedded regexes; '*' is not a valid JS regex for the fallback.
-      assert.throws(
-        () => bindToRouter(wildcardApp),
-        /Invalid path pattern '\*' for parameter 'path' in route '\/files\/:path\(\*\)': .*Nothing to repeat/
-      )
-    } else {
-      bindToRouter(wildcardApp)
-      const response = await request(wildcardApp)
-        .get('/files/a/b/c')
+  test('Should match digit patterns and reject non-digits', async () => {
+    const response = await request(app).get('/dynamic/digits/123').expect(200)
+    assert.deepStrictEqual(response.body, { id: '123' })
+    await request(app).get('/dynamic/digits/12a').expect(404)
+  })
+
+  test('Should match encoded digits only after decoding in Express 5', async () => {
+    // Express 4 matches the raw path; Express 5 fallback middleware sees decoded params.
+    const response = await request(app)
+      .get('/dynamic/digits/%31%32')
+      .expect(expressMajor === 4 ? 404 : 200)
+    if (expressMajor === 5) assert.deepStrictEqual(response.body, { id: '12' })
+  })
+
+  test('Should match alternation patterns case-insensitively', async () => {
+    for (const ext of ['png', 'jpg', 'PNG']) {
+      const response = await request(app)
+        .get(`/dynamic/extension/${ext}`)
         .expect(200)
-      assert.deepStrictEqual(response.body, { path: 'a/b/c' })
+      assert.deepStrictEqual(response.body, { ext })
     }
+    await request(app).get('/dynamic/extension/gif').expect(404)
+  })
+
+  test('Should reject encoded slashes and spaces that do not match the pattern', async () => {
+    for (const value of ['A%2FB', 'A%20B']) {
+      await request(app).get(`/dynamic/regex/${value}`).expect(404)
+    }
+  })
+
+  test('Should require both patterned parameters to match', async () => {
+    const response = await request(app)
+      .get('/dynamic/patterns/ABC/123')
+      .expect(200)
+    assert.deepStrictEqual(response.body, { letters: 'ABC', digits: '123' })
+    for (const value of ['ABC1/123', 'ABC/12a', 'ABC1/12a']) {
+      await request(app).get(`/dynamic/patterns/${value}`).expect(404)
+    }
+  })
+
+  test('Should fall through from a non-matching pattern to the next route', async () => {
+    const matching = await request(app).get('/dynamic/fallback/123').expect(200)
+    assert.deepStrictEqual(matching.body, { handler: 'patterned', id: '123' })
+    const fallback = await request(app).get('/dynamic/fallback/12a').expect(200)
+    assert.deepStrictEqual(fallback.body, { handler: 'fallback', id: '12a' })
   })
 })

@@ -24,8 +24,10 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             matrix:
-                express: ['4.22.3', '5.3.0']
+                express: ['4.17.1', '4.22.3', '5.3.0']
                 include:
+                    - express: '4.17.1'
+                      types: '4'
                     - express: '4.22.3'
                       types: '4'
                     - express: '5.3.0'
