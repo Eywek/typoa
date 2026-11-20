@@ -329,13 +329,17 @@ export function resolve(
     }
     // Same for arrays: `X[] & Y[]` is described as a single array of `X & Y`,
     // so that the items of `X` do not reject the properties of `Y`.
+    const members = type.getIntersectionTypes()
     const elementType = type.getNumberIndexType()
     if (
-      type.getIntersectionTypes().every(member => member.isArray()) &&
-      typeof elementType !== 'undefined' &&
-      elementType.isNever() === false
+      members.every(member => member.isArray()) &&
+      elementType &&
+      !elementType.isNever()
     ) {
-      return { type: 'array', items: resolve(elementType, spec) }
+      return {
+        type: 'array',
+        items: resolveArrayIntersectionItems(members, type, spec)
+      }
     }
     return {
       allOf: type.getIntersectionTypes().map(type => resolve(type, spec))
@@ -376,11 +380,136 @@ type ResolvePropertiesReturnType = Required<
     | boolean
 }
 
+type Schema = OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject
+
+function resolveArrayIntersectionItems(
+  members: Type[],
+  type: Type | undefined,
+  spec: OpenAPIV3.Document
+): Schema {
+  const elements = members.map(member => member.getArrayElementTypeOrThrow())
+  const elementType = type?.getNumberIndexType()
+  if (elements.every(element => element.isArray())) {
+    const nestedElement = elementType?.getNumberIndexType()
+    if (!nestedElement || nestedElement.isNever()) {
+      return { allOf: elements.map(element => resolve(element, spec)) }
+    }
+    return {
+      type: 'array',
+      items: resolveArrayIntersectionItems(elements, elementType, spec)
+    }
+  }
+  if (
+    elements.every(isPlainObjectType) &&
+    elementType &&
+    !elementType.isNever()
+  ) {
+    return resolve(elementType, spec)
+  }
+  return intersectSchemas(elements.map(element => resolve(element, spec)))
+}
+
+function intersectSchemas(schemas: Schema[]): Schema {
+  const readOnly = schemas.some(
+    schema => 'readOnly' in schema && schema.readOnly
+  )
+  const writeOnly = schemas.some(
+    schema => 'writeOnly' in schema && schema.writeOnly
+  )
+  const result = combineSchemas(
+    schemas.map(schema => {
+      const copy = { ...schema }
+      if ('readOnly' in copy) delete copy.readOnly
+      if ('writeOnly' in copy) delete copy.writeOnly
+      return copy
+    })
+  )
+  if (!readOnly && !writeOnly) return result
+  return appendMetaToResolvedType(result, {
+    ...(readOnly ? { readOnly: true } : {}),
+    ...(writeOnly ? { writeOnly: true } : {})
+  })
+}
+
+function combineSchemas(schemas: Schema[]): Schema {
+  const unique = schemas.filter(
+    (schema, index) =>
+      schemas.findIndex(
+        other => JSON.stringify(other) === JSON.stringify(schema)
+      ) === index
+  )
+  if (unique.length === 1) return unique[0]
+  if (
+    unique.every(
+      schema =>
+        'type' in schema &&
+        schema.type === 'array' &&
+        Object.keys(schema).every(key => key === 'type' || key === 'items')
+    )
+  ) {
+    return {
+      type: 'array',
+      items: intersectSchemas(
+        unique.map(schema => (schema as OpenAPIV3.ArraySchemaObject).items)
+      )
+    }
+  }
+  const narrowest = unique.find(schema =>
+    unique.every(other => {
+      if (JSON.stringify(schema) === JSON.stringify(other)) return true
+      if (
+        !('type' in schema) ||
+        !('type' in other) ||
+        schema.type !== other.type
+      )
+        return false
+      if (schema.nullable && !other.nullable) return false
+      if (Object.keys(other).every(key => key === 'type' || key === 'nullable'))
+        return true
+      return (
+        Object.keys(other).every(
+          key => key === 'type' || key === 'enum' || key === 'nullable'
+        ) &&
+        schema.enum !== undefined &&
+        other.enum !== undefined &&
+        schema.enum.every(value => other.enum!.includes(value))
+      )
+    })
+  )
+  return (
+    narrowest ?? {
+      allOf: unique,
+      ...(unique.every(schema => 'nullable' in schema && schema.nullable)
+        ? { nullable: true }
+        : {})
+    }
+  )
+}
+
+const intersectionConstraints = [
+  'minimum',
+  'maximum',
+  'exclusiveMinimum',
+  'exclusiveMaximum',
+  'minLength',
+  'maxLength',
+  'pattern',
+  'format',
+  'minItems',
+  'maxItems',
+  'uniqueItems',
+  'multipleOf'
+] as const
+
 function resolveProperties(
   type: Type,
-  spec: OpenAPIV3.Document
+  spec: OpenAPIV3.Document,
+  names?: Set<string>
 ): ResolvePropertiesReturnType {
-  const result: ResolvePropertiesReturnType = type.getProperties().reduce(
+  const properties = type
+    .getProperties()
+    .filter(property => !names || names.has(property.getName()))
+  const result: ResolvePropertiesReturnType = properties.reduce(
     (schema, property) => {
       const node = getDeclarationForProperty(type, property)
       const propertyType = property.getTypeAtLocation(node)
@@ -408,7 +537,9 @@ function resolveProperties(
           hasFlags(SymbolFlags.SetAccessor) === false) ||
         jsDocTags.some(tag => tag.name === 'readonly')
       // Required by default
-      let required = hasFlags(SymbolFlags.Optional) ? false : true
+      let required = type.isIntersection()
+        ? !property.hasFlags(SymbolFlags.Optional)
+        : !hasFlags(SymbolFlags.Optional)
       // We resolve the property, overriding the behavior for nullable values
       // if the value is optional (isUndefined = true) we don't push in the required array
       const resolvedType = resolve(
@@ -464,6 +595,124 @@ function resolveProperties(
   if (result.required?.length === 0) {
     // OpenAPI don't want the required[] prop if it's empty
     delete result.required
+  }
+  const parents = type.isIntersection()
+    ? type.getIntersectionTypes()
+    : type.isClassOrInterface()
+      ? type.getBaseTypes()
+      : []
+  if (parents.length > 0) {
+    const indexes = parents.flatMap(member => {
+      const index = member.getStringIndexType() ?? member.getNumberIndexType()
+      return index ? [resolve(index, spec)] : []
+    })
+    const selected = new Set(
+      Object.keys(result.properties).filter(name => {
+        if (indexes.length > 0) return true
+        const property = type.getPropertyOrThrow(name)
+        if (
+          property
+            .getTypeAtLocation(getDeclarationForProperty(type, property))
+            .getNonNullableType()
+            .isNever()
+        )
+          return true
+        return parents.some(parent => {
+          const source = parent.getProperty(name)
+          return (
+            source &&
+            (source.compilerSymbol
+              .getJsDocTags()
+              .some(tag =>
+                [...intersectionConstraints, 'readonly', 'writeonly'].includes(
+                  tag.name
+                )
+              ) ||
+              source
+                .getDeclarations()
+                .some(
+                  node =>
+                    Node.isGetAccessorDeclaration(node) ||
+                    (node.getCombinedModifierFlags() &
+                      ts.ModifierFlags.Readonly) !==
+                      0
+                ))
+          )
+        })
+      })
+    )
+    const members = parents.map(member =>
+      resolveProperties(member, spec, selected)
+    )
+    for (const name of selected) {
+      const properties = members.flatMap(member =>
+        member.properties[name] ? [member.properties[name]] : []
+      )
+      const property = type.getPropertyOrThrow(name)
+      const propertyType = property.getTypeAtLocation(
+        getDeclarationForProperty(type, property)
+      )
+      if (indexes.length > 0 || propertyType.getNonNullableType().isNever()) {
+        if (
+          !type.isIntersection() ||
+          !propertyType.getNonNullableType().isNever() ||
+          properties.length === 0
+        ) {
+          properties.unshift(result.properties[name])
+        }
+        result.properties[name] = intersectSchemas([...properties, ...indexes])
+      } else {
+        const current = result.properties[name]
+        const missing = properties.filter(schema => {
+          if ('$ref' in schema) return false
+          return intersectionConstraints.some(key => {
+            const value = schema[key]
+            if (value === undefined) return false
+            if ('$ref' in current) return true
+            const resolved = current[key]
+            if (JSON.stringify(value) === JSON.stringify(resolved)) return false
+            if (typeof value === 'number' && typeof resolved === 'number') {
+              if (
+                ['minimum', 'minLength', 'minItems'].includes(key) &&
+                resolved >= value
+              )
+                return false
+              if (
+                ['maximum', 'maxLength', 'maxItems'].includes(key) &&
+                resolved <= value
+              )
+                return false
+            }
+            return true
+          })
+        })
+        result.properties[name] = intersectSchemas([current, ...missing])
+        const annotations = properties.filter(
+          schema => 'readOnly' in schema || 'writeOnly' in schema
+        )
+        if (annotations.length > 0) {
+          appendMetaToResolvedType(result.properties[name], {
+            ...(annotations.some(
+              schema => 'readOnly' in schema && schema.readOnly
+            )
+              ? { readOnly: true }
+              : {}),
+            ...(annotations.some(
+              schema => 'writeOnly' in schema && schema.writeOnly
+            )
+              ? { writeOnly: true }
+              : {})
+          })
+        }
+      }
+    }
+    if (
+      indexes.length > 0 &&
+      getAdditionalPropertiesFromJsDoc(type) === undefined
+    ) {
+      result.additionalProperties = intersectSchemas(indexes)
+      return result
+    }
   }
   const typeSymbol = type.getSymbol()
   const additionalPropertiesFromJSDoc = getAdditionalPropertiesFromJsDoc(type)
@@ -618,6 +867,11 @@ function getAdditionalPropertiesFromJsDoc(type: Type): boolean | undefined {
     : type.isInterface()
       ? type.getBaseTypes()
       : []
+  if (
+    parents.some(parent => getAdditionalPropertiesFromJsDoc(parent) === false)
+  ) {
+    return false
+  }
   if (parents.some(parent => getAdditionalPropertiesFromJsDoc(parent))) {
     return true
   }

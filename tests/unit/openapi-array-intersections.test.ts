@@ -1,0 +1,313 @@
+import path from 'path'
+import { readFileSync } from 'fs'
+import { strict as assert } from 'node:assert'
+import { before, describe, test } from 'node:test'
+import Ajv from 'ajv'
+import type express from 'express'
+import { OpenAPIV3 } from 'openapi-types'
+import { generate } from '../../src'
+import { validateAndParse } from '../../src/runtime/validator'
+import { options } from '../../src/option'
+
+describe('Lossless intersections', () => {
+  let spec: OpenAPIV3.Document
+  let properties: Record<string, any>
+  const ajv = new Ajv({ strict: false })
+  const literal = { type: 'string', enum: ['a'] }
+  const kind = { $ref: '#/components/schemas/Kind' }
+  const tags = { type: 'array', items: { allOf: [literal, kind] } }
+  const direct = {
+    allOf: [
+      { type: 'array', items: literal },
+      { type: 'array', items: kind }
+    ]
+  }
+  const object = (
+    properties: Record<string, unknown>,
+    required = Object.keys(properties),
+    additionalProperties: unknown = false
+  ) => ({
+    type: 'object',
+    properties,
+    ...(required.length ? { required } : {}),
+    additionalProperties
+  })
+  const named = object({
+    name: { type: 'string' },
+    tags: { type: 'array', items: { type: 'string' } }
+  })
+
+  before(async () => {
+    const filePath = path.resolve(
+      __dirname,
+      'generated-openapi-array-intersections.json'
+    )
+    await generate({
+      tsconfigFilePath: path.resolve(__dirname, '../fixtures/tsconfig.json'),
+      controllers: [
+        path.resolve(__dirname, '../fixtures/validation/array-intersections.ts')
+      ],
+      openapi: { filePath, service: { name: 'test', version: '1' } },
+      router: {
+        filePath: path.resolve(
+          __dirname,
+          'generated-router-array-intersections.ts'
+        )
+      }
+    })
+    spec = JSON.parse(readFileSync(filePath, 'utf8'))
+    properties = (spec.components!.schemas!.Cases as OpenAPIV3.SchemaObject)
+      .properties!
+    ajv.addSchema({ components: spec.components }, 'spec')
+  })
+
+  const expected: Record<string, unknown> = {
+    direct,
+    tags,
+    serialized: object({ tags }),
+    choice: {
+      oneOf: [object({ tags }), object({ other: { type: 'boolean' } })]
+    },
+    objects: { type: 'array', items: named },
+    nested: { type: 'array', items: tags },
+    nestedDirect: { type: 'array', items: direct },
+    nestedObjects: { type: 'array', items: { type: 'array', items: named } },
+    enumValue: { type: 'string', enum: ['b'] },
+    conflict: object({
+      value: { allOf: [{ type: 'string' }, { type: 'number' }] }
+    }),
+    optionalConflict: object({}, []),
+    required: object({ value: { type: 'string' } }),
+    constraints: object({
+      name: { type: 'string', minLength: 2, maxLength: 4 }
+    }),
+    inherited: { $ref: '#/components/schemas/Inherited' },
+    narrowed: { $ref: '#/components/schemas/Narrowed' },
+    bounded: object({
+      tags: {
+        type: 'array',
+        items: { type: 'string' },
+        minItems: 1,
+        maxItems: 2
+      }
+    }),
+    indexed: object({}, [], {
+      allOf: [{ type: 'string' }, { type: 'number' }]
+    }),
+    inheritedIndex: { $ref: '#/components/schemas/Indexed' },
+    indexedProperty: object(
+      { count: { allOf: [{ type: 'number' }, { type: 'string' }] } },
+      ['count'],
+      { type: 'string' }
+    ),
+    closed: object({ name: { type: 'string' } }),
+    inheritedClosed: { $ref: '#/components/schemas/ClosedPair' },
+    modifiers: object({ name: { type: 'string', readOnly: true } }),
+    branded: {
+      allOf: [{ type: 'string' }, object({ tag: { type: 'string' } })]
+    },
+    reference: {
+      allOf: [
+        { $ref: '#/components/schemas/JsonValue' },
+        object({ tag: { type: 'string' } })
+      ]
+    },
+    referenceProperty: object({
+      data: { $ref: '#/components/schemas/Named' },
+      note: { type: 'string' }
+    }),
+    composedReference: {
+      allOf: [
+        { $ref: '#/components/schemas/JsonChoice' },
+        object({ active: { type: 'boolean' } })
+      ]
+    },
+    union: {
+      oneOf: [
+        object({ name: { type: 'string' }, active: { type: 'boolean' } }),
+        object({ count: { type: 'number' }, active: { type: 'boolean' } })
+      ]
+    }
+  }
+
+  for (const [name, schema] of Object.entries(expected)) {
+    test(`Should preserve the exact schema for ${name}`, () => {
+      assert.deepEqual(properties[name], schema)
+    })
+  }
+
+  test('Should retain enum references and composed references', () => {
+    assert.deepEqual(
+      spec.components!.schemas!.Indexed,
+      object({ kind: literal }, ['kind'], { type: 'string' })
+    )
+    assert.deepEqual(spec.components!.schemas!.ClosedPair, expected.closed)
+    assert.deepEqual(
+      spec.components!.schemas!.Narrowed,
+      object({ name: { type: 'string', minLength: 3 } })
+    )
+    assert.deepEqual(
+      spec.components!.schemas!.Inherited,
+      object({
+        name: {
+          allOf: [
+            { type: 'string', minLength: 2 },
+            { type: 'string', maxLength: 4 }
+          ]
+        }
+      })
+    )
+    assert.deepEqual(spec.components!.schemas!.Kind, {
+      type: 'string',
+      enum: ['a', 'b']
+    })
+    assert.deepEqual(spec.components!.schemas!.JsonValue, { type: 'string' })
+    assert.deepEqual(spec.components!.schemas!.JsonChoice, {
+      oneOf: [
+        object({ left: { type: 'string' } }),
+        object({ right: { type: 'number' } })
+      ]
+    })
+  })
+
+  const parse = (schema: OpenAPIV3.SchemaObject, value: unknown) =>
+    validateAndParse(
+      {
+        body: value,
+        headers: { 'content-type': 'application/json' }
+      } as express.Request,
+      spec.components!.schemas!,
+      {
+        params: [{ name: 'body', in: 'body' as any }],
+        body: { required: true, content: { 'application/json': { schema } } }
+      }
+    )
+
+  test('Should preserve array constraints for a small exhaustive set of values', async () => {
+    const values: unknown[] = ['a', 'b', 'c', 3, null, {}]
+    const arrays = [
+      [],
+      ...values.map(value => [value]),
+      ...values.flatMap(a => values.map(b => [a, b]))
+    ]
+    for (const name of ['direct', 'tags', 'serialized', 'choice', 'nested']) {
+      for (const array of arrays) {
+        const value =
+          name === 'serialized' || name === 'choice'
+            ? { tags: array }
+            : name === 'nested'
+              ? [array]
+              : array
+        const valid = array.every(item => item === 'a')
+        assert.equal(
+          ajv.validate(
+            { $ref: `spec#/components/schemas/Cases/properties/${name}` },
+            value
+          ),
+          valid,
+          `${name}: ${JSON.stringify(value)}`
+        )
+        if (valid)
+          assert.deepEqual(await parse(properties[name], value), [value])
+        else await assert.rejects(parse(properties[name], value))
+      }
+    }
+  })
+
+  const samples: Record<string, { valid: unknown[]; invalid: unknown[] }> = {
+    objects: {
+      valid: [[], [{ name: 'x', tags: [] }]],
+      invalid: [[{}], [{ name: 'x' }]]
+    },
+    nestedObjects: {
+      valid: [[], [[{ name: 'x', tags: [] }]]],
+      invalid: [[[{}]]]
+    },
+    enumValue: { valid: ['b'], invalid: ['a', 'c'] },
+    conflict: { valid: [], invalid: [{}, { value: {} }] },
+    optionalConflict: { valid: [{}], invalid: [{ value: {} }] },
+    required: { valid: [{ value: 'x' }], invalid: [{}, { value: {} }] },
+    inherited: {
+      valid: [{ name: 'ab' }],
+      invalid: [{ name: 'a' }, { name: 'abcde' }]
+    },
+    bounded: {
+      valid: [{ tags: ['a'] }, { tags: ['a', 'b'] }],
+      invalid: [{ tags: [] }, { tags: ['a', 'b', 'c'] }]
+    },
+    constraints: {
+      valid: [{ name: 'ab' }, { name: 'abcd' }],
+      invalid: [{ name: 'a' }, { name: 'abcde' }, {}]
+    },
+    indexed: { valid: [{}], invalid: [{ x: {} }] },
+    inheritedIndex: {
+      valid: [{ kind: 'a', other: 'b' }],
+      invalid: [{ kind: 'b' }, { kind: 'a', other: {} }]
+    },
+    indexedProperty: { valid: [], invalid: [{}, { count: {} }] },
+    closed: {
+      valid: [{ name: 'x' }],
+      invalid: [{ name: 'x', extra: true }, {}]
+    },
+    inheritedClosed: {
+      valid: [{ name: 'x' }],
+      invalid: [{ name: 'x', extra: true }]
+    },
+    branded: { valid: [], invalid: ['x', {}] },
+    reference: { valid: [], invalid: ['x', {}] },
+    referenceProperty: {
+      valid: [{ data: { name: 'x' }, note: 'n' }],
+      invalid: [{ data: {}, note: 'n' }]
+    },
+    composedReference: { valid: [], invalid: [{ active: true }, {}] },
+    union: {
+      valid: [
+        { name: 'x', active: true },
+        { count: 1, active: false }
+      ],
+      invalid: [{ name: 'x' }, { active: true }]
+    }
+  }
+  for (const [name, { valid, invalid }] of Object.entries(samples)) {
+    test(`Should validate retained constraints for ${name}`, async () => {
+      options.features.enableThrowOnUnexpectedAdditionalData = true
+      try {
+        for (const value of valid) {
+          assert.equal(
+            ajv.validate(
+              { $ref: `spec#/components/schemas/Cases/properties/${name}` },
+              value
+            ),
+            true
+          )
+          assert.deepEqual(await parse(properties[name], value), [value])
+        }
+        for (const value of invalid) {
+          assert.equal(
+            ajv.validate(
+              { $ref: `spec#/components/schemas/Cases/properties/${name}` },
+              value
+            ),
+            false
+          )
+          await assert.rejects(parse(properties[name], value))
+        }
+      } finally {
+        options.features.enableThrowOnUnexpectedAdditionalData = false
+      }
+    })
+  }
+
+  test('Should keep readonly, required and non-nullable constraints together', async () => {
+    const schema = properties.modifiers.properties.name
+    assert.deepEqual(await parse(schema, 'x'), ['x'])
+    await assert.rejects(parse(schema, null))
+    assert.equal(
+      ajv.validate(
+        { $ref: 'spec#/components/schemas/Cases/properties/modifiers' },
+        {}
+      ),
+      false
+    )
+  })
+})
