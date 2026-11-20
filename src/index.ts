@@ -159,23 +159,25 @@ export async function generate(config: OpenAPIConfiguration) {
   const codegenControllers: CodeGenControllers = {}
   const controllersPathByName: Record<string, string> = {}
 
-  // Iterate over controllers and patch spec. Express matches routes in the order
-  // they are registered, so controllers are added in the order of
-  // `config.controllers`, then of their file path, not as the globs resolve.
-  const filesByPattern = await Promise.all(
-    config.controllers.map(controller => glob(controller))
+  // Iterate over controllers and patch spec
+  await Promise.all(
+    config.controllers.map(async controller => {
+      const files = await glob(controller)
+      await Promise.all(
+        files.map(async file => {
+          const filePath = path.resolve(root, file)
+          const sourceFile = project.getSourceFileOrThrow(filePath)
+          const controllers = sourceFile.getClasses()
+          for (const controller of controllers) {
+            const routeDecorator = controller.getDecorator('Route')
+            if (routeDecorator === undefined) continue // skip
+            addController(controller, spec, codegenControllers, config.router)
+            controllersPathByName[controller.getName()!] = filePath
+          }
+        })
+      )
+    })
   )
-  for (const file of filesByPattern.flatMap(files => [...files].sort())) {
-    const filePath = path.resolve(root, file)
-    const sourceFile = project.getSourceFileOrThrow(filePath)
-    const controllers = sourceFile.getClasses()
-    for (const controller of controllers) {
-      const routeDecorator = controller.getDecorator('Route')
-      if (routeDecorator === undefined) continue // skip
-      addController(controller, spec, codegenControllers, config.router)
-      controllersPathByName[controller.getName()!] = filePath
-    }
-  }
 
   // additional exported type names
   for (const typeName of config.openapi.additionalExportedTypeNames ?? []) {
