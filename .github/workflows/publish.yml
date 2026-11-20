@@ -54,12 +54,14 @@ jobs:
             - name: lint
               run: yarn eslint .
 
-    # Only runs when both test and lint pass
+    # Only runs when both test and lint pass. Bumps the version, publishes it and
+    # commits the bump on main so package.json stays in sync with npm
     publish:
         needs: [test, lint]
         runs-on: ubuntu-latest
         permissions:
-            contents: read
+            # Push the version commit on main
+            contents: write
             # Required for npm trusted publishing (OIDC), no npm token is stored
             id-token: write
         steps:
@@ -76,6 +78,20 @@ jobs:
             - name: install
               run: yarn --frozen-lockfile
 
+            # Next prerelease after the highest of package.json and npm, so a previous
+            # run that published but could not push its commit never causes a duplicate
+            - name: bump version
+              id: version
+              run: |
+                  current=$(jq -r .version package.json)
+                  published=$(npm view typoa version --prefer-online 2>/dev/null || true)
+                  highest=$(npx --yes semver@7 --include-prerelease "$current" ${published:+"$published"} | tail -1)
+                  next=$(npx --yes semver@7 --increment prerelease "$highest")
+
+                  npm pkg set version="$next"
+                  echo "version=$next" >> "$GITHUB_OUTPUT"
+                  echo "package.json: $current, npm: ${published:-none}, publishing: $next"
+
             - name: build
               run: yarn run build
 
@@ -85,3 +101,37 @@ jobs:
             # `latest`, recent npm versions refuse a prerelease without an explicit tag
             - name: publish
               run: npm publish --tag latest
+
+            # Pushes made with GITHUB_TOKEN do not trigger workflows, no publish loop.
+            # Retried on top of the latest main if another merge landed meanwhile.
+            - name: commit version on main
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+                  for attempt in 1 2 3; do
+                      git fetch --depth=1 origin main
+                      git reset --hard FETCH_HEAD
+
+                      # main already holds this version or a newer one
+                      if npx --yes semver@7 --include-prerelease --range ">=$VERSION" "$(jq -r .version package.json)" > /dev/null; then
+                          echo "main is already at $(jq -r .version package.json)"
+                          exit 0
+                      fi
+
+                      npm pkg set version="$VERSION"
+                      git commit -am "chore(release): v$VERSION"
+
+                      if git push origin HEAD:main; then
+                          echo "Committed v$VERSION on main"
+                          exit 0
+                      fi
+
+                      echo "Push rejected (attempt $attempt), retrying"
+                      sleep 3
+                  done
+
+                  echo "::error::v$VERSION is published on npm but its commit could not be pushed on main"
+                  exit 1
