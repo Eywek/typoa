@@ -45,9 +45,9 @@ jobs:
               if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
               uses: xseman/coverage@v0.2.0
               with:
-                github-token: ${{ secrets.GITHUB_TOKEN }}
-                coverage-artifact-paths: |
-                    lcov:coverage/lcov.info
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+                  coverage-artifact-paths: |
+                      lcov:coverage/lcov.info
 
     lint:
         runs-on: ubuntu-latest

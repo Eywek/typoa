@@ -197,7 +197,9 @@ async function validateBody(
   ) {
     return undefined
   }
-  const contentType = (req.headers['content-type'] ?? 'application/json').split(';')[0]
+  const contentType = (req.headers['content-type'] ?? 'application/json').split(
+    ';'
+  )[0]
 
   const expectedSchema = rule.content[contentType]?.schema
   if (typeof expectedSchema === 'undefined') {

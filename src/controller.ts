@@ -409,6 +409,13 @@ export function addController(
               .replace(
                 /{([A-Za-z0-9-_]+)\((.+)\)}/g,
                 (match, name: string, pattern: string) => {
+                  try {
+                    new RegExp(`^(?:${pattern})$`)
+                  } catch (error) {
+                    throw new Error(
+                      `Invalid path pattern '${pattern}' for parameter '${name}' in route '${verb.toUpperCase()} ${endpoint}': ${(error as Error).message}`
+                    )
+                  }
                   pathPatterns[name] = pattern
                   return `:${name}`
                 }
