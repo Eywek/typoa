@@ -498,9 +498,21 @@ function validateAndParseValueAgainstSchema(
         fieldName: name
       }
     }
+    const booleanValue = parsedValue === '1' || parsedValue === 'true'
+    if (
+      currentSchema.enum &&
+      currentSchema.enum.includes(booleanValue) === false
+    ) {
+      return {
+        succeed: false,
+        errorMessage: `This property must be one of ${currentSchema.enum}`,
+        fieldName: name,
+        value
+      }
+    }
     return {
       succeed: true,
-      value: parsedValue === '1' || parsedValue === 'true'
+      value: booleanValue
     }
   }
   // Array

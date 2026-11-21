@@ -137,9 +137,14 @@ export function resolve(
   if (type.isBooleanLiteral()) {
     return {
       type: 'boolean',
-      // @ts-expect-error https://github.com/microsoft/TypeScript/issues/26075
-      enum: [type.compilerType.intrinsicName]
+      enum: [type.getText() === 'true']
     }
+  }
+  if (type.isTemplateLiteral()) {
+    return { type: 'string' }
+  }
+  if (type.isBigInt()) {
+    return { type: 'integer', format: 'int64' }
   }
   if (type.isUnknown() || type.isAny()) {
     spec.components!.schemas!.AnyValue = {
@@ -408,7 +413,9 @@ function resolveProperties(
           hasFlags(SymbolFlags.SetAccessor) === false) ||
         jsDocTags.some(tag => tag.name === 'readonly')
       // Required by default
-      let required = hasFlags(SymbolFlags.Optional) ? false : true
+      // Only look at the property symbol: for mapped types such as Required<T>
+      // the original declaration is still optional
+      let required = property.hasFlags(SymbolFlags.Optional) ? false : true
       // We resolve the property, overriding the behavior for nullable values
       // if the value is optional (isUndefined = true) we don't push in the required array
       const resolvedType = resolve(
